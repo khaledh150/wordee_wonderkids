@@ -1,0 +1,15 @@
+{
+  "name": "Wordee - Learn English Words",
+  "short_name": "Wordee",
+  "description": "Learn English Vocabulary for Kids",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FFF5F0",
+  "background_color": "#FFF5F0",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="20" fill="#F5F3FF"/>
+  <text x="100" y="90" text-anchor="middle" font-size="60">📷</text>
+  <text x="100" y="140" text-anchor="middle" font-size="16" fill="#A78BFA" font-family="sans-serif">No image</text>
+</svg>
