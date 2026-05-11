@@ -19,6 +19,7 @@
   --color-green: #34D399;
   --color-text: #3D2C4E;
   --color-text-light: #8B7A9E;
+  color-scheme: light only;
 }
 
 * {

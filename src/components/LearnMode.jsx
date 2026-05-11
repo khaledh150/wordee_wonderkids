@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Home, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Home, Volume2 } from 'lucide-react'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
-import { playWordVO, stopAll, delay, toggleMute, isVOMuted, startIdleTimer, clearIdleTimer, resetIdleTimer } from '../utils/audioPlayer'
+import { playWordVO, stopAll, delay, startIdleTimer, clearIdleTimer, resetIdleTimer } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
 import { fireCelebration, fireConfetti } from '../utils/confetti'
+import useSwipe from '../utils/useSwipe'
 
 export default function LearnMode({ level, onBack, onHome }) {
   const vocab = getVocabForLevel(level)
   const levelData = LEVELS.find(l => l.id === level)
   const [index, setIndex] = useState(0)
   const [showNav, setShowNav] = useState(false)
-  const [muted, setMuted] = useState(isVOMuted())
   const [imgLoaded, setImgLoaded] = useState(false)
   const navTimer = useRef(null)
   const voPlayed = useRef(new Set())
@@ -70,23 +70,21 @@ export default function LearnMode({ level, onBack, onHome }) {
     playCurrentWord()
   }, [playCurrentWord])
 
-  const handleMuteToggle = useCallback(() => {
-    const newMuted = toggleMute()
-    setMuted(newMuted)
-  }, [])
+  const swipeHandlers = useSwipe(goNext, goPrev)
 
   if (!current) return null
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col bg-gradient-to-b from-pink-50 via-white to-purple-50 relative overflow-hidden"
+      className="w-full h-full flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onPointerDown={showNavigation}
+      {...swipeHandlers}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
         <button onClick={onBack} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
@@ -94,19 +92,14 @@ export default function LearnMode({ level, onBack, onHome }) {
           <span className="text-sm font-bold text-purple-500">Learn · {levelData?.name}</span>
           <div className="text-xs text-purple-300">{index + 1} / {vocab.length}</div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={handleMuteToggle} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-            {muted ? <VolumeX className="w-5 h-5 text-gray-400" /> : <Volume2 className="w-5 h-5 text-purple-500" />}
-          </button>
-          <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-            <Home className="w-5 h-5 text-purple-500" />
-          </button>
-        </div>
+        <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+          <Home className="w-5 h-5 text-purple-500" />
+        </button>
       </div>
 
       {/* Progress bar */}
-      <div className="px-4 shrink-0">
-        <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+      <div className="px-3 shrink-0">
+        <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full"
             animate={{ width: `${((index + 1) / vocab.length) * 100}%` }}
@@ -115,44 +108,46 @@ export default function LearnMode({ level, onBack, onHome }) {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0">
+      {/* Landscape content: image LEFT, word RIGHT */}
+      <div className="flex-1 flex items-center justify-center px-4 py-2 min-h-0 gap-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            className="flex flex-col items-center"
+            className="flex items-center justify-center gap-6 sm:gap-10 w-full max-w-4xl"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.25 }}
           >
-            {/* Image frame */}
-            <div className="relative bg-white rounded-3xl shadow-xl p-3 sm:p-4 mb-4 max-w-[280px] sm:max-w-[340px]">
+            {/* Image frame - dominant and big */}
+            <div className="relative bg-white rounded-3xl shadow-xl p-2 sm:p-3 shrink-0">
               {!imgLoaded && (
-                <div className="w-56 h-56 sm:w-72 sm:h-72 bg-purple-50 rounded-2xl animate-pulse" />
+                <div className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-purple-50 rounded-2xl animate-pulse" />
               )}
               <img
                 src={current.image}
                 alt={current.word}
-                className={`w-56 h-56 sm:w-72 sm:h-72 object-contain rounded-2xl ${imgLoaded ? '' : 'hidden'}`}
+                className={`w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 object-contain rounded-2xl ${imgLoaded ? '' : 'hidden'}`}
                 onLoad={() => setImgLoaded(true)}
                 onError={(e) => { e.target.src = '/images/placeholder.svg'; setImgLoaded(true) }}
                 draggable={false}
               />
-              {/* Speaker button */}
+              {/* Speaker button on image */}
               <button
-                onClick={handleSpeaker}
-                className="absolute top-2 right-2 p-2 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
+                onClick={(e) => { e.stopPropagation(); handleSpeaker() }}
+                className="absolute top-1 right-1 sm:top-2 sm:right-2 p-2 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
               >
-                <Volume2 className="w-5 h-5 text-white" />
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
             </div>
 
-            {/* Word */}
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-purple-700 mb-1">
-              {current.word}
-            </h1>
-            <p className="text-lg sm:text-xl text-purple-400 font-semibold">{current.thai}</p>
+            {/* Word + Thai on the right */}
+            <div className="flex flex-col items-start justify-center">
+              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-purple-700 mb-2">
+                {current.word}
+              </h1>
+              <p className="text-lg sm:text-2xl md:text-3xl text-purple-400 font-semibold">{current.thai}</p>
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -163,7 +158,7 @@ export default function LearnMode({ level, onBack, onHome }) {
           <>
             {!isFirst && (
               <motion.button
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -173,7 +168,7 @@ export default function LearnMode({ level, onBack, onHome }) {
               </motion.button>
             )}
             <motion.button
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}

@@ -9,13 +9,13 @@ const levelShadows = ['shadow-pink-300', 'shadow-teal-300', 'shadow-violet-300',
 export default function LevelSelect({ onSelect }) {
   return (
     <motion.div
-      className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-pink-50 via-white to-purple-50 overflow-auto"
+      className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 overflow-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      <img src={logo} alt="Wordee" className="w-20 h-20 sm:w-28 sm:h-28 object-contain mb-2" />
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-purple-700 mb-1">Wordee</h1>
+      <img src={logo} alt="Wordee" className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain mb-2" />
+      <h1 className="text-3xl sm:text-4xl font-extrabold text-purple-700 mb-1">Wordee</h1>
       <p className="text-sm text-purple-400 mb-4">Choose your level</p>
 
       <div className="flex flex-col gap-3 w-full max-w-sm">

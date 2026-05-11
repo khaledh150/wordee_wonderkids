@@ -9,14 +9,19 @@ export function toggleMute() { voMuted = !voMuted; if (voMuted) stopAll(); retur
 export function stopAll() {
   generationId++
   if (currentAudio) {
-    currentAudio.pause()
-    currentAudio.currentTime = 0
+    cleanupAudio(currentAudio)
     currentAudio = null
   }
 }
 
 export function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function cleanupAudio(audio) {
+  audio.pause()
+  audio.removeAttribute('src')
+  audio.load()
 }
 
 function playFile(src) {
@@ -27,9 +32,16 @@ function playFile(src) {
     generationId = myGen
     const audio = new Audio(src)
     currentAudio = audio
-    audio.onended = () => { if (currentAudio === audio) currentAudio = null; resolve() }
-    audio.onerror = () => { if (currentAudio === audio) currentAudio = null; resolve() }
-    audio.play().catch(() => resolve())
+    const done = () => {
+      if (currentAudio === audio) {
+        cleanupAudio(audio)
+        currentAudio = null
+      }
+      resolve()
+    }
+    audio.onended = done
+    audio.onerror = done
+    audio.play().catch(() => { done() })
   })
 }
 
