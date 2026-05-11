@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowRight, Home, Volume2 } from 'lucide-react'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, stopAll, delay, startIdleTimer, clearIdleTimer, resetIdleTimer } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
-import { fireCelebration, fireConfetti } from '../utils/confetti'
+import { fireCelebration } from '../utils/confetti'
+import { preloadLevelImages } from '../utils/preloadImages'
 import useSwipe from '../utils/useSwipe'
 
 export default function LearnMode({ level, onBack, onHome }) {
@@ -14,11 +15,14 @@ export default function LearnMode({ level, onBack, onHome }) {
   const [showNav, setShowNav] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
   const navTimer = useRef(null)
-  const voPlayed = useRef(new Set())
 
   const current = vocab[index]
   const isFirst = index === 0
   const isLast = index === vocab.length - 1
+
+  useEffect(() => {
+    preloadLevelImages(vocab)
+  }, [vocab])
 
   const playCurrentWord = useCallback(async () => {
     if (!current) return
@@ -28,10 +32,7 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   useEffect(() => {
     setImgLoaded(false)
-    if (!voPlayed.current.has(index)) {
-      voPlayed.current.add(index)
-      playCurrentWord()
-    }
+    playCurrentWord()
     trackWordLearned(level, current?.word)
     startIdleTimer(() => {}, 20000)
     return () => clearIdleTimer()
@@ -132,7 +133,6 @@ export default function LearnMode({ level, onBack, onHome }) {
                 onError={(e) => { e.target.src = '/images/placeholder.svg'; setImgLoaded(true) }}
                 draggable={false}
               />
-              {/* Speaker button on image */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleSpeaker() }}
                 className="absolute top-1 right-1 sm:top-2 sm:right-2 p-2 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"

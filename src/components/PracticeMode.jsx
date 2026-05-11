@@ -5,6 +5,7 @@ import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, playCorrectEncouragement, playWrongEncouragement, playCelebration, stopAll, delay } from '../utils/audioPlayer'
 import { trackWordPracticed, trackLevelCompleted } from '../utils/progress'
 import { fireConfetti, fireCelebration as confettiCelebration } from '../utils/confetti'
+import { preloadLevelImages } from '../utils/preloadImages'
 import MultipleChoice from './practice/MultipleChoice'
 import LetterDragDrop from './practice/LetterDragDrop'
 import useSwipe from '../utils/useSwipe'
@@ -23,6 +24,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
       ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
     return arr
+  }, [allVocab])
+
+  useEffect(() => {
+    preloadLevelImages(allVocab)
   }, [allVocab])
 
   const current = shuffled[index]
@@ -128,12 +133,12 @@ export default function PracticeMode({ level, onBack, onHome }) {
         )}
       </AnimatePresence>
 
-      {/* Landscape content: image LEFT, practice RIGHT */}
-      <div className="flex-1 flex items-center justify-center px-4 py-2 min-h-0 gap-4 sm:gap-8">
+      {/* Landscape content: image LEFT, practice RIGHT — tight gap */}
+      <div className="flex-1 flex items-center justify-center px-3 py-1 min-h-0 gap-3 sm:gap-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            className="flex items-center justify-center gap-4 sm:gap-8 w-full max-w-5xl"
+            className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-5xl"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -155,7 +160,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
               </button>
             </div>
 
-            {/* Practice area on the right */}
+            {/* Practice area on the right — tight spacing */}
             <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
               {level === 1 ? (
                 <MultipleChoice

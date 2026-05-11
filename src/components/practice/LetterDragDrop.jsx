@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 
 function shuffleArray(arr) {
@@ -12,135 +12,118 @@ function shuffleArray(arr) {
 
 export default function LetterDragDrop({ current, level, onCorrect, onWrong, answered }) {
   const word = current.word.toLowerCase()
-  const letters = word.split('')
 
-  const { slots: initialSlots, choices: initialChoices } = useMemo(() => {
+  const { prefilled, choices } = useMemo(() => {
+    const letters = word.split('')
+    let prefilled
+    let choiceLetters
+
     if (level === 2) {
       const revealed = new Set()
       const revealCount = Math.max(1, Math.floor(letters.length * 0.4))
       while (revealed.size < revealCount) {
         revealed.add(Math.floor(Math.random() * letters.length))
       }
-      const slots = letters.map((l, i) => revealed.has(i) ? l : null)
-      const missing = letters.filter((_, i) => !revealed.has(i))
-      return { slots, choices: shuffleArray(missing) }
+      prefilled = letters.map((l, i) => revealed.has(i) ? l : null)
+      choiceLetters = letters.filter((_, i) => !revealed.has(i))
+    } else if (level === 3) {
+      prefilled = letters.map(() => null)
+      choiceLetters = [...letters]
+    } else {
+      prefilled = letters.map(() => null)
+      const extras = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => !letters.includes(c))
+      const distractorCount = Math.min(Math.max(4, Math.floor(letters.length * 0.6)), extras.length)
+      const distractors = shuffleArray(extras).slice(0, distractorCount)
+      choiceLetters = [...letters, ...distractors]
     }
-    if (level === 3) {
-      const slots = letters.map(() => null)
-      return { slots, choices: shuffleArray([...letters]) }
-    }
-    const slots = letters.map(() => null)
-    const extras = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => !letters.includes(c))
-    const distractorCount = Math.min(Math.max(4, Math.floor(letters.length * 0.6)), extras.length)
-    const distractors = shuffleArray(extras).slice(0, distractorCount)
-    return { slots, choices: shuffleArray([...letters, ...distractors]) }
-  }, [current.word, level, letters])
 
-  const [slots, setSlots] = useState(initialSlots)
-  const [usedChoices, setUsedChoices] = useState(new Set())
+    return {
+      prefilled,
+      choices: shuffleArray(choiceLetters),
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [word, level])
+
+  const [slots, setSlots] = useState(prefilled)
+  const [usedMap, setUsedMap] = useState({})
   const [wrongSlot, setWrongSlot] = useState(null)
-  const [draggingIdx, setDraggingIdx] = useState(null)
-  const slotRefs = useRef([])
 
-  const nextEmptySlot = slots.findIndex(s => s === null)
+  const letters = word.split('')
+  const nextEmpty = slots.findIndex(s => s === null)
 
-  const placeLetter = useCallback((letter, choiceIndex) => {
-    if (answered) return
-    if (nextEmptySlot === -1) return
+  const placeLetter = useCallback((letter, choiceIdx) => {
+    if (answered || nextEmpty === -1) return
 
-    const correctLetter = letters[nextEmptySlot]
-    if (letter === correctLetter) {
+    if (letter === letters[nextEmpty]) {
       const newSlots = [...slots]
-      newSlots[nextEmptySlot] = letter
+      newSlots[nextEmpty] = letter
       setSlots(newSlots)
-      setUsedChoices(prev => new Set([...prev, choiceIndex]))
+      setUsedMap(prev => ({ ...prev, [choiceIdx]: nextEmpty }))
 
       if (newSlots.every(s => s !== null)) {
         setTimeout(onCorrect, 300)
       }
     } else {
-      setWrongSlot(nextEmptySlot)
+      setWrongSlot(nextEmpty)
       setTimeout(() => setWrongSlot(null), 500)
       onWrong()
     }
-    setDraggingIdx(null)
-  }, [answered, nextEmptySlot, letters, slots, onCorrect, onWrong])
+  }, [answered, nextEmpty, letters, slots, onCorrect, onWrong])
 
-  const removeFromSlot = useCallback((slotIndex) => {
+  const removeFromSlot = useCallback((slotIdx) => {
     if (answered) return
-    if (initialSlots[slotIndex] !== null) return
-    if (slots[slotIndex] === null) return
+    if (prefilled[slotIdx] !== null) return
+    if (slots[slotIdx] === null) return
 
     let lastFilled = -1
     for (let i = slots.length - 1; i >= 0; i--) {
-      if (slots[i] !== null && initialSlots[i] === null) { lastFilled = i; break }
+      if (slots[i] !== null && prefilled[i] === null) { lastFilled = i; break }
     }
-    if (slotIndex !== lastFilled) return
+    if (slotIdx !== lastFilled) return
 
     const newSlots = [...slots]
-    newSlots[slotIndex] = null
+    newSlots[slotIdx] = null
     setSlots(newSlots)
 
-    const usedArr = [...usedChoices]
-    const lastUsed = usedArr[usedArr.length - 1]
-    const newUsed = new Set(usedArr.slice(0, -1))
-    setUsedChoices(newUsed)
-  }, [answered, slots, initialSlots, usedChoices])
-
-  const handleDragStart = useCallback((e, choiceIndex) => {
-    setDraggingIdx(choiceIndex)
-    e.dataTransfer.setData('text/plain', String(choiceIndex))
-    e.dataTransfer.effectAllowed = 'move'
-  }, [])
-
-  const handleTouchStart = useCallback((choiceIndex) => {
-    setDraggingIdx(choiceIndex)
-  }, [])
-
-  const handleTouchEnd = useCallback((letter, choiceIndex) => {
-    if (draggingIdx === choiceIndex) {
-      placeLetter(letter, choiceIndex)
+    const choiceIdx = Object.entries(usedMap).find(([, s]) => s === slotIdx)?.[0]
+    if (choiceIdx != null) {
+      setUsedMap(prev => {
+        const next = { ...prev }
+        delete next[choiceIdx]
+        return next
+      })
     }
-    setDraggingIdx(null)
-  }, [draggingIdx, placeLetter])
+  }, [answered, slots, prefilled, usedMap])
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault()
-    const choiceIndex = Number(e.dataTransfer.getData('text/plain'))
-    if (!isNaN(choiceIndex) && !usedChoices.has(choiceIndex)) {
-      placeLetter(initialChoices[choiceIndex], choiceIndex)
-    }
-  }, [initialChoices, usedChoices, placeLetter])
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }, [])
+  const usedSet = new Set(Object.keys(usedMap).map(Number))
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full">
-      {/* Slots */}
+    <div className="flex flex-col items-center gap-2 w-full">
+      {/* Slots row */}
       <div
-        className="flex flex-wrap justify-center gap-1 sm:gap-1.5"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
+        className="flex flex-wrap justify-center gap-1.5 sm:gap-2"
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+        onDrop={(e) => {
+          e.preventDefault()
+          const idx = Number(e.dataTransfer.getData('text/plain'))
+          if (!isNaN(idx) && !usedSet.has(idx)) placeLetter(choices[idx], idx)
+        }}
       >
         {slots.map((letter, i) => {
-          const isPreFilled = initialSlots[i] !== null
-          const isCurrent = i === nextEmptySlot
+          const isPre = prefilled[i] !== null
+          const isCurrent = i === nextEmpty
           const isWrong = wrongSlot === i
           return (
             <motion.div
               key={i}
-              ref={el => slotRefs.current[i] = el}
-              className={`w-8 h-10 sm:w-10 sm:h-12 md:w-12 md:h-14 rounded-xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-extrabold border-2 transition-all
-                ${isPreFilled ? 'bg-purple-100 border-purple-200 text-purple-600' : ''}
-                ${!isPreFilled && letter ? 'bg-teal-100 border-teal-300 text-teal-700 cursor-pointer' : ''}
-                ${!isPreFilled && !letter && isCurrent ? 'bg-yellow-50 border-yellow-400 border-dashed' : ''}
-                ${!isPreFilled && !letter && !isCurrent ? 'bg-gray-50 border-gray-200' : ''}
+              className={`w-10 h-12 sm:w-12 sm:h-14 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-extrabold border-2
+                ${isPre ? 'bg-teal-50 border-teal-200 text-teal-600' : ''}
+                ${!isPre && letter ? 'bg-teal-100 border-teal-300 text-teal-700 cursor-pointer' : ''}
+                ${!isPre && !letter && isCurrent ? 'bg-yellow-50 border-yellow-400 border-dashed' : ''}
+                ${!isPre && !letter && !isCurrent ? 'bg-gray-50 border-gray-200' : ''}
                 ${isWrong ? 'bg-red-100 border-red-400' : ''}
               `}
-              animate={isWrong ? { x: [0, -5, 5, -5, 0] } : {}}
+              animate={isWrong ? { x: [0, -6, 6, -6, 0] } : {}}
               transition={{ duration: 0.3 }}
               onClick={() => removeFromSlot(i)}
             >
@@ -150,30 +133,27 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
         })}
       </div>
 
-      {/* Letter choices - stable positions, used ones become invisible */}
-      <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5 mt-1">
-        {initialChoices.map((letter, i) => {
-          const isUsed = usedChoices.has(i)
+      {/* Choices — FIXED grid, used ones go invisible but keep space */}
+      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+        {choices.map((letter, i) => {
+          const isUsed = usedSet.has(i)
           return (
             <div
-              key={`choice-${i}`}
-              className="w-8 h-10 sm:w-10 sm:h-12 md:w-12 md:h-14"
+              key={i}
+              className={`w-10 h-12 sm:w-12 sm:h-14 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-extrabold border-2 transition-opacity
+                ${isUsed
+                  ? 'opacity-0 pointer-events-none border-transparent'
+                  : 'bg-white border-pink-200 text-pink-600 shadow-md cursor-pointer active:scale-90 active:bg-pink-50'
+                }
+              `}
+              draggable={!isUsed}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', String(i))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+              onClick={() => { if (!isUsed) placeLetter(letter, i) }}
             >
-              {!isUsed && (
-                <motion.button
-                  className={`w-full h-full rounded-xl bg-white border-2 border-pink-200 text-pink-600 text-lg sm:text-xl md:text-2xl font-extrabold shadow-md active:scale-90 transition-all flex items-center justify-center cursor-grab active:cursor-grabbing
-                    ${draggingIdx === i ? 'opacity-50 scale-95' : ''}
-                  `}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, i)}
-                  onTouchStart={() => handleTouchStart(i)}
-                  onTouchEnd={() => handleTouchEnd(letter, i)}
-                  onClick={() => placeLetter(letter, i)}
-                  whileTap={{ scale: 0.85 }}
-                >
-                  {letter}
-                </motion.button>
-              )}
+              {letter}
             </div>
           )
         })}
