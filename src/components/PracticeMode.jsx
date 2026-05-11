@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2 } from 'lucide-react'
+import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, playCorrectEncouragement, playWrongEncouragement, playCelebration, stopAll, delay } from '../utils/audioPlayer'
 import { trackWordPracticed, trackLevelCompleted } from '../utils/progress'
@@ -105,9 +106,12 @@ export default function PracticeMode({ level, onBack, onHome }) {
           <span className="text-sm font-bold text-pink-500">Practice · {levelData?.name}</span>
           <div className="text-xs text-pink-300">{index + 1} / {shuffled.length}</div>
         </div>
-        <button onClick={() => { stopAll(); onHome() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-          <Home className="w-5 h-5 text-pink-500" />
-        </button>
+        <div className="flex gap-1.5">
+          <FullscreenBtn />
+          <button onClick={() => { stopAll(); onHome() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+            <Home className="w-5 h-5 text-pink-500" />
+          </button>
+        </div>
       </div>
 
       {/* Progress */}

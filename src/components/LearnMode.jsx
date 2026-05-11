@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Home, Volume2 } from 'lucide-react'
+import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, stopAll, delay, startIdleTimer, clearIdleTimer, resetIdleTimer } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
@@ -93,9 +94,12 @@ export default function LearnMode({ level, onBack, onHome }) {
           <span className="text-sm font-bold text-purple-500">Learn · {levelData?.name}</span>
           <div className="text-xs text-purple-300">{index + 1} / {vocab.length}</div>
         </div>
-        <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-          <Home className="w-5 h-5 text-purple-500" />
-        </button>
+        <div className="flex gap-1.5">
+          <FullscreenBtn />
+          <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+            <Home className="w-5 h-5 text-purple-500" />
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}

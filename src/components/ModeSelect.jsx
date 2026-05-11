@@ -1,23 +1,27 @@
 import { motion } from 'framer-motion'
 import { LEVELS } from '../data/vocabulary'
 import { ArrowLeft, BookOpen, Gamepad2 } from 'lucide-react'
+import FullscreenBtn from './FullscreenBtn'
 
 export default function ModeSelect({ level, onSelect, onBack }) {
   const levelData = LEVELS.find(l => l.id === level)
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-pink-50 via-white to-purple-50"
+      className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      <button
-        onClick={onBack}
-        className="absolute top-4 left-4 p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform"
-      >
-        <ArrowLeft className="w-6 h-6 text-purple-500" />
-      </button>
+      <div className="absolute top-3 left-3 flex gap-2">
+        <button
+          onClick={onBack}
+          className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform"
+        >
+          <ArrowLeft className="w-5 h-5 text-purple-500" />
+        </button>
+      </div>
+      <FullscreenBtn className="absolute top-3 right-3" />
 
       <motion.div
         className="text-5xl mb-2"
