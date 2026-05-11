@@ -9,7 +9,7 @@ import { stopAll, clearIdleTimer } from './utils/audioPlayer'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION = '1.1.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function parseHash() {
@@ -52,6 +52,35 @@ function App() {
       }
     }
     localStorage.setItem('last_wordee_version', APP_VERSION)
+  }, [])
+
+  useEffect(() => {
+    async function checkForUpdate() {
+      try {
+        const res = await fetch('/version.json?t=' + Date.now())
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.version && data.version !== APP_VERSION) {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations()
+            for (const r of regs) await r.unregister()
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys()
+            for (const k of keys) await caches.delete(k)
+          }
+          window.location.reload()
+        }
+      } catch {}
+    }
+    checkForUpdate()
+    const id = setInterval(checkForUpdate, 60_000)
+    const onFocus = () => checkForUpdate()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate()
+    })
+    return () => { clearInterval(id); window.removeEventListener('focus', onFocus) }
   }, [])
 
   useEffect(() => {

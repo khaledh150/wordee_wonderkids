@@ -22,6 +22,16 @@
   color-scheme: light only;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light only;
+  }
+  html, body, #root {
+    background-color: #FFF5F0 !important;
+    color: #3D2C4E !important;
+  }
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
