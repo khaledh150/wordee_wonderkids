@@ -9,18 +9,8 @@ import { stopAll, clearIdleTimer } from './utils/audioPlayer'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.1.0'
+export const APP_VERSION = '1.2.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
-
-function parseHash() {
-  const hash = window.location.hash.slice(1)
-  if (!hash) return null
-  const params = new URLSearchParams(hash)
-  const s = params.get('s')
-  const l = params.get('l')
-  if (!s) return null
-  return { screen: s, level: l ? Number(l) : null }
-}
 
 function writeHash(screen, level) {
   let hash = `s=${screen}`
@@ -29,14 +19,8 @@ function writeHash(screen, level) {
 }
 
 function App() {
-  const [screen, setScreen] = useState(() => {
-    const restored = parseHash()
-    return restored ? restored.screen : 'splash'
-  })
-  const [selectedLevel, setSelectedLevel] = useState(() => {
-    const restored = parseHash()
-    return restored ? restored.level : null
-  })
+  const [screen, setScreen] = useState('splash')
+  const [selectedLevel, setSelectedLevel] = useState(null)
   const [mode, setMode] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -75,31 +59,15 @@ function App() {
     }
     checkForUpdate()
     const id = setInterval(checkForUpdate, 60_000)
-    const onFocus = () => checkForUpdate()
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') checkForUpdate()
-    })
-    return () => { clearInterval(id); window.removeEventListener('focus', onFocus) }
+    const onVisible = () => { if (document.visibilityState === 'visible') checkForUpdate() }
+    window.addEventListener('focus', checkForUpdate)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(id); window.removeEventListener('focus', checkForUpdate); document.removeEventListener('visibilitychange', onVisible) }
   }, [])
 
   useEffect(() => {
     if (screen !== 'splash') writeHash(screen, selectedLevel)
   }, [screen, selectedLevel])
-
-  useEffect(() => {
-    const onHashChange = () => {
-      const restored = parseHash()
-      if (restored) {
-        stopAll()
-        clearIdleTimer()
-        setSelectedLevel(restored.level)
-        setScreen(restored.screen)
-      }
-    }
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
 
   const navigate = useCallback((to, opts = {}) => {
     stopAll()

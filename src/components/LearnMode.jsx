@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Home, Volume2 } from 'lucide-react'
-import FullscreenBtn from './FullscreenBtn'
+import { ArrowLeft, ArrowRight, Home, Volume2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, stopAll, delay, startIdleTimer, clearIdleTimer, resetIdleTimer } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
 import { fireCelebration } from '../utils/confetti'
 import { preloadLevelImages } from '../utils/preloadImages'
 import useSwipe from '../utils/useSwipe'
+import FullscreenBtn from './FullscreenBtn'
 
 export default function LearnMode({ level, onBack, onHome }) {
   const vocab = getVocabForLevel(level)
@@ -21,9 +21,7 @@ export default function LearnMode({ level, onBack, onHome }) {
   const isFirst = index === 0
   const isLast = index === vocab.length - 1
 
-  useEffect(() => {
-    preloadLevelImages(vocab)
-  }, [vocab])
+  useEffect(() => { preloadLevelImages(vocab) }, [vocab])
 
   const playCurrentWord = useCallback(async () => {
     if (!current) return
@@ -40,9 +38,7 @@ export default function LearnMode({ level, onBack, onHome }) {
   }, [index, level, current, playCurrentWord])
 
   useEffect(() => {
-    if (isLast && index > 0) {
-      trackLevelCompleted(level, 'learn')
-    }
+    if (isLast && index > 0) trackLevelCompleted(level, 'learn')
   }, [isLast, index, level])
 
   const showNavigation = useCallback(() => {
@@ -54,12 +50,8 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   const goNext = useCallback(() => {
     stopAll()
-    if (isLast) {
-      fireCelebration()
-      setTimeout(onBack, 1500)
-    } else {
-      setIndex(i => i + 1)
-    }
+    if (isLast) { fireCelebration(); setTimeout(onBack, 1500) }
+    else setIndex(i => i + 1)
   }, [isLast, onBack])
 
   const goPrev = useCallback(() => {
@@ -67,10 +59,7 @@ export default function LearnMode({ level, onBack, onHome }) {
     if (!isFirst) setIndex(i => i - 1)
   }, [isFirst])
 
-  const handleSpeaker = useCallback(() => {
-    resetIdleTimer()
-    playCurrentWord()
-  }, [playCurrentWord])
+  const handleSpeaker = useCallback(() => { resetIdleTimer(); playCurrentWord() }, [playCurrentWord])
 
   const swipeHandlers = useSwipe(goNext, goPrev)
 
@@ -78,14 +67,14 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative overflow-hidden"
+      className="w-full h-full flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onPointerDown={showNavigation}
       {...swipeHandlers}
     >
-      {/* Header */}
+      {/* Header — fixed */}
       <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
         <button onClick={onBack} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
           <ArrowLeft className="w-5 h-5 text-purple-500" />
@@ -102,7 +91,7 @@ export default function LearnMode({ level, onBack, onHome }) {
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar — fixed */}
       <div className="px-3 shrink-0">
         <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
           <motion.div
@@ -113,72 +102,74 @@ export default function LearnMode({ level, onBack, onHome }) {
         </div>
       </div>
 
-      {/* Landscape content: image LEFT, word RIGHT */}
-      <div className="flex-1 flex items-center justify-center px-4 py-2 min-h-0 gap-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={index}
-            className="flex items-center justify-center gap-6 sm:gap-10 w-full max-w-4xl"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.25 }}
-          >
-            {/* Image frame - dominant and big */}
-            <div className="relative bg-white rounded-3xl shadow-xl p-2 sm:p-3 shrink-0">
-              {!imgLoaded && (
-                <div className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-purple-50 rounded-2xl animate-pulse" />
-              )}
-              <img
-                src={current.image}
-                alt={current.word}
-                className={`w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 object-contain rounded-2xl ${imgLoaded ? '' : 'hidden'}`}
-                onLoad={() => setImgLoaded(true)}
-                onError={(e) => { e.target.src = '/images/placeholder.svg'; setImgLoaded(true) }}
-                draggable={false}
-              />
-              <button
-                onClick={(e) => { e.stopPropagation(); handleSpeaker() }}
-                className="absolute top-1 right-1 sm:top-2 sm:right-2 p-2 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
-              >
-                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </button>
-            </div>
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="flex items-center justify-center min-h-full px-4 py-2 gap-4 sm:gap-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={index}
+              className="flex items-center justify-center gap-4 sm:gap-8 w-full max-w-4xl"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Image */}
+              <div className="relative bg-white rounded-3xl shadow-xl p-2 sm:p-3 shrink-0">
+                {!imgLoaded && (
+                  <div className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-purple-50 rounded-2xl animate-pulse" />
+                )}
+                <img
+                  src={current.image}
+                  alt={current.word}
+                  className={`w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 object-contain rounded-2xl ${imgLoaded ? '' : 'hidden'}`}
+                  onLoad={() => setImgLoaded(true)}
+                  onError={(e) => { e.target.src = '/images/placeholder.svg'; setImgLoaded(true) }}
+                  draggable={false}
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSpeaker() }}
+                  className="absolute top-1 right-1 sm:top-2 sm:right-2 p-2 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
+                >
+                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </button>
+              </div>
 
-            {/* Word + Thai on the right */}
-            <div className="flex flex-col items-start justify-center">
-              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-purple-700 mb-2">
-                {current.word}
-              </h1>
-              <p className="text-lg sm:text-2xl md:text-3xl text-purple-400 font-semibold">{current.thai}</p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+              {/* Word + Thai */}
+              <div className="flex flex-col items-start justify-center min-w-0">
+                <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-purple-700 mb-2 break-words">
+                  {current.word}
+                </h1>
+                <p className="text-base sm:text-xl md:text-2xl text-purple-400 font-semibold">{current.thai}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Navigation arrows - show on tap */}
+      {/* Navigation arrows — transparent, no bg */}
       <AnimatePresence>
         {showNav && (
           <>
             {!isFirst && (
               <motion.button
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
+                className="absolute left-1 top-1/2 -translate-y-1/2 p-2 active:scale-90 transition-transform z-10"
                 initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                animate={{ opacity: 0.7, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 onClick={goPrev}
               >
-                <ArrowLeft className="w-6 h-6 text-purple-500" />
+                <ChevronLeft className="w-8 h-8 text-purple-400" strokeWidth={3} />
               </motion.button>
             )}
             <motion.button
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full shadow-xl active:scale-90 transition-transform z-10"
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-2 active:scale-90 transition-transform z-10"
               initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={{ opacity: 0.7, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               onClick={goNext}
             >
-              <ArrowRight className="w-6 h-6 text-purple-500" />
+              <ChevronRight className="w-8 h-8 text-purple-400" strokeWidth={3} />
             </motion.button>
           </>
         )}

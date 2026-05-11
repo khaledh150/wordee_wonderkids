@@ -137,8 +137,9 @@ export default function PracticeMode({ level, onBack, onHome }) {
         )}
       </AnimatePresence>
 
-      {/* Landscape content: image LEFT, practice RIGHT — tight gap */}
-      <div className="flex-1 flex items-center justify-center px-3 py-1 min-h-0 gap-3 sm:gap-5">
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="flex items-center justify-center min-h-full px-3 py-1 gap-3 sm:gap-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
@@ -186,6 +187,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
             </div>
           </motion.div>
         </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   )
