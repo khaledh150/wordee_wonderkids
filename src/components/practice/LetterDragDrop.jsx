@@ -101,8 +101,9 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
     setDragGhost(null)
   }, [dragGhost, placeLetter])
 
-  const SLOT = 'w-10 h-12 sm:w-12 sm:h-14'
-  const FONT = 'text-xl sm:text-2xl font-extrabold'
+  const isLong = allLetters.length > 8
+  const SLOT = isLong ? 'w-7 h-9 sm:w-10 sm:h-12' : 'w-9 h-11 sm:w-11 sm:h-13'
+  const FONT = isLong ? 'text-base sm:text-xl font-extrabold' : 'text-lg sm:text-2xl font-extrabold'
 
   let slotIdx = 0
   const slotGroups = words.map(w => {
@@ -116,22 +117,22 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
 
   return (
     <div
-      className="flex flex-col items-center gap-2 w-full relative"
+      className="flex flex-col items-center gap-1.5 w-full relative"
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {dragGhost && (
-        <div className="fixed z-50 pointer-events-none" style={{ left: dragGhost.x - 20, top: dragGhost.y - 24 }}>
+        <div className="fixed z-50 pointer-events-none" style={{ left: dragGhost.x - 18, top: dragGhost.y - 22 }}>
           <div className={`${SLOT} rounded-xl bg-pink-100 border-2 border-pink-400 text-pink-600 ${FONT} flex items-center justify-center shadow-xl opacity-90`}>
             {dragGhost.letter}
           </div>
         </div>
       )}
 
-      {/* Slots — grouped by word with gaps between words */}
+      {/* Slots */}
       <div
         ref={slotAreaRef}
-        className="flex flex-wrap justify-center items-center gap-y-1.5"
+        className="flex flex-wrap justify-center items-center gap-y-1"
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
         onDrop={(e) => {
           e.preventDefault()
@@ -140,7 +141,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
         }}
       >
         {slotGroups.map((group, gi) => (
-          <div key={gi} className={`flex gap-1 sm:gap-1.5 ${gi > 0 ? 'ml-4 sm:ml-5' : ''}`}>
+          <div key={gi} className={`flex gap-0.5 sm:gap-1 ${gi > 0 ? 'ml-3 sm:ml-4' : ''}`}>
             {group.map(si => {
               const letter = slots[si]
               const isPre = prefilled[si] !== null
@@ -168,8 +169,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
         ))}
       </div>
 
-      {/* Choices — only show available (not used), no empty placeholders */}
-      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+      {/* Choices */}
+      <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
         {availableChoices.map(({ letter, i }) => {
           const isDragging = dragGhost?.choiceIdx === i
           return (
