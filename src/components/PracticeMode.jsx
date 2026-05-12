@@ -103,7 +103,6 @@ export default function PracticeMode({ level, onBack, onHome }) {
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
         <span className="text-sm font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
-        <span className="text-xs font-semibold text-pink-300 shrink-0">{index + 1}/{shuffled.length}</span>
         <div className="flex-1 h-1.5 bg-pink-100 rounded-full overflow-hidden min-w-8">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-rose-400 rounded-full"
@@ -116,6 +115,11 @@ export default function PracticeMode({ level, onBack, onHome }) {
             <Home className="w-5 h-5 text-pink-500" />
           </button>
         </div>
+      </div>
+
+      {/* Question indicator */}
+      <div className="px-3 shrink-0">
+        <span className="text-base font-bold text-pink-400">Q{index + 1}/{shuffled.length}</span>
       </div>
 
       {/* Flash overlay */}

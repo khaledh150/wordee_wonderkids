@@ -80,7 +80,6 @@ export default function LearnMode({ level, onBack, onHome }) {
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
         <span className="text-sm font-bold text-purple-500 shrink-0">Learn · {levelData?.name}</span>
-        <span className="text-xs font-semibold text-purple-300 shrink-0">{index + 1}/{vocab.length}</span>
         <div className="flex-1 h-1.5 bg-purple-100 rounded-full overflow-hidden min-w-8">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full"
@@ -94,6 +93,11 @@ export default function LearnMode({ level, onBack, onHome }) {
             <Home className="w-5 h-5 text-purple-500" />
           </button>
         </div>
+      </div>
+
+      {/* Word indicator */}
+      <div className="px-3 shrink-0">
+        <span className="text-base font-bold text-purple-400">{index + 1}/{vocab.length}</span>
       </div>
 
       {/* Scrollable content area */}
