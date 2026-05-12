@@ -5,11 +5,12 @@ import LevelSelect from './components/LevelSelect'
 import ModeSelect from './components/ModeSelect'
 import LoadingScreen from './components/LoadingScreen'
 import { stopAll, clearIdleTimer } from './utils/audioPlayer'
+import InAppBrowserGuard from './components/InAppBrowserGuard'
 
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.3.2'
+export const APP_VERSION = '1.3.3'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {
@@ -92,6 +93,7 @@ function App() {
   if (loading) return <LoadingScreen />
 
   return (
+    <InAppBrowserGuard>
     <div className="w-full h-full overflow-hidden relative">
       <AnimatePresence mode="wait">
         {screen === 'splash' && (
@@ -133,6 +135,7 @@ function App() {
         )}
       </AnimatePresence>
     </div>
+    </InAppBrowserGuard>
   )
 }
 

@@ -10,26 +10,7 @@
 
 :root {
   --font-main: 'Nunito', system-ui, -apple-system, sans-serif;
-  --color-bg: #FFF5F0;
-  --color-primary: #FF6B9D;
-  --color-secondary: #4ECDC4;
-  --color-accent: #FFE66D;
-  --color-purple: #A78BFA;
-  --color-orange: #FB923C;
-  --color-green: #34D399;
-  --color-text: #3D2C4E;
-  --color-text-light: #8B7A9E;
-  color-scheme: light only;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: light only;
-  }
-  html, body, #root {
-    background-color: #FFF5F0 !important;
-    color: #3D2C4E !important;
-  }
+  color-scheme: light;
 }
 
 * {
@@ -46,8 +27,8 @@ html, body {
   height: 100vh;
   height: 100dvh;
   font-family: var(--font-main);
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: #FFF5F0;
+  color: #3D2C4E;
   touch-action: manipulation;
 }
 
@@ -77,11 +58,6 @@ input, textarea {
   0% { transform: scale(0); opacity: 0; }
   50% { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(180deg); }
 }
 
 .animate-float { animation: float 3s ease-in-out infinite; }
