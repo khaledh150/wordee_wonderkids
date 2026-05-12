@@ -9,7 +9,7 @@ import { stopAll, clearIdleTimer } from './utils/audioPlayer'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.3.0'
+export const APP_VERSION = '1.3.1'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {
@@ -41,7 +41,7 @@ function App() {
   useEffect(() => {
     async function checkForUpdate() {
       try {
-        const res = await fetch('/version.json?t=' + Date.now())
+        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
         if (!res.ok) return
         const data = await res.json()
         if (data.version && data.version !== APP_VERSION) {

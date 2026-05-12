@@ -12,6 +12,14 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,webp,png,mp3,wav,woff2,svg,ico}'],
+        globIgnores: ['**/version.json'],
+        navigateFallback: '/index.html',
+        runtimeCaching: [
+          {
+            urlPattern: /\/version\.json/,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
       manifest: false,
     }),
