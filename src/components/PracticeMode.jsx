@@ -137,11 +137,11 @@ export default function PracticeMode({ level, onBack, onHome }) {
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-auto min-h-0">
-        <div className="flex items-start justify-center min-h-full px-2 py-1 gap-2 sm:gap-4">
+        <div className="flex items-center justify-center min-h-full px-2 py-1 gap-2 sm:gap-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            className="flex items-start justify-center gap-2 sm:gap-4 w-full max-w-5xl pt-1"
+            className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-5xl"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -164,7 +164,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
             </div>
 
             {/* Practice area */}
-            <div className="flex-1 min-w-0 flex flex-col items-center justify-start pt-1">
+            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
               {level === 1 ? (
                 <MultipleChoice
                   current={current}
