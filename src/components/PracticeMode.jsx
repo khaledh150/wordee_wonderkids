@@ -74,8 +74,8 @@ export default function PracticeMode({ level, onBack, onHome }) {
   }, [answered, current, level])
 
   const handleSpeaker = useCallback(() => {
-    if (current && (level === 1 || answered)) playWordVO(current.audio.split('/').pop())
-  }, [current, level, answered])
+    if (current) playWordVO(current.audio.split('/').pop())
+  }, [current])
 
   const skipNext = useCallback(() => {
     if (isLast) return
@@ -159,14 +159,12 @@ export default function PracticeMode({ level, onBack, onHome }) {
                 onError={(e) => { e.target.src = '/images/placeholder.svg' }}
                 draggable={false}
               />
-              {(level === 1 || answered) && (
-                <button
-                  onClick={handleSpeaker}
-                  className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-1.5 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
-                >
-                  <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
-                </button>
-              )}
+              <button
+                onClick={handleSpeaker}
+                className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-1.5 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
+              >
+                <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
+              </button>
             </div>
 
             {/* Practice area */}
