@@ -38,7 +38,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
 
   const [slots, setSlots] = useState(prefilled)
   const [usedMap, setUsedMap] = useState({})
-  const [wrongSlot, setWrongSlot] = useState(null)
+  const [wrongSlots, setWrongSlots] = useState(null)
+  const [checking, setChecking] = useState(false)
   const [dragGhost, setDragGhost] = useState(null)
   const slotAreaRef = useRef(null)
 
@@ -46,24 +47,52 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const usedSet = new Set(Object.keys(usedMap).map(Number))
   const availableChoices = choices.map((letter, i) => ({ letter, i, used: usedSet.has(i) })).filter(c => !c.used)
 
-  const placeLetter = useCallback((letter, choiceIdx) => {
-    if (answered || nextEmpty === -1) return
+  const checkWord = useCallback((filledSlots, currentUsedMap) => {
+    setChecking(true)
+    const isCorrect = filledSlots.every((l, i) => l === allLetters[i])
 
-    if (letter === allLetters[nextEmpty]) {
-      const newSlots = [...slots]
-      newSlots[nextEmpty] = letter
-      setSlots(newSlots)
-      setUsedMap(prev => ({ ...prev, [choiceIdx]: nextEmpty }))
-      if (newSlots.every(s => s !== null)) setTimeout(onCorrect, 300)
+    if (isCorrect) {
+      setTimeout(onCorrect, 300)
     } else {
-      setWrongSlot(nextEmpty)
-      setTimeout(() => setWrongSlot(null), 500)
+      const badIndices = []
+      filledSlots.forEach((l, i) => {
+        if (prefilled[i] === null && l !== allLetters[i]) badIndices.push(i)
+      })
+      setWrongSlots(new Set(badIndices))
       onWrong()
+
+      setTimeout(() => {
+        const newSlots = [...filledSlots]
+        const newUsedMap = { ...currentUsedMap }
+        for (const si of badIndices) {
+          newSlots[si] = null
+          const cIdx = Object.entries(newUsedMap).find(([, s]) => s === si)?.[0]
+          if (cIdx != null) delete newUsedMap[cIdx]
+        }
+        setSlots(newSlots)
+        setUsedMap(newUsedMap)
+        setWrongSlots(null)
+        setChecking(false)
+      }, 800)
     }
-  }, [answered, nextEmpty, allLetters, slots, onCorrect, onWrong])
+  }, [allLetters, prefilled, onCorrect, onWrong])
+
+  const placeLetter = useCallback((letter, choiceIdx) => {
+    if (answered || checking || nextEmpty === -1) return
+
+    const newSlots = [...slots]
+    newSlots[nextEmpty] = letter
+    const newUsedMap = { ...usedMap, [choiceIdx]: nextEmpty }
+    setSlots(newSlots)
+    setUsedMap(newUsedMap)
+
+    if (newSlots.every(s => s !== null)) {
+      checkWord(newSlots, newUsedMap)
+    }
+  }, [answered, checking, nextEmpty, slots, usedMap, checkWord])
 
   const removeFromSlot = useCallback((slotIdx) => {
-    if (answered || prefilled[slotIdx] !== null || slots[slotIdx] === null) return
+    if (answered || checking || prefilled[slotIdx] !== null || slots[slotIdx] === null) return
     let lastFilled = -1
     for (let i = slots.length - 1; i >= 0; i--) {
       if (slots[i] !== null && prefilled[i] === null) { lastFilled = i; break }
@@ -77,14 +106,14 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
     if (cIdx != null) {
       setUsedMap(prev => { const n = { ...prev }; delete n[cIdx]; return n })
     }
-  }, [answered, slots, prefilled, usedMap])
+  }, [answered, checking, slots, prefilled, usedMap])
 
   const handleTouchStart = useCallback((e, letter, choiceIdx) => {
-    if (answered) return
+    if (answered || checking) return
     e.stopPropagation()
     const touch = e.touches[0]
     setDragGhost({ letter, choiceIdx, x: touch.clientX, y: touch.clientY })
-  }, [answered])
+  }, [answered, checking])
 
   const handleTouchMove = useCallback((e) => {
     if (!dragGhost) return
@@ -146,16 +175,16 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
               const letter = slots[si]
               const isPre = prefilled[si] !== null
               const isCurrent = si === nextEmpty
-              const isWrong = wrongSlot === si
+              const isWrong = wrongSlots?.has(si)
               return (
                 <motion.div
                   key={si}
                   className={`${SLOT} rounded-xl flex items-center justify-center ${FONT} border-2
-                    ${isPre ? 'bg-teal-50 border-teal-200 text-teal-600' : ''}
-                    ${!isPre && letter ? 'bg-teal-100 border-teal-300 text-teal-700 cursor-pointer' : ''}
-                    ${!isPre && !letter && isCurrent ? 'bg-yellow-50 border-yellow-400 border-dashed' : ''}
-                    ${!isPre && !letter && !isCurrent ? 'bg-gray-50 border-gray-200' : ''}
-                    ${isWrong ? 'bg-red-100 border-red-400' : ''}
+                    ${isWrong ? 'bg-red-100 border-red-400 text-red-600' : ''}
+                    ${!isWrong && isPre ? 'bg-teal-50 border-teal-200 text-teal-600' : ''}
+                    ${!isWrong && !isPre && letter ? 'bg-teal-100 border-teal-300 text-teal-700 cursor-pointer' : ''}
+                    ${!isWrong && !isPre && !letter && isCurrent ? 'bg-yellow-50 border-yellow-400 border-dashed' : ''}
+                    ${!isWrong && !isPre && !letter && !isCurrent ? 'bg-gray-50 border-gray-200' : ''}
                   `}
                   animate={isWrong ? { x: [0, -6, 6, -6, 0] } : {}}
                   transition={{ duration: 0.3 }}

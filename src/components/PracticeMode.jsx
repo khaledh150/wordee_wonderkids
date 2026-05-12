@@ -63,14 +63,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
 
   const handleWrong = useCallback(async () => {
     if (answered) return
-    if (level === 1) {
-      setShowResult('wrong')
-      trackWordPracticed(level, current.word, false)
-      await playWrongEncouragement()
-      setShowResult(null)
-    } else {
-      trackWordPracticed(level, current.word, false)
-    }
+    setShowResult('wrong')
+    trackWordPracticed(level, current.word, false)
+    await playWrongEncouragement()
+    setShowResult(null)
   }, [answered, current, level])
 
   const handleSpeaker = useCallback(() => {
