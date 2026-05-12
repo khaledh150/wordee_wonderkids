@@ -3,6 +3,7 @@ import { LEVELS } from '../data/vocabulary'
 import logo from '../assets/logo.webp'
 import { APP_VERSION } from '../App'
 import FullscreenBtn from './FullscreenBtn'
+import { enterFullscreen } from '../utils/useFullscreen'
 
 const levelColors = ['bg-pink-400', 'bg-teal-400', 'bg-violet-400', 'bg-orange-400']
 const levelShadows = ['shadow-pink-300', 'shadow-teal-300', 'shadow-violet-300', 'shadow-orange-300']
@@ -32,7 +33,7 @@ export default function LevelSelect({ onSelect }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
-            onClick={() => onSelect(level.id)}
+            onClick={() => { enterFullscreen(); onSelect(level.id) }}
           >
             <span className="text-2xl sm:text-3xl">{level.emoji}</span>
             <div className="text-left">

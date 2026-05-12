@@ -74,31 +74,25 @@ export default function LearnMode({ level, onBack, onHome }) {
       onPointerDown={showNavigation}
       {...swipeHandlers}
     >
-      {/* Header — fixed */}
-      <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
-        <button onClick={onBack} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-1.5 shrink-0">
+        <button onClick={onBack} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
-        <div className="text-center">
-          <span className="text-sm font-bold text-purple-500">Learn · {levelData?.name}</span>
-          <div className="text-xs text-purple-300">{index + 1} / {vocab.length}</div>
-        </div>
-        <div className="flex gap-1.5">
-          <FullscreenBtn />
-          <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-            <Home className="w-5 h-5 text-purple-500" />
-          </button>
-        </div>
-      </div>
-
-      {/* Progress bar — fixed */}
-      <div className="px-3 shrink-0">
-        <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
+        <span className="text-sm font-bold text-purple-500 shrink-0">Learn · {levelData?.name}</span>
+        <span className="text-xs font-semibold text-purple-300 shrink-0">{index + 1}/{vocab.length}</span>
+        <div className="flex-1 h-1.5 bg-purple-100 rounded-full overflow-hidden min-w-8">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full"
             animate={{ width: `${((index + 1) / vocab.length) * 100}%` }}
             transition={{ type: 'spring', stiffness: 100 }}
           />
+        </div>
+        <div className="flex gap-1.5 shrink-0">
+          <FullscreenBtn />
+          <button onClick={onHome} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+            <Home className="w-5 h-5 text-purple-500" />
+          </button>
         </div>
       </div>
 

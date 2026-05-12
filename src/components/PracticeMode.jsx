@@ -98,29 +98,23 @@ export default function PracticeMode({ level, onBack, onHome }) {
       {...swipeHandlers}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
-        <button onClick={() => { stopAll(); onBack() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+      <div className="flex items-center gap-2 px-3 py-1.5 shrink-0">
+        <button onClick={() => { stopAll(); onBack() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
-        <div className="text-center">
-          <span className="text-sm font-bold text-pink-500">Practice · {levelData?.name}</span>
-          <div className="text-xs text-pink-300">{index + 1} / {shuffled.length}</div>
-        </div>
-        <div className="flex gap-1.5">
-          <FullscreenBtn />
-          <button onClick={() => { stopAll(); onHome() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-            <Home className="w-5 h-5 text-pink-500" />
-          </button>
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="px-3 shrink-0">
-        <div className="w-full h-1.5 bg-pink-100 rounded-full overflow-hidden">
+        <span className="text-sm font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
+        <span className="text-xs font-semibold text-pink-300 shrink-0">{index + 1}/{shuffled.length}</span>
+        <div className="flex-1 h-1.5 bg-pink-100 rounded-full overflow-hidden min-w-8">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-rose-400 rounded-full"
             animate={{ width: `${((index + 1) / shuffled.length) * 100}%` }}
           />
+        </div>
+        <div className="flex gap-1.5 shrink-0">
+          <FullscreenBtn />
+          <button onClick={() => { stopAll(); onHome() }} className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+            <Home className="w-5 h-5 text-pink-500" />
+          </button>
         </div>
       </div>
 
