@@ -37,10 +37,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
   useEffect(() => {
     setAnswered(false)
     setShowResult(null)
-    if (current && level === 1) {
+    if (current) {
       delay(500).then(() => playWordVO(current.audio.split('/').pop()))
     }
-  }, [index, current, level])
+  }, [index, current])
 
   const handleCorrect = useCallback(async () => {
     if (answered) return
@@ -49,10 +49,6 @@ export default function PracticeMode({ level, onBack, onHome }) {
     trackWordPracticed(level, current.word, true)
     fireConfetti()
     await playCorrectEncouragement()
-    if (level !== 1) {
-      await delay(300)
-      await playWordVO(current.audio.split('/').pop())
-    }
     await delay(800)
     if (isLast) {
       trackLevelCompleted(level, 'practice')
@@ -67,10 +63,14 @@ export default function PracticeMode({ level, onBack, onHome }) {
 
   const handleWrong = useCallback(async () => {
     if (answered) return
-    setShowResult('wrong')
-    trackWordPracticed(level, current.word, false)
-    await playWrongEncouragement()
-    setShowResult(null)
+    if (level === 1) {
+      setShowResult('wrong')
+      trackWordPracticed(level, current.word, false)
+      await playWrongEncouragement()
+      setShowResult(null)
+    } else {
+      trackWordPracticed(level, current.word, false)
+    }
   }, [answered, current, level])
 
   const handleSpeaker = useCallback(() => {
