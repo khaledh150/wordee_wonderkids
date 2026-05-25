@@ -91,7 +91,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative overflow-hidden"
+      className="w-full h-screen-safe flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 
 export default function LoadingScreen() {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pink-50 to-purple-50">
+    <div className="w-full h-screen-safe flex flex-col items-center justify-center bg-gradient-to-b from-pink-50 to-purple-50">
       <motion.div
         className="text-6xl"
         animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}

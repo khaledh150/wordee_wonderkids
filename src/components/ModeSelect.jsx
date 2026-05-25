@@ -8,7 +8,7 @@ export default function ModeSelect({ level, onSelect, onBack }) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
+      className="w-full h-screen-safe flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}

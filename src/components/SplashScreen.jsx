@@ -10,7 +10,7 @@ export default function SplashScreen({ onDone }) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pink-100 via-white to-cyan-50 p-4"
+      className="w-full h-screen-safe flex flex-col items-center justify-center bg-gradient-to-b from-pink-100 via-white to-cyan-50 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -67,7 +67,7 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
+      className="w-full h-screen-safe flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

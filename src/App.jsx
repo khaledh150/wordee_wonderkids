@@ -10,7 +10,7 @@ import InAppBrowserGuard from './components/InAppBrowserGuard'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.4.0'
+export const APP_VERSION = '1.4.1'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {
@@ -94,7 +94,7 @@ function App() {
 
   return (
     <InAppBrowserGuard>
-    <div className="w-full h-full overflow-hidden relative">
+    <div className="w-full h-screen-safe overflow-hidden relative">
       <AnimatePresence mode="wait">
         {screen === 'splash' && (
           <SplashScreen key="splash" onDone={() => navigate('levels')} />
