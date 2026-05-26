@@ -10,7 +10,7 @@ import InAppBrowserGuard from './components/InAppBrowserGuard'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.4.1'
+export const APP_VERSION = '1.4.2'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {

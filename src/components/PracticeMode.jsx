@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2 } from 'lucide-react'
 import FullscreenBtn from './FullscreenBtn'
@@ -10,6 +10,10 @@ import { preloadLevelImages } from '../utils/preloadImages'
 import MultipleChoice from './practice/MultipleChoice'
 import LetterDragDrop from './practice/LetterDragDrop'
 import useSwipe from '../utils/useSwipe'
+import PracticeTimerDisplay, { useTimer } from './practice/PracticeTimer'
+import PracticeResults from './practice/PracticeResults'
+
+const PRACTICE_DURATION_SEC = 5 * 60
 
 export default function PracticeMode({ level, onBack, onHome }) {
   const allVocab = getVocabForLevel(level)
@@ -17,6 +21,18 @@ export default function PracticeMode({ level, onBack, onHome }) {
   const [index, setIndex] = useState(0)
   const [answered, setAnswered] = useState(false)
   const [showResult, setShowResult] = useState(null)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [wrongCount, setWrongCount] = useState(0)
+  const [timeUp, setTimeUp] = useState(false)
+  const timeUpRef = useRef(false)
+
+  const handleTimeUp = useCallback(() => {
+    timeUpRef.current = true
+    setTimeUp(true)
+    stopAll()
+  }, [])
+
+  const timer = useTimer(PRACTICE_DURATION_SEC, handleTimeUp)
 
   const shuffled = useMemo(() => {
     const arr = [...allVocab]
@@ -29,6 +45,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
 
   useEffect(() => {
     preloadLevelImages(allVocab)
+    timer.start()
   }, [allVocab])
 
   const current = shuffled[index]
@@ -37,8 +54,8 @@ export default function PracticeMode({ level, onBack, onHome }) {
   useEffect(() => {
     setAnswered(false)
     setShowResult(null)
-    if (current) {
-      delay(500).then(() => playWordVO(current.audio.split('/').pop()))
+    if (current && !timeUpRef.current) {
+      delay(500).then(() => { if (!timeUpRef.current) playWordVO(current.audio.split('/').pop()) })
     }
   }, [index, current])
 
@@ -46,8 +63,15 @@ export default function PracticeMode({ level, onBack, onHome }) {
     if (answered) return
     setAnswered(true)
     setShowResult('correct')
+    setCorrectCount(c => c + 1)
     trackWordPracticed(level, current.word, true)
     fireConfetti()
+
+    if (timeUpRef.current) {
+      await delay(800)
+      return
+    }
+
     await playCorrectEncouragement()
     await delay(800)
     if (isLast) {
@@ -64,7 +88,14 @@ export default function PracticeMode({ level, onBack, onHome }) {
   const handleWrong = useCallback(async () => {
     if (answered) return
     setShowResult('wrong')
+    setWrongCount(c => c + 1)
     trackWordPracticed(level, current.word, false)
+
+    if (timeUpRef.current) {
+      await delay(800)
+      return
+    }
+
     await playWrongEncouragement()
     setShowResult(null)
   }, [answered, current, level])
@@ -86,6 +117,19 @@ export default function PracticeMode({ level, onBack, onHome }) {
   }, [index])
 
   const swipeHandlers = useSwipe(skipNext, skipPrev)
+
+  if (timeUp) {
+    return (
+      <PracticeResults
+        correct={correctCount}
+        wrong={wrongCount}
+        total={shuffled.length}
+        timeTaken={timer.getElapsedSeconds()}
+        totalTime={PRACTICE_DURATION_SEC}
+        onHome={() => { stopAll(); onHome() }}
+      />
+    )
+  }
 
   if (!current) return null
 
@@ -109,6 +153,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
             animate={{ width: `${((index + 1) / shuffled.length) * 100}%` }}
           />
         </div>
+        <PracticeTimerDisplay timeLeft={timer.timeLeft} />
         <div className="flex gap-1.5 shrink-0">
           <FullscreenBtn />
           <button onClick={() => { stopAll(); onHome() }} className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">

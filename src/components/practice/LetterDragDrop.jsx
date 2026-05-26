@@ -58,19 +58,27 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
       filledSlots.forEach((l, i) => {
         if (prefilled[i] === null && l !== allLetters[i]) badIndices.push(i)
       })
+      if (badIndices.length === 0) {
+        setChecking(false)
+        return
+      }
       setWrongSlots(new Set(badIndices))
       onWrong()
 
       setTimeout(() => {
-        const newSlots = [...filledSlots]
-        const newUsedMap = { ...currentUsedMap }
-        for (const si of badIndices) {
-          newSlots[si] = null
-          const cIdx = Object.entries(newUsedMap).find(([, s]) => s === si)?.[0]
-          if (cIdx != null) delete newUsedMap[cIdx]
-        }
-        setSlots(newSlots)
-        setUsedMap(newUsedMap)
+        setSlots(prev => {
+          const newSlots = [...prev]
+          for (const si of badIndices) newSlots[si] = null
+          return newSlots
+        })
+        setUsedMap(prev => {
+          const newMap = { ...prev }
+          for (const si of badIndices) {
+            const cIdx = Object.entries(newMap).find(([, s]) => s === si)?.[0]
+            if (cIdx != null) delete newMap[cIdx]
+          }
+          return newMap
+        })
         setWrongSlots(null)
         setChecking(false)
       }, 800)
