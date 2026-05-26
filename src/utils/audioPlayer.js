@@ -20,16 +20,16 @@ export function delay(ms) {
 
 function cleanupAudio(audio) {
   audio.pause()
+  audio.onended = null
+  audio.onerror = null
   audio.removeAttribute('src')
-  audio.load()
 }
 
 function playFile(src) {
   return new Promise((resolve) => {
     if (voMuted) return resolve()
-    const myGen = generationId
     stopAll()
-    generationId = myGen
+    const myGen = ++generationId
     const audio = new Audio(src)
     currentAudio = audio
     const done = () => {
@@ -41,7 +41,7 @@ function playFile(src) {
     }
     audio.onended = done
     audio.onerror = done
-    audio.play().catch(() => { done() })
+    audio.play().catch(done)
   })
 }
 
@@ -53,11 +53,16 @@ export function playWordVO(filename) {
   return playFile(`/audio/vocab/${filename}`)
 }
 
-export async function playSFX(name) {
-  if (voMuted) return
-  const audio = new Audio(`/audio/sfx/${name}`)
-  audio.volume = 0.5
-  audio.play().catch(() => {})
+export function playSFX(name) {
+  if (voMuted) return Promise.resolve()
+  return new Promise(resolve => {
+    const audio = new Audio(`/audio/sfx/${name}`)
+    audio.volume = 0.5
+    const cleanup = () => { audio.onended = null; audio.onerror = null; resolve() }
+    audio.onended = cleanup
+    audio.onerror = cleanup
+    audio.play().catch(cleanup)
+  })
 }
 
 const encouragementCorrect = [

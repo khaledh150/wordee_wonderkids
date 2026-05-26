@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export default function InAppBrowserGuard({ children }) {
   const [browserInfo, setBrowserInfo] = useState(null)
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef(null)
+
+  useEffect(() => {
+    return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current) }
+  }, [])
 
   useEffect(() => {
     const ua = navigator.userAgent || ''
@@ -47,24 +52,25 @@ export default function InAppBrowserGuard({ children }) {
     window.location.href = `intent://${host}${pathname}${search}${hash}#Intent;scheme=https;package=com.android.chrome;end`
   }
 
-  const handleCopyLink = async () => {
-    try {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('openExternalBrowser')
-      await navigator.clipboard.writeText(url.toString())
+  const handleCopyLink = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('openExternalBrowser')
+    const text = url.toString()
+
+    const onCopied = () => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      const input = document.createElement('input')
-      const url = new URL(window.location.href)
-      url.searchParams.delete('openExternalBrowser')
-      input.value = url.toString()
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      document.body.removeChild(input)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+    }
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(onCopied).catch(() => {
+        fallbackCopy(text)
+        onCopied()
+      })
+    } else {
+      fallbackCopy(text)
+      onCopied()
     }
   }
 
@@ -155,4 +161,15 @@ export default function InAppBrowserGuard({ children }) {
       </p>
     </div>
   )
+}
+
+function fallbackCopy(text) {
+  const input = document.createElement('input')
+  input.value = text
+  input.style.position = 'fixed'
+  input.style.opacity = '0'
+  document.body.appendChild(input)
+  input.select()
+  try { document.execCommand('copy') } catch {}
+  document.body.removeChild(input)
 }

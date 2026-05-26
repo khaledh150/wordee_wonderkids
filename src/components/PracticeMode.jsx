@@ -5,7 +5,7 @@ import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, playCorrectEncouragement, playWrongEncouragement, playCelebration, stopAll, delay } from '../utils/audioPlayer'
 import { trackWordPracticed, trackLevelCompleted } from '../utils/progress'
-import { fireConfetti, fireCelebration as confettiCelebration } from '../utils/confetti'
+import { fireConfetti, fireCelebration as confettiCelebration, cancelCelebration } from '../utils/confetti'
 import { preloadLevelImages } from '../utils/preloadImages'
 import MultipleChoice from './practice/MultipleChoice'
 import LetterDragDrop from './practice/LetterDragDrop'
@@ -24,7 +24,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
   const [correctCount, setCorrectCount] = useState(0)
   const [wrongCount, setWrongCount] = useState(0)
   const [timeUp, setTimeUp] = useState(false)
+  const mountedRef = useRef(true)
   const timeUpRef = useRef(false)
+
+  useEffect(() => { return () => { mountedRef.current = false; cancelCelebration() } }, [])
 
   const handleTimeUp = useCallback(() => {
     timeUpRef.current = true
@@ -46,7 +49,8 @@ export default function PracticeMode({ level, onBack, onHome }) {
   useEffect(() => {
     preloadLevelImages(allVocab)
     timer.start()
-  }, [allVocab])
+    return () => timer.stop()
+  }, [])
 
   const current = shuffled[index]
   const isLast = index === shuffled.length - 1
@@ -67,18 +71,19 @@ export default function PracticeMode({ level, onBack, onHome }) {
     trackWordPracticed(level, current.word, true)
     fireConfetti()
 
-    if (timeUpRef.current) {
-      await delay(800)
-      return
-    }
+    if (timeUpRef.current) return
 
     await playCorrectEncouragement()
+    if (!mountedRef.current) return
     await delay(800)
+    if (!mountedRef.current) return
     if (isLast) {
       trackLevelCompleted(level, 'practice')
       confettiCelebration()
       await playCelebration()
+      if (!mountedRef.current) return
       await delay(500)
+      if (!mountedRef.current) return
       onBack()
     } else {
       setIndex(i => i + 1)
@@ -91,13 +96,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
     setWrongCount(c => c + 1)
     trackWordPracticed(level, current.word, false)
 
-    if (timeUpRef.current) {
-      await delay(800)
-      return
-    }
+    if (timeUpRef.current) return
 
     await playWrongEncouragement()
-    setShowResult(null)
+    if (mountedRef.current) setShowResult(null)
   }, [answered, current, level])
 
   const handleSpeaker = useCallback(() => {
@@ -143,7 +145,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-1 shrink-0">
-        <button onClick={() => { stopAll(); onBack() }} className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
+        <button onClick={() => { stopAll(); onBack() }} aria-label="Go back" className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
           <ArrowLeft className="w-5 h-5 text-purple-500" />
         </button>
         <span className="text-sm font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
@@ -156,7 +158,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
         <PracticeTimerDisplay timeLeft={timer.timeLeft} />
         <div className="flex gap-1.5 shrink-0">
           <FullscreenBtn />
-          <button onClick={() => { stopAll(); onHome() }} className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+          <button onClick={() => { stopAll(); onHome() }} aria-label="Go home" className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
             <Home className="w-5 h-5 text-pink-500" />
           </button>
         </div>
@@ -197,11 +199,12 @@ export default function PracticeMode({ level, onBack, onHome }) {
                 src={current.image}
                 alt=""
                 className="w-28 h-28 sm:w-44 sm:h-44 md:w-64 md:h-64 object-contain rounded-xl"
-                onError={(e) => { e.target.src = '/images/placeholder.svg' }}
+                onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/images/placeholder.svg' } }}
                 draggable={false}
               />
               <button
                 onClick={handleSpeaker}
+                aria-label="Hear pronunciation"
                 className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-1.5 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
               >
                 <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />

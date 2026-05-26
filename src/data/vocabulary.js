@@ -396,6 +396,10 @@ export const VOCAB = {
   ],
 }
 
+Object.freeze(LEVELS)
+Object.values(VOCAB).forEach(arr => Object.freeze(arr))
+Object.freeze(VOCAB)
+
 export function getVocabForLevel(levelId) {
   return VOCAB[levelId] || []
 }

@@ -38,11 +38,17 @@ export function useTimer(durationSeconds, onTimeUp) {
       if (remaining <= 0 && !firedRef.current) {
         firedRef.current = true
         clearInterval(intervalRef.current)
+        intervalRef.current = null
         setIsRunning(false)
         onTimeUpRef.current?.()
       }
-    }, 500)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+    }, 250)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
   }, [isRunning, durationSeconds])
 
   return { timeLeft, isRunning, start, stop, getElapsedSeconds }
@@ -55,7 +61,11 @@ export default function PracticeTimerDisplay({ timeLeft }) {
   const isCritical = timeLeft <= 30
 
   return (
-    <div className={`flex items-center gap-1 font-bold text-sm tabular-nums ${isCritical ? 'text-red-500 animate-pulse' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}>
+    <div
+      className={`flex items-center gap-1 font-bold text-sm tabular-nums ${isCritical ? 'text-red-500 animate-pulse' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}
+      role="timer"
+      aria-label={`${minutes} minutes ${seconds} seconds remaining`}
+    >
       <Clock className="w-3.5 h-3.5" />
       {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
     </div>

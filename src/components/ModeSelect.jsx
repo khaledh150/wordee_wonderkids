@@ -16,6 +16,7 @@ export default function ModeSelect({ level, onSelect, onBack }) {
       <div className="absolute top-3 left-3 flex gap-2">
         <button
           onClick={onBack}
+          aria-label="Go back"
           className="p-2 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform"
         >
           <ArrowLeft className="w-5 h-5 text-purple-500" />

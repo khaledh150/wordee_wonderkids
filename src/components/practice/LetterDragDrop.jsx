@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 function shuffleArray(arr) {
@@ -14,6 +14,11 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const word = current.word.toLowerCase()
   const words = word.split(' ')
   const allLetters = word.replace(/ /g, '').split('')
+  const checkTimerRef = useRef(null)
+
+  useEffect(() => {
+    return () => { if (checkTimerRef.current) clearTimeout(checkTimerRef.current) }
+  }, [])
 
   const { prefilled, choices } = useMemo(() => {
     let pre, cl
@@ -41,7 +46,6 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const [wrongSlots, setWrongSlots] = useState(null)
   const [checking, setChecking] = useState(false)
   const [dragGhost, setDragGhost] = useState(null)
-  const slotAreaRef = useRef(null)
 
   const nextEmpty = slots.findIndex(s => s === null)
   const usedSet = new Set(Object.keys(usedMap).map(Number))
@@ -52,7 +56,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
     const isCorrect = filledSlots.every((l, i) => l === allLetters[i])
 
     if (isCorrect) {
-      setTimeout(onCorrect, 300)
+      checkTimerRef.current = setTimeout(onCorrect, 300)
     } else {
       const badIndices = []
       filledSlots.forEach((l, i) => {
@@ -65,7 +69,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
       setWrongSlots(new Set(badIndices))
       onWrong()
 
-      setTimeout(() => {
+      checkTimerRef.current = setTimeout(() => {
         setSlots(prev => {
           const newSlots = [...prev]
           for (const si of badIndices) newSlots[si] = null
@@ -119,7 +123,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const handleTouchStart = useCallback((e, letter, choiceIdx) => {
     if (answered || checking) return
     e.stopPropagation()
-    const touch = e.touches[0]
+    const touch = e.touches?.[0]
+    if (!touch) return
     setDragGhost({ letter, choiceIdx, x: touch.clientX, y: touch.clientY })
   }, [answered, checking])
 
@@ -127,7 +132,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
     if (!dragGhost) return
     e.stopPropagation()
     e.preventDefault()
-    const touch = e.touches[0]
+    const touch = e.touches?.[0]
+    if (!touch) return
     setDragGhost(prev => prev ? { ...prev, x: touch.clientX, y: touch.clientY } : null)
   }, [dragGhost])
 
@@ -166,10 +172,10 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
         </div>
       )}
 
-      {/* Slots */}
       <div
-        ref={slotAreaRef}
         className="flex flex-wrap justify-center items-center gap-y-1"
+        role="group"
+        aria-label="Letter slots"
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
         onDrop={(e) => {
           e.preventDefault()
@@ -197,6 +203,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
                   animate={isWrong ? { x: [0, -6, 6, -6, 0] } : {}}
                   transition={{ duration: 0.3 }}
                   onClick={() => removeFromSlot(si)}
+                  role="button"
+                  aria-label={letter ? `Remove letter ${letter}` : `Empty slot ${si + 1}`}
                 >
                   {letter || ''}
                 </motion.div>
@@ -206,8 +214,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
         ))}
       </div>
 
-      {/* Choices */}
-      <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
+      <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5" role="group" aria-label="Available letters">
         {availableChoices.map(({ letter, i }) => {
           const isDragging = dragGhost?.choiceIdx === i
           return (
@@ -226,6 +233,8 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
               }}
               onTouchStart={(e) => handleTouchStart(e, letter, i)}
               onClick={() => { if (!dragGhost) placeLetter(letter, i) }}
+              role="button"
+              aria-label={`Letter ${letter}`}
             >
               {letter}
             </div>

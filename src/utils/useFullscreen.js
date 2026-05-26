@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
 
+const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+const supportsFullscreen = typeof document !== 'undefined' && !isIOS && !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)
+
 export function enterFullscreen() {
+  if (!supportsFullscreen) return
   try {
     if (document.fullscreenElement || document.webkitFullscreenElement) return
     const el = document.documentElement
@@ -10,9 +14,10 @@ export function enterFullscreen() {
 }
 
 export default function useFullscreen() {
-  const [isFs, setIsFs] = useState(!!(document.fullscreenElement || document.webkitFullscreenElement))
+  const [isFs, setIsFs] = useState(!!(typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)))
 
   useEffect(() => {
+    if (!supportsFullscreen) return
     const onChange = () => setIsFs(!!(document.fullscreenElement || document.webkitFullscreenElement))
     document.addEventListener('fullscreenchange', onChange)
     document.addEventListener('webkitfullscreenchange', onChange)
@@ -23,6 +28,7 @@ export default function useFullscreen() {
   }, [])
 
   const toggle = useCallback(() => {
+    if (!supportsFullscreen) return
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       const exit = document.exitFullscreen || document.webkitExitFullscreen
       if (exit) exit.call(document).catch(() => {})
@@ -31,5 +37,5 @@ export default function useFullscreen() {
     }
   }, [])
 
-  return { isFs, toggle }
+  return { isFs, toggle, supported: supportsFullscreen }
 }

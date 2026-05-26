@@ -10,7 +10,7 @@ import InAppBrowserGuard from './components/InAppBrowserGuard'
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
 
-export const APP_VERSION = '1.4.2'
+export const APP_VERSION = '1.4.3'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {
@@ -26,21 +26,26 @@ function App() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const prev = localStorage.getItem('last_wordee_version')
-    if (prev && prev !== APP_VERSION) {
-      const preserved = {}
-      PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
-      localStorage.clear()
-      Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
+    try {
+      const prev = localStorage.getItem('last_wordee_version')
+      if (prev && prev !== APP_VERSION) {
+        const preserved = {}
+        PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
+        localStorage.clear()
+        Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
+        }
       }
-    }
-    localStorage.setItem('last_wordee_version', APP_VERSION)
+      localStorage.setItem('last_wordee_version', APP_VERSION)
+    } catch {}
   }, [])
 
   useEffect(() => {
+    let checking = false
     async function checkForUpdate() {
+      if (checking) return
+      checking = true
       try {
         const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
         if (!res.ok) return
@@ -48,15 +53,15 @@ function App() {
         if (data.version && data.version !== APP_VERSION) {
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations()
-            for (const r of regs) await r.unregister()
+            await Promise.all(regs.map(r => r.unregister()))
           }
           if ('caches' in window) {
             const keys = await caches.keys()
-            for (const k of keys) await caches.delete(k)
+            await Promise.all(keys.map(k => caches.delete(k)))
           }
           window.location.reload()
         }
-      } catch {}
+      } catch {} finally { checking = false }
     }
     checkForUpdate()
     const id = setInterval(checkForUpdate, 60_000)

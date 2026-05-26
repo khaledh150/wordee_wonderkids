@@ -1,4 +1,5 @@
-const preloaded = new Set()
+const loaded = new Set()
+const failed = new Set()
 
 const scheduleIdle = typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function'
   ? (cb) => window.requestIdleCallback(cb)
@@ -9,9 +10,11 @@ export function preloadLevelImages(vocab, batchSize = 15) {
   function loadBatch() {
     const batch = vocab.slice(i, i + batchSize)
     batch.forEach(item => {
-      if (preloaded.has(item.image)) return
-      preloaded.add(item.image)
+      if (loaded.has(item.image)) return
+      failed.delete(item.image)
       const img = new Image()
+      img.onload = () => loaded.add(item.image)
+      img.onerror = () => failed.add(item.image)
       img.src = item.image
     })
     i += batchSize

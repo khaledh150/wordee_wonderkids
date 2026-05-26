@@ -1,23 +1,22 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Clock, Target, Home } from 'lucide-react'
-import { fireCelebration } from '../../utils/confetti'
+import { fireCelebration, cancelCelebration } from '../../utils/confetti'
 
 export default function PracticeResults({ correct, wrong, total, timeTaken, totalTime, onHome }) {
-  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
+  const answered = correct + wrong
+  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0
   const minutes = Math.floor(timeTaken / 60)
   const seconds = timeTaken % 60
-  const answered = correct + wrong
-  const skipped = total - answered
 
   useEffect(() => {
     if (accuracy >= 60) {
       const t = setTimeout(fireCelebration, 500)
-      return () => clearTimeout(t)
+      return () => { clearTimeout(t); cancelCelebration() }
     }
   }, [accuracy])
 
-  const grade = accuracy === 100 ? { text: 'Perfect! ⭐', color: 'text-yellow-500' }
+  const grade = accuracy === 100 ? { text: 'Perfect!', color: 'text-yellow-500' }
     : accuracy >= 80 ? { text: 'Excellent!', color: 'text-green-500' }
     : accuracy >= 60 ? { text: 'Great job!', color: 'text-purple-500' }
     : accuracy >= 40 ? { text: 'Good try!', color: 'text-orange-500' }
@@ -68,6 +67,7 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
 
       <button
         onClick={onHome}
+        aria-label="Back to home"
         className="mt-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform"
       >
         <Home className="w-5 h-5" />

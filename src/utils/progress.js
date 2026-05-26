@@ -4,14 +4,30 @@ function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return createEmpty()
-    return JSON.parse(raw)
+    const data = JSON.parse(raw)
+    if (!data || typeof data !== 'object') return createEmpty()
+    if (!data.words) data.words = {}
+    if (!data.levels) data.levels = {}
+    if (!data.stats) data.stats = { firstSessionAt: Date.now() }
+    return data
   } catch {
     return createEmpty()
   }
 }
 
 function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    try {
+      if (data.words && Object.keys(data.words).length > 500) {
+        const entries = Object.entries(data.words)
+        entries.sort((a, b) => (b[1].lastCorrectAt || b[1].learnedAt || 0) - (a[1].lastCorrectAt || a[1].learnedAt || 0))
+        data.words = Object.fromEntries(entries.slice(0, 300))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      }
+    } catch {}
+  }
 }
 
 function createEmpty() {
@@ -19,6 +35,7 @@ function createEmpty() {
 }
 
 export function trackWordLearned(levelId, word) {
+  if (!word) return
   const data = load()
   const key = `${levelId}_${word}`
   if (!data.words[key]) data.words[key] = { learnedAt: Date.now(), practiceCount: 0 }
@@ -26,6 +43,7 @@ export function trackWordLearned(levelId, word) {
 }
 
 export function trackWordPracticed(levelId, word, correct) {
+  if (!word) return
   const data = load()
   const key = `${levelId}_${word}`
   if (!data.words[key]) data.words[key] = { learnedAt: Date.now(), practiceCount: 0 }

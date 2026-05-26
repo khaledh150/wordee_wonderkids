@@ -5,11 +5,13 @@ export default function useSwipe(onSwipeLeft, onSwipeRight, threshold = 50) {
   const touchEnd = useRef(null)
 
   const onTouchStart = useCallback((e) => {
+    if (!e.targetTouches?.length) return
     touchEnd.current = null
     touchStart.current = e.targetTouches[0].clientX
   }, [])
 
   const onTouchMove = useCallback((e) => {
+    if (!e.targetTouches?.length) return
     touchEnd.current = e.targetTouches[0].clientX
   }, [])
 
