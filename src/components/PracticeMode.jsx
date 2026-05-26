@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2 } from 'lucide-react'
 import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
-import { playWordVO, playCorrectEncouragement, playWrongEncouragement, playCelebration, stopAll, delay } from '../utils/audioPlayer'
+import { playWordVO, playSFX, stopAll } from '../utils/audioPlayer'
 import { trackWordPracticed, trackLevelCompleted } from '../utils/progress'
-import { fireConfetti, fireCelebration as confettiCelebration, cancelCelebration } from '../utils/confetti'
+import { fireConfetti } from '../utils/confetti'
 import { preloadLevelImages } from '../utils/preloadImages'
 import MultipleChoice from './practice/MultipleChoice'
 import LetterDragDrop from './practice/LetterDragDrop'
@@ -15,120 +15,147 @@ import PracticeResults from './practice/PracticeResults'
 
 const PRACTICE_DURATION_SEC = 5 * 60
 
+function shuffleArray(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 export default function PracticeMode({ level, onBack, onHome }) {
   const allVocab = getVocabForLevel(level)
   const levelData = LEVELS.find(l => l.id === level)
   const [index, setIndex] = useState(0)
   const [answered, setAnswered] = useState(false)
-  const [showResult, setShowResult] = useState(null)
   const [correctCount, setCorrectCount] = useState(0)
   const [wrongCount, setWrongCount] = useState(0)
-  const [timeUp, setTimeUp] = useState(false)
+  const [finished, setFinished] = useState(false)
   const mountedRef = useRef(true)
-  const timeUpRef = useRef(false)
+  const finishedRef = useRef(false)
+  const answeredRef = useRef(false)
+  const indexRef = useRef(0)
+  const shuffledRef = useRef(null)
+  const timerRef = useRef(null)
 
-  useEffect(() => { return () => { mountedRef.current = false; cancelCelebration() } }, [])
+  if (!shuffledRef.current) {
+    shuffledRef.current = shuffleArray(allVocab)
+  }
+  const shuffled = shuffledRef.current
+  const total = shuffled.length
+
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
 
   const handleTimeUp = useCallback(() => {
-    timeUpRef.current = true
-    setTimeUp(true)
+    finishedRef.current = true
+    setFinished(true)
     stopAll()
   }, [])
 
   const timer = useTimer(PRACTICE_DURATION_SEC, handleTimeUp)
-
-  const shuffled = useMemo(() => {
-    const arr = [...allVocab]
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    }
-    return arr
-  }, [allVocab])
+  timerRef.current = timer
 
   useEffect(() => {
     preloadLevelImages(allVocab)
     timer.start()
-    return () => timer.stop()
   }, [])
 
   const current = shuffled[index]
-  const isLast = index === shuffled.length - 1
 
   useEffect(() => {
+    answeredRef.current = false
     setAnswered(false)
-    setShowResult(null)
-    if (current && !timeUpRef.current) {
-      delay(500).then(() => { if (!timeUpRef.current) playWordVO(current.audio.split('/').pop()) })
+    if (current && !finishedRef.current) {
+      playWordVO(current.audio.split('/').pop())
     }
   }, [index, current])
 
-  const handleCorrect = useCallback(async () => {
-    if (answered) return
-    setAnswered(true)
-    setShowResult('correct')
-    setCorrectCount(c => c + 1)
-    trackWordPracticed(level, current.word, true)
-    fireConfetti()
-
-    if (timeUpRef.current) return
-
-    await playCorrectEncouragement()
-    if (!mountedRef.current) return
-    await delay(800)
-    if (!mountedRef.current) return
-    if (isLast) {
+  function goToNext() {
+    if (!mountedRef.current || finishedRef.current) return
+    const idx = indexRef.current
+    if (idx >= total - 1) {
       trackLevelCompleted(level, 'practice')
-      confettiCelebration()
-      await playCelebration()
-      if (!mountedRef.current) return
-      await delay(500)
-      if (!mountedRef.current) return
-      onBack()
+      timerRef.current.stop()
+      finishedRef.current = true
+      setFinished(true)
     } else {
-      setIndex(i => i + 1)
+      const next = idx + 1
+      indexRef.current = next
+      setIndex(next)
     }
-  }, [answered, current, level, isLast, onBack])
+  }
 
-  const handleWrong = useCallback(async () => {
-    if (answered) return
-    setShowResult('wrong')
+  const handleCorrect = useCallback(() => {
+    if (answeredRef.current) return
+    answeredRef.current = true
+    setAnswered(true)
+    setCorrectCount(c => c + 1)
+    const word = shuffled[indexRef.current]
+    if (word) trackWordPracticed(level, word.word, true)
+    try { fireConfetti() } catch (e) { console.warn('confetti error', e) }
+    if (finishedRef.current) return
+    playSFX('correct.wav')
+    setTimeout(goToNext, 300)
+  }, [level, shuffled, total])
+
+  const handleWrong = useCallback(() => {
+    if (answeredRef.current) return
+    answeredRef.current = true
+    setAnswered(true)
     setWrongCount(c => c + 1)
-    trackWordPracticed(level, current.word, false)
-
-    if (timeUpRef.current) return
-
-    await playWrongEncouragement()
-    if (mountedRef.current) setShowResult(null)
-  }, [answered, current, level])
+    const word = shuffled[indexRef.current]
+    if (word) trackWordPracticed(level, word.word, false)
+    if (finishedRef.current) return
+    playSFX('wrong.wav')
+    setTimeout(goToNext, 500)
+  }, [level, shuffled, total])
 
   const handleSpeaker = useCallback(() => {
     if (current) playWordVO(current.audio.split('/').pop())
   }, [current])
 
   const skipNext = useCallback(() => {
-    if (isLast) return
+    if (indexRef.current >= total - 1) return
     stopAll()
-    setIndex(i => i + 1)
-  }, [isLast])
+    const next = indexRef.current + 1
+    indexRef.current = next
+    setIndex(next)
+  }, [total])
 
   const skipPrev = useCallback(() => {
-    if (index === 0) return
+    if (indexRef.current === 0) return
     stopAll()
-    setIndex(i => i - 1)
-  }, [index])
+    const prev = indexRef.current - 1
+    indexRef.current = prev
+    setIndex(prev)
+  }, [])
 
   const swipeHandlers = useSwipe(skipNext, skipPrev)
 
-  if (timeUp) {
+  const handleTryAgain = useCallback(() => {
+    shuffledRef.current = shuffleArray(allVocab)
+    setCorrectCount(0)
+    setWrongCount(0)
+    indexRef.current = 0
+    setIndex(0)
+    answeredRef.current = false
+    setAnswered(false)
+    finishedRef.current = false
+    setFinished(false)
+    timerRef.current.start()
+  }, [allVocab])
+
+  if (finished) {
     return (
       <PracticeResults
         correct={correctCount}
         wrong={wrongCount}
-        total={shuffled.length}
-        timeTaken={timer.getElapsedSeconds()}
+        total={total}
+        timeTaken={timerRef.current.getElapsedSeconds()}
         totalTime={PRACTICE_DURATION_SEC}
         onHome={() => { stopAll(); onHome() }}
+        onTryAgain={handleTryAgain}
       />
     )
   }
@@ -143,76 +170,59 @@ export default function PracticeMode({ level, onBack, onHome }) {
       exit={{ opacity: 0 }}
       {...swipeHandlers}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-1 shrink-0">
-        <button onClick={() => { stopAll(); onBack() }} aria-label="Go back" className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
-          <ArrowLeft className="w-5 h-5 text-purple-500" />
+      <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 xl:gap-4 px-2 sm:px-3 lg:px-4 xl:px-6 py-1 sm:py-1.5 lg:py-2 xl:py-3 shrink-0">
+        <button onClick={() => { stopAll(); onBack() }} aria-label="Go back" className="p-1.5 sm:p-2 lg:p-2.5 xl:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-purple-500" />
         </button>
-        <span className="text-sm font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
-        <div className="flex-1 h-1.5 bg-pink-100 rounded-full overflow-hidden min-w-8">
+        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
+        <div className="flex-1 h-1.5 sm:h-2 lg:h-2.5 xl:h-3 bg-pink-100 rounded-full overflow-hidden min-w-6">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-rose-400 rounded-full"
-            animate={{ width: `${((index + 1) / shuffled.length) * 100}%` }}
+            animate={{ width: `${((index + 1) / total) * 100}%` }}
           />
         </div>
         <PracticeTimerDisplay timeLeft={timer.timeLeft} />
-        <div className="flex gap-1.5 shrink-0">
+        <div className="flex gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
           <FullscreenBtn />
-          <button onClick={() => { stopAll(); onHome() }} aria-label="Go home" className="p-1.5 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
-            <Home className="w-5 h-5 text-pink-500" />
+          <button onClick={() => { stopAll(); onHome() }} aria-label="Go home" className="p-1.5 sm:p-2 lg:p-2.5 xl:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform">
+            <Home className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-pink-500" />
           </button>
         </div>
       </div>
 
-      {/* Question indicator */}
-      <div className="px-3 shrink-0">
-        <span className="text-sm font-bold text-pink-400">Q{index + 1}/{shuffled.length}</span>
+      <div className="px-2 sm:px-3 lg:px-4 xl:px-6 shrink-0">
+        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-pink-400">Q{index + 1}/{total}</span>
       </div>
 
-      {/* Flash overlay */}
-      <AnimatePresence>
-        {showResult && (
-          <motion.div
-            className={`absolute inset-0 z-20 pointer-events-none ${showResult === 'correct' ? 'bg-green-400/20' : 'bg-red-400/20'}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Scrollable content area */}
       <div className="flex-1 overflow-auto min-h-0">
-        <div className="flex items-center justify-center min-h-full px-2 py-1 gap-2 sm:gap-4">
+        <div className="flex items-center justify-center min-h-full px-3 sm:px-4 lg:px-6 xl:px-10 py-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-5xl"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            className="flex items-center justify-center gap-3 sm:gap-5 lg:gap-8 xl:gap-12"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.12 }}
           >
-            {/* Image with speaker */}
-            <div className="relative bg-white rounded-2xl shadow-xl p-1.5 sm:p-2 shrink-0">
+            <div className="relative bg-white rounded-2xl shadow-xl p-1 sm:p-1.5 lg:p-2 xl:p-3 shrink-0">
               <img
                 src={current.image}
                 alt=""
-                className="w-28 h-28 sm:w-44 sm:h-44 md:w-64 md:h-64 object-contain rounded-xl"
+                className="w-24 h-24 sm:w-40 sm:h-40 md:w-56 md:h-56 lg:w-72 lg:h-72 xl:w-96 xl:h-96 object-contain rounded-xl"
                 onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/images/placeholder.svg' } }}
                 draggable={false}
               />
               <button
                 onClick={handleSpeaker}
                 aria-label="Hear pronunciation"
-                className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-1.5 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
+                className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 lg:top-1.5 lg:right-1.5 xl:top-2 xl:right-2 p-1 sm:p-1.5 lg:p-2 xl:p-2.5 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-lg active:scale-90 transition-transform"
               >
-                <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
+                <Volume2 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 text-white" />
               </button>
             </div>
 
-            {/* Practice area */}
-            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+            <div className="min-w-0 flex flex-col items-center justify-center">
               {level === 1 ? (
                 <MultipleChoice
                   current={current}

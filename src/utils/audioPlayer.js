@@ -1,6 +1,21 @@
 let voMuted = false
 let currentAudio = null
 let generationId = 0
+let audioUnlocked = false
+
+function unlockAudio() {
+  if (audioUnlocked) return
+  audioUnlocked = true
+  const a = new Audio()
+  a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+  a.play().then(() => a.pause()).catch(() => {})
+}
+
+if (typeof window !== 'undefined') {
+  const events = ['touchstart', 'mousedown', 'keydown']
+  const handler = () => { unlockAudio(); events.forEach(e => document.removeEventListener(e, handler, true)) }
+  events.forEach(e => document.addEventListener(e, handler, true))
+}
 
 export function setVOMuted(muted) { voMuted = muted }
 export function isVOMuted() { return voMuted }
@@ -29,7 +44,7 @@ function playFile(src) {
   return new Promise((resolve) => {
     if (voMuted) return resolve()
     stopAll()
-    const myGen = ++generationId
+    ++generationId
     const audio = new Audio(src)
     currentAudio = audio
     const done = () => {
@@ -41,7 +56,9 @@ function playFile(src) {
     }
     audio.onended = done
     audio.onerror = done
-    audio.play().catch(done)
+    audio.play().catch(() => {
+      resolve()
+    })
   })
 }
 

@@ -62,11 +62,11 @@ export default function PracticeTimerDisplay({ timeLeft }) {
 
   return (
     <div
-      className={`flex items-center gap-1 font-bold text-sm tabular-nums ${isCritical ? 'text-red-500 animate-pulse' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}
+      className={`flex items-center gap-0.5 sm:gap-1 font-bold text-xs sm:text-sm lg:text-base xl:text-lg tabular-nums ${isCritical ? 'text-red-500 animate-pulse' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}
       role="timer"
       aria-label={`${minutes} minutes ${seconds} seconds remaining`}
     >
-      <Clock className="w-3.5 h-3.5" />
+      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
       {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
     </div>
   )

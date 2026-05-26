@@ -18,16 +18,15 @@ export default function LevelSelect({ onSelect }) {
     >
       <FullscreenBtn className="absolute top-3 right-3 z-10" />
 
-      <img src={logo} alt="Wordee" className="w-20 h-20 sm:w-28 sm:h-28 object-contain mb-0.5" />
-      <h1 className="text-xl sm:text-2xl font-extrabold text-purple-700 mb-0.5">Wordee</h1>
-      <p className="text-[11px] sm:text-xs text-purple-400 mb-2">Choose your level</p>
+      <img src={logo} alt="Wordee" className="w-20 h-20 sm:w-28 sm:h-28 lg:w-36 lg:h-36 xl:w-44 xl:h-44 object-contain mb-0.5" />
+      <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-purple-700 mb-0.5">Wordee</h1>
+      <p className="text-[11px] sm:text-xs lg:text-sm xl:text-base text-purple-400 mb-2 lg:mb-3">Choose your level</p>
 
-      {/* 2x2 grid */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 xl:gap-5 w-full max-w-2xl xl:max-w-4xl">
         {LEVELS.map((level, i) => (
           <motion.button
             key={level.id}
-            className={`${levelColors[i]} text-white rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-lg ${levelShadows[i]} flex items-center gap-3 active:scale-95 transition-transform w-full`}
+            className={`${levelColors[i]} text-white rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 lg:px-6 lg:py-5 xl:px-8 xl:py-6 shadow-lg ${levelShadows[i]} flex items-center gap-3 lg:gap-4 xl:gap-5 active:scale-95 transition-transform w-full`}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0, y: 20 }}
@@ -35,16 +34,16 @@ export default function LevelSelect({ onSelect }) {
             transition={{ delay: i * 0.08 }}
             onClick={() => { enterFullscreen(); onSelect(level.id) }}
           >
-            <span className="text-2xl sm:text-3xl">{level.emoji}</span>
+            <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl">{level.emoji}</span>
             <div className="text-left">
-              <div className="font-extrabold text-sm sm:text-base">{level.name}</div>
-              <div className="text-[10px] sm:text-xs opacity-90">{level.subtitle}</div>
+              <div className="font-extrabold text-sm sm:text-base lg:text-lg xl:text-xl">{level.name}</div>
+              <div className="text-[10px] sm:text-xs lg:text-sm xl:text-base opacity-90">{level.subtitle}</div>
             </div>
           </motion.button>
         ))}
       </div>
 
-      <p className="mt-2 text-[9px] sm:text-[10px] text-gray-400">v{APP_VERSION} · © 2025 Wordee. All rights reserved.</p>
+      <p className="mt-2 text-[9px] sm:text-[10px] lg:text-xs text-gray-400">v{APP_VERSION} · © 2025 Wordee. All rights reserved.</p>
     </motion.div>
   )
 }

@@ -1,13 +1,15 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Clock, Target, Home } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Target, Home, RotateCcw } from 'lucide-react'
 import { fireCelebration, cancelCelebration } from '../../utils/confetti'
 
-export default function PracticeResults({ correct, wrong, total, timeTaken, totalTime, onHome }) {
+export default function PracticeResults({ correct, wrong, total, timeTaken, totalTime, onHome, onTryAgain }) {
   const answered = correct + wrong
   const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0
   const minutes = Math.floor(timeTaken / 60)
   const seconds = timeTaken % 60
+  const allDone = answered >= total
+  const timeUp = timeTaken >= totalTime
 
   useEffect(() => {
     if (accuracy >= 60) {
@@ -24,7 +26,7 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
 
   return (
     <motion.div
-      className="w-full h-screen-safe flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50 p-4"
+      className="w-full h-screen-safe flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50 px-3 py-2 sm:p-4 lg:p-6 xl:p-8 overflow-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -32,47 +34,57 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 200 }}
-        className="w-28 h-28 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-xl"
+        className="w-20 h-20 sm:w-28 sm:h-28 lg:w-36 lg:h-36 xl:w-44 xl:h-44 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-xl"
       >
         <div className="text-center">
-          <div className="text-4xl font-bold text-white">{correct}</div>
-          <div className="text-white/80 text-sm font-medium">out of {answered}</div>
+          <div className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white">{correct}</div>
+          <div className="text-white/80 text-[10px] sm:text-sm lg:text-base xl:text-lg font-medium">out of {answered}</div>
         </div>
       </motion.div>
 
-      <h1 className={`text-2xl font-bold mt-3 ${grade.color}`}>{grade.text}</h1>
-      <p className="text-purple-400 text-sm mt-1">Time's up!</p>
+      <h1 className={`text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-bold mt-2 sm:mt-3 ${grade.color}`}>{grade.text}</h1>
+      <p className="text-purple-400 text-xs sm:text-sm lg:text-base xl:text-lg mt-0.5">{allDone ? 'All questions done!' : timeUp ? "Time's up!" : 'Practice complete!'}</p>
 
-      <div className="bg-white rounded-2xl p-4 shadow-xl mt-4 w-full max-w-sm">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="bg-white rounded-2xl p-3 sm:p-4 lg:p-5 xl:p-6 shadow-xl mt-3 sm:mt-4 w-full max-w-sm lg:max-w-md xl:max-w-lg">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 xl:gap-3">
           {[
             { icon: CheckCircle, label: 'Correct', value: correct, color: 'text-green-500', bg: 'bg-green-50' },
             { icon: XCircle, label: 'Wrong', value: wrong, color: 'text-red-500', bg: 'bg-red-50' },
             { icon: Clock, label: 'Time', value: `${minutes}:${String(seconds).padStart(2, '0')}`, color: 'text-purple-500', bg: 'bg-purple-50' },
           ].map(({ icon: Icon, label, value, color, bg }) => (
-            <div key={label} className={`${bg} rounded-xl p-2 text-center`}>
-              <Icon className={`w-5 h-5 ${color} mx-auto mb-0.5`} />
-              <div className={`text-lg font-bold ${color}`}>{value}</div>
-              <div className="text-gray-400 text-xs">{label}</div>
+            <div key={label} className={`${bg} rounded-xl p-1.5 sm:p-2 lg:p-3 xl:p-4 text-center`}>
+              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 ${color} mx-auto mb-0.5`} />
+              <div className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold ${color}`}>{value}</div>
+              <div className="text-gray-400 text-[10px] sm:text-xs lg:text-sm xl:text-base">{label}</div>
             </div>
           ))}
         </div>
 
-        <div className="mt-3 flex items-center justify-center gap-2 bg-purple-50 rounded-xl p-2">
-          <Target className="w-4 h-4 text-purple-500" />
-          <span className="text-purple-700 font-bold text-lg">{accuracy}%</span>
-          <span className="text-purple-400 text-sm">accuracy</span>
+        <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1.5 sm:gap-2 bg-purple-50 rounded-xl p-1.5 sm:p-2 xl:p-3">
+          <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 text-purple-500" />
+          <span className="text-purple-700 font-bold text-base sm:text-lg lg:text-xl xl:text-2xl">{accuracy}%</span>
+          <span className="text-purple-400 text-xs sm:text-sm lg:text-base xl:text-lg">accuracy</span>
         </div>
       </div>
 
       <button
         onClick={onHome}
         aria-label="Back to home"
-        className="mt-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform"
+        className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:bottom-8 lg:left-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 xl:px-8 py-2.5 sm:py-3 lg:py-3.5 xl:py-4 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform text-sm sm:text-base lg:text-lg xl:text-xl z-20"
       >
-        <Home className="w-5 h-5" />
-        Back to Home
+        <Home className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7" />
+        Home
       </button>
+      {onTryAgain && (
+        <button
+          onClick={onTryAgain}
+          aria-label="Try again"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 xl:px-8 py-2.5 sm:py-3 lg:py-3.5 xl:py-4 bg-white border-2 border-purple-300 text-purple-600 font-bold rounded-full shadow-md active:scale-95 transition-transform text-sm sm:text-base lg:text-lg xl:text-xl z-20"
+        >
+          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6" />
+          Try Again
+        </button>
+      )}
     </motion.div>
   )
 }
