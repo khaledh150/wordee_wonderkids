@@ -130,7 +130,10 @@ async function main() {
   console.log('\n📋 Phase 1: Setting up test data...')
 
   // Use auth to set up (need admin token)
-  const { data: authData } = await supabase.auth.signInWithPassword({ email: 'admin@wordee.app', password: 'WordeeAdmin2026!' })
+  const adminEmail = process.env.ADMIN_EMAIL
+  const adminPassword = process.env.ADMIN_PASSWORD
+  if (!adminEmail || !adminPassword) { console.error('Set ADMIN_EMAIL and ADMIN_PASSWORD env vars'); process.exit(1) }
+  const { data: authData } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword })
   if (!authData?.session) { console.error('Admin login failed'); process.exit(1) }
 
   // Create/update competition state
