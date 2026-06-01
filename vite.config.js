@@ -25,6 +25,7 @@ export default defineConfig({
     }),
   ],
   build: {
+    target: ['es2015', 'chrome64', 'safari12', 'firefox62'],
     sourcemap: false,
     rollupOptions: {
       output: {

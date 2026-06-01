@@ -36,6 +36,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [answers, setAnswers] = useState([])
   const [correctCount, setCorrectCount] = useState(0)
   const [validatedScore, setValidatedScore] = useState(null)
+  const [submitError, setSubmitError] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const [competitionState, setCompetitionState] = useState(null)
@@ -307,7 +308,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       } catch {
         retryCount++
         if (retryCount <= 10) setTimeout(trySubmit, Math.min(3000 * Math.pow(1.5, retryCount - 1), 30000))
-        else submittingRef.current = false
+        else { submittingRef.current = false; setSubmitError(true) }
       }
     }
     await trySubmit()
@@ -344,6 +345,6 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     phase, session, timeLeft, currentScore: correctCount,
     questionsAnswered: answers.length, validatedScore, isSyncing,
     announcement, competitionState, orderedQuestions, hapticPulse,
-    joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
+    submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
   }
 }

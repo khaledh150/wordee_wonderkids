@@ -301,7 +301,10 @@ export default function AdminDashboard() {
                 </select>
                 <button onClick={async () => {
                   if (!newStudent.name.trim()) return
-                  const code = Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32]).join('')
+                  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+                  let code
+                  try { code = Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b => chars[b % 32]).join('') }
+                  catch { code = Array.from({length:6}, () => chars[Math.floor(Math.random()*32)]).join('') }
                   const { error } = await supabase.from('competition_sessions').insert({
                     competition_id: state.competition_id,
                     participant_code: code,

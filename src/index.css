@@ -88,6 +88,10 @@ input, textarea {
   th { border-bottom: 2px solid #333 !important; font-weight: bold !important; }
 }
 
+/* Safari backdrop-filter support */
+.backdrop-blur-sm { -webkit-backdrop-filter: blur(4px); }
+.backdrop-blur-xl { -webkit-backdrop-filter: blur(48px); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
