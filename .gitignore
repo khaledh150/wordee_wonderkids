@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .claude/
+
+# Environment variables
+.env
+.env.local
+
+# MCP config (contains project refs)
+.mcp.json

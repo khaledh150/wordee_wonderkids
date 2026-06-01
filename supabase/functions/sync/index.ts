@@ -1,0 +1,89 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+
+  try {
+    const { participant_code, competition_id, provisional_score, questions_answered, answers } = await req.json();
+    if (!participant_code || !competition_id) {
+      return json({ error: "participant_code and competition_id required" }, 400);
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Look up session
+    const { data: session, error: lookupErr } = await supabase
+      .from("competition_sessions")
+      .select("participant_id, status, started_at, updated_at, answers_snapshot")
+      .eq("participant_code", participant_code)
+      .eq("competition_id", competition_id)
+      .single();
+
+    if (lookupErr || !session) {
+      return json({ error: "Invalid participant code" }, 404);
+    }
+
+    // Reject if not active
+    if (session.status === "completed") {
+      return json({ ok: true, note: "already completed" });
+    }
+    if (session.status !== "active") {
+      return json({ error: "Session not active" }, 400);
+    }
+
+    // Rate limit: if answers_snapshot already exists AND updated less than 25s ago, throttle
+    // Always allow the first sync (answers_snapshot is null after join)
+    if (session.answers_snapshot != null && session.updated_at) {
+      const lastUpdate = new Date(session.updated_at).getTime();
+      const now = Date.now();
+      if (now - lastUpdate < 25_000) {
+        return json({ ok: true, throttled: true });
+      }
+    }
+
+    // Compute server-side time_spent
+    const now = new Date();
+    let timeSpent = 0;
+    if (session.started_at) {
+      timeSpent = Math.round((now.getTime() - new Date(session.started_at).getTime()) / 1000);
+    }
+
+    // Update session with provisional data + answers snapshot
+    const { error: updateErr } = await supabase
+      .from("competition_sessions")
+      .update({
+        provisional_score: provisional_score ?? 0,
+        questions_answered: questions_answered ?? 0,
+        time_spent_seconds: timeSpent,
+        answers_snapshot: answers ?? null,
+        updated_at: now.toISOString(),
+      })
+      .eq("participant_id", session.participant_id);
+
+    if (updateErr) {
+      return json({ error: "Sync failed" }, 500);
+    }
+
+    return json({ ok: true, time_spent_seconds: timeSpent });
+  } catch (err) {
+    return json({ error: "Internal error" }, 500);
+  }
+});

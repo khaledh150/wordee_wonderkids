@@ -20,7 +20,7 @@ export default function MultipleChoice({ current, allVocab, onCorrect, onWrong, 
   }, [current, allVocab])
 
   const handlePick = (choice) => {
-    if (answered) return
+    if (answered || wrongPick) return
     const isCorrect = choice.word === current.word
     if (isCorrect) {
       onCorrect()

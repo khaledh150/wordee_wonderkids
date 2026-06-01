@@ -43,7 +43,7 @@ export default function LevelSelect({ onSelect }) {
         ))}
       </div>
 
-      <p className="mt-2 text-[9px] sm:text-[10px] lg:text-xs text-gray-400">v{APP_VERSION} · © 2025 Wordee. All rights reserved.</p>
+      <p className="mt-2 text-[9px] sm:text-[10px] lg:text-xs text-gray-400">v{APP_VERSION} · © 2026 Wonder Kids CO., LTD. All rights reserved.</p>
     </motion.div>
   )
 }

@@ -400,6 +400,9 @@ Object.freeze(LEVELS)
 Object.values(VOCAB).forEach(arr => Object.freeze(arr))
 Object.freeze(VOCAB)
 
+const VOCAB_L1_EXPANDED = Object.freeze([...(VOCAB[1] || []), ...(VOCAB[2] || [])])
+
 export function getVocabForLevel(levelId) {
+  if (levelId === 1) return VOCAB_L1_EXPANDED
   return VOCAB[levelId] || []
 }

@@ -9,6 +9,9 @@ import InAppBrowserGuard from './components/InAppBrowserGuard'
 
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
+const AdminPage = lazy(() => import('./competition/AdminPage'))
+const CompetitionPlayPage = lazy(() => import('./competition/CompetitionPlayPage'))
+const ProjectorPage = lazy(() => import('./competition/ProjectorPage'))
 
 export const APP_VERSION = '1.4.3'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
@@ -20,6 +23,17 @@ function writeHash(screen, level) {
 }
 
 function App() {
+  // Route /admin, /play, /projector to competition screens
+  if (window.location.pathname === '/admin') {
+    return <Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense>
+  }
+  if (window.location.pathname === '/play') {
+    return <Suspense fallback={<LoadingScreen />}><CompetitionPlayPage /></Suspense>
+  }
+  if (window.location.pathname === '/projector') {
+    return <Suspense fallback={<LoadingScreen />}><ProjectorPage /></Suspense>
+  }
+
   const [screen, setScreen] = useState('splash')
   const [selectedLevel, setSelectedLevel] = useState(null)
   const [mode, setMode] = useState(null)
@@ -80,7 +94,7 @@ function App() {
     clearIdleTimer()
     if (opts.level !== undefined) setSelectedLevel(opts.level)
     if (opts.mode !== undefined) setMode(opts.mode)
-    if (to === 'learn' || to === 'practice') {
+    if (to === 'learn' || to === 'practice' || to === 'test') {
       setLoading(true)
       setTimeout(() => { setLoading(false); setScreen(to) }, 1200)
     } else {
@@ -90,7 +104,7 @@ function App() {
 
   const goHome = useCallback(() => navigate('levels'), [navigate])
   const goBack = useCallback(() => {
-    if (screen === 'learn' || screen === 'practice') navigate('mode', { level: selectedLevel })
+    if (screen === 'learn' || screen === 'practice' || screen === 'test') navigate('mode', { level: selectedLevel })
     else if (screen === 'mode') navigate('levels')
     else navigate('levels')
   }, [screen, selectedLevel, navigate])
@@ -135,6 +149,18 @@ function App() {
               level={selectedLevel}
               onBack={goBack}
               onHome={goHome}
+              mode="practice"
+            />
+          </Suspense>
+        )}
+        {screen === 'test' && (
+          <Suspense fallback={<LoadingScreen />}>
+            <PracticeMode
+              key="test"
+              level={selectedLevel}
+              onBack={goBack}
+              onHome={goHome}
+              mode="test"
             />
           </Suspense>
         )}

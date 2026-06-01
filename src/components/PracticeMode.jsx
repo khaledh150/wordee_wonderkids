@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Home, Volume2 } from 'lucide-react'
+import { ArrowLeft, Home, Volume2, ChevronRight } from 'lucide-react'
 import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, playSFX, stopAll } from '../utils/audioPlayer'
@@ -24,13 +24,15 @@ function shuffleArray(arr) {
   return a
 }
 
-export default function PracticeMode({ level, onBack, onHome }) {
+export default function PracticeMode({ level, onBack, onHome, mode = 'practice' }) {
+  const isTest = mode === 'test'
   const allVocab = getVocabForLevel(level)
   const levelData = LEVELS.find(l => l.id === level)
   const [index, setIndex] = useState(0)
   const [answered, setAnswered] = useState(false)
   const [correctCount, setCorrectCount] = useState(0)
   const [wrongCount, setWrongCount] = useState(0)
+  const [questionWrongCount, setQuestionWrongCount] = useState(0)
   const [finished, setFinished] = useState(false)
   const mountedRef = useRef(true)
   const finishedRef = useRef(false)
@@ -66,6 +68,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
   useEffect(() => {
     answeredRef.current = false
     setAnswered(false)
+    setQuestionWrongCount(0)
     if (current && !finishedRef.current) {
       playWordVO(current.audio.split('/').pop())
     }
@@ -75,7 +78,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
     if (!mountedRef.current || finishedRef.current) return
     const idx = indexRef.current
     if (idx >= total - 1) {
-      trackLevelCompleted(level, 'practice')
+      trackLevelCompleted(level, mode)
       timerRef.current.stop()
       finishedRef.current = true
       setFinished(true)
@@ -100,16 +103,18 @@ export default function PracticeMode({ level, onBack, onHome }) {
   }, [level, shuffled, total])
 
   const handleWrong = useCallback(() => {
-    if (answeredRef.current) return
-    answeredRef.current = true
-    setAnswered(true)
+    if (answeredRef.current || finishedRef.current) return
     setWrongCount(c => c + 1)
+    setQuestionWrongCount(c => c + 1)
     const word = shuffled[indexRef.current]
     if (word) trackWordPracticed(level, word.word, false)
-    if (finishedRef.current) return
     playSFX('wrong.wav')
-    setTimeout(goToNext, 500)
-  }, [level, shuffled, total])
+    if (isTest) {
+      answeredRef.current = true
+      setAnswered(true)
+      setTimeout(goToNext, 500)
+    }
+  }, [level, shuffled, isTest])
 
   const handleSpeaker = useCallback(() => {
     if (current) playWordVO(current.audio.split('/').pop())
@@ -137,6 +142,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
     shuffledRef.current = shuffleArray(allVocab)
     setCorrectCount(0)
     setWrongCount(0)
+    setQuestionWrongCount(0)
     indexRef.current = 0
     setIndex(0)
     answeredRef.current = false
@@ -145,6 +151,8 @@ export default function PracticeMode({ level, onBack, onHome }) {
     setFinished(false)
     timerRef.current.start()
   }, [allVocab])
+
+  const modeLabel = isTest ? 'Test' : 'Practice'
 
   if (finished) {
     return (
@@ -174,10 +182,10 @@ export default function PracticeMode({ level, onBack, onHome }) {
         <button onClick={() => { stopAll(); onBack() }} aria-label="Go back" className="p-1.5 sm:p-2 lg:p-2.5 xl:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-purple-500" />
         </button>
-        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-pink-500 shrink-0">Practice · {levelData?.name}</span>
-        <div className="flex-1 h-1.5 sm:h-2 lg:h-2.5 xl:h-3 bg-pink-100 rounded-full overflow-hidden min-w-6">
+        <span className={`text-xs sm:text-sm lg:text-base xl:text-lg font-bold shrink-0 ${isTest ? 'text-orange-500' : 'text-pink-500'}`}>{modeLabel} · {levelData?.name}</span>
+        <div className={`flex-1 h-1.5 sm:h-2 lg:h-2.5 xl:h-3 rounded-full overflow-hidden min-w-6 ${isTest ? 'bg-orange-100' : 'bg-pink-100'}`}>
           <motion.div
-            className="h-full bg-gradient-to-r from-pink-400 to-rose-400 rounded-full"
+            className={`h-full rounded-full ${isTest ? 'bg-gradient-to-r from-orange-400 to-amber-400' : 'bg-gradient-to-r from-pink-400 to-rose-400'}`}
             animate={{ width: `${((index + 1) / total) * 100}%` }}
           />
         </div>
@@ -191,7 +199,7 @@ export default function PracticeMode({ level, onBack, onHome }) {
       </div>
 
       <div className="px-2 sm:px-3 lg:px-4 xl:px-6 shrink-0">
-        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-pink-400">Q{index + 1}/{total}</span>
+        <span className={`text-xs sm:text-sm lg:text-base xl:text-lg font-bold ${isTest ? 'text-orange-400' : 'text-pink-400'}`}>Q{index + 1}/{total}</span>
       </div>
 
       <div className="flex-1 overflow-auto min-h-0">
@@ -245,6 +253,19 @@ export default function PracticeMode({ level, onBack, onHome }) {
         </AnimatePresence>
         </div>
       </div>
+
+      {!isTest && questionWrongCount > 0 && !answered && (
+        <motion.button
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 0.7, x: 0 }}
+          whileHover={{ opacity: 1 }}
+          onClick={skipNext}
+          aria-label="Next question"
+          className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-2 active:scale-90 transition-transform z-10 hover:opacity-100"
+        >
+          <ChevronRight className="w-8 h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12 text-pink-400" strokeWidth={3} />
+        </motion.button>
+      )}
     </motion.div>
   )
 }

@@ -52,7 +52,14 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const usedSet = new Set(Object.keys(usedMap).map(Number))
   const availableChoices = choices.map((letter, i) => ({ letter, i, used: usedSet.has(i) })).filter(c => !c.used)
 
-  const checkWord = useCallback((filledSlots, currentUsedMap) => {
+  const clearPlaced = useCallback(() => {
+    setSlots([...prefilled])
+    setUsedMap({})
+    setWrongSlots(null)
+    setChecking(false)
+  }, [prefilled])
+
+  const checkWord = useCallback((filledSlots) => {
     setChecking(true)
     const isCorrect = filledSlots.every((l, i) => l === allLetters[i])
 
@@ -69,8 +76,9 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
       }
       setWrongSlots(new Set(badIndices))
       onWrong()
+      setTimeout(clearPlaced, 600)
     }
-  }, [allLetters, prefilled, onCorrect, onWrong])
+  }, [allLetters, prefilled, onCorrect, onWrong, clearPlaced])
 
   const placeLetter = useCallback((letter, choiceIdx) => {
     if (answered || checking || nextEmpty === -1) return
@@ -89,11 +97,6 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
 
   const removeFromSlot = useCallback((slotIdx) => {
     if (answered || checking || prefilled[slotIdx] !== null || slots[slotIdx] === null) return
-    let lastFilled = -1
-    for (let i = slots.length - 1; i >= 0; i--) {
-      if (slots[i] !== null && prefilled[i] === null) { lastFilled = i; break }
-    }
-    if (slotIdx !== lastFilled) return
 
     const newSlots = [...slots]
     newSlots[slotIdx] = null
@@ -126,14 +129,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
     if (!dragGhost) return
     e.stopPropagation()
     e.preventDefault()
-    const dx = Math.abs(dragGhost.x - dragGhost.startX)
-    const dy = Math.abs(dragGhost.y - dragGhost.startY)
-    const wasDrag = dx > 10 || dy > 10
-    if (!wasDrag) {
-      placeLetter(dragGhost.letter, dragGhost.choiceIdx)
-    } else {
-      placeLetter(dragGhost.letter, dragGhost.choiceIdx)
-    }
+    placeLetter(dragGhost.letter, dragGhost.choiceIdx)
     setDragGhost(null)
   }, [dragGhost, placeLetter])
 
