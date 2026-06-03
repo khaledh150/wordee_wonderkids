@@ -22,23 +22,12 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   }, [])
 
   const { prefilled, choices } = useMemo(() => {
-    let pre, cl
-
-    if (level === 2) {
-      const revealed = new Set()
-      const count = Math.max(1, Math.floor(allLetters.length * 0.4))
-      while (revealed.size < count) revealed.add(Math.floor(Math.random() * allLetters.length))
-      pre = allLetters.map((l, i) => revealed.has(i) ? l : null)
-      cl = allLetters.filter((_, i) => !revealed.has(i))
-    } else if (level === 3) {
-      pre = allLetters.map(() => null)
-      cl = [...allLetters]
-    } else {
-      pre = allLetters.map(() => null)
-      const extras = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => !allLetters.includes(c))
-      const n = Math.min(Math.max(4, Math.floor(allLetters.length * 0.6)), extras.length)
-      cl = [...allLetters, ...shuffleArray(extras).slice(0, n)]
-    }
+    const hintPct = level === 2 ? 0.4 : 0.2
+    const revealed = new Set()
+    const count = Math.max(1, Math.floor(allLetters.length * hintPct))
+    while (revealed.size < count) revealed.add(Math.floor(Math.random() * allLetters.length))
+    const pre = allLetters.map((l, i) => revealed.has(i) ? l : null)
+    const cl = allLetters.filter((_, i) => !revealed.has(i))
     return { prefilled: pre, choices: shuffleArray(cl) }
   }, [word, level])
 

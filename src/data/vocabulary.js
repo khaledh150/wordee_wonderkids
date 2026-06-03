@@ -401,8 +401,14 @@ Object.values(VOCAB).forEach(arr => Object.freeze(arr))
 Object.freeze(VOCAB)
 
 const VOCAB_L1_EXPANDED = Object.freeze([...(VOCAB[1] || []), ...(VOCAB[2] || [])])
+const VOCAB_L2_EXPANDED = Object.freeze([...(VOCAB[2] || []), ...(VOCAB[1] || [])])
+const VOCAB_L3_EXPANDED = Object.freeze([...(VOCAB[3] || []), ...(VOCAB[2] || [])])
+const VOCAB_L4_EXPANDED = Object.freeze([...(VOCAB[4] || []), ...(VOCAB[3] || []), ...(VOCAB[2] || [])])
 
 export function getVocabForLevel(levelId) {
   if (levelId === 1) return VOCAB_L1_EXPANDED
+  if (levelId === 2) return VOCAB_L2_EXPANDED
+  if (levelId === 3) return VOCAB_L3_EXPANDED
+  if (levelId === 4) return VOCAB_L4_EXPANDED
   return VOCAB[levelId] || []
 }
