@@ -75,7 +75,7 @@ export function playSFX(name) {
   return new Promise(resolve => {
     const audio = new Audio(`/audio/sfx/${name}`)
     audio.volume = 0.5
-    const cleanup = () => { audio.onended = null; audio.onerror = null; resolve() }
+    const cleanup = () => { audio.pause(); audio.onended = null; audio.onerror = null; audio.removeAttribute('src'); resolve() }
     audio.onended = cleanup
     audio.onerror = cleanup
     audio.play().catch(cleanup)

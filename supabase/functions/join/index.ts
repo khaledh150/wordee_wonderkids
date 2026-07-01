@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
   try {
-    const { participant_code, competition_id } = await req.json();
+    const { participant_code, competition_id, subject } = await req.json();
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400);
     }
@@ -29,13 +29,14 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Look up session
-    const { data: session, error: lookupErr } = await supabase
+    // Look up session — filter by subject if provided
+    let query = supabase
       .from("competition_sessions")
       .select("*")
       .eq("participant_code", participant_code)
-      .eq("competition_id", competition_id)
-      .single();
+      .eq("competition_id", competition_id);
+    if (subject) query = query.eq("subject", subject);
+    const { data: session, error: lookupErr } = await query.single();
 
     if (lookupErr || !session) {
       return json({ error: "Invalid participant code" }, 404);
@@ -158,16 +159,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fresh start — set active
+    // Fresh start — set active (atomic: only if still registered/waiting)
     const startedAt = now.toISOString();
-    await supabase
+    const { data: updated, error: startErr } = await supabase
       .from("competition_sessions")
       .update({
         status: "active",
         started_at: startedAt,
         updated_at: startedAt,
       })
-      .eq("participant_id", session.participant_id);
+      .eq("participant_id", session.participant_id)
+      .in("status", ["registered", "waiting"])
+      .select("participant_id")
+      .maybeSingle();
+
+    if (startErr || !updated) {
+      return json({ error: "Session already started" }, 409);
+    }
 
     return json({
       participant_id: session.participant_id,

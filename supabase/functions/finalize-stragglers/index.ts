@@ -159,7 +159,10 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    const results = await Promise.all(tasks);
+    const settled = await Promise.allSettled(tasks);
+    const results = settled
+      .filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled')
+      .map(r => r.value);
     return json({ finalized: results.length, results });
   } catch (err) {
     return json({ error: "Internal error" }, 500);

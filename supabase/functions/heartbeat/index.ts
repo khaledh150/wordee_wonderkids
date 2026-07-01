@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
   try {
-    const { participant_code, competition_id, ready } = await req.json();
+    const { participant_code, competition_id, subject, ready } = await req.json();
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400);
     }
@@ -32,11 +32,13 @@ Deno.serve(async (req: Request) => {
     const update: Record<string, unknown> = { last_seen_at: new Date().toISOString() };
     if (ready === true) update.ready = true;
 
-    const { error } = await supabase
+    let query = supabase
       .from("competition_sessions")
       .update(update)
       .eq("participant_code", participant_code)
       .eq("competition_id", competition_id);
+    if (subject) query = query.eq("subject", subject);
+    const { error } = await query;
 
     if (error) return json({ error: "Update failed" }, 500);
     return json({ ok: true });

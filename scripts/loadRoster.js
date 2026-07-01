@@ -7,16 +7,16 @@
  *   node scripts/loadRoster.js <path-to-json> <competition_id>
  *   node scripts/loadRoster.js <path-to-json> <competition_id> > seed-roster.sql
  *
- * JSON format (array):
+ * JSON format (array) — one row per student, both subject levels:
  *   [
  *     {
  *       "name": "Somchai K.",
  *       "display_id": "TH-001",
  *       "school": "Bangkok International School",
  *       "country": "th",
- *       "subject": "english",
- *       "level": 2,
- *       "participant_code": ""  // leave blank to auto-generate 8-char code
+ *       "english_level": 2,
+ *       "math_level": 1,
+ *       "participant_code": ""  // leave blank to auto-generate 6-char code
  *     },
  *     ...
  *   ]
@@ -64,9 +64,11 @@ function main() {
   }
 
   const usedCodes = new Set()
-  const participants = raw.map((item, i) => {
-    if (!item.name || !item.subject || item.level == null) {
-      console.error(`Row ${i} missing required fields (name, subject, level):`, item)
+  const participants = []
+  for (let i = 0; i < raw.length; i++) {
+    const item = raw[i]
+    if (!item.name) {
+      console.error(`Row ${i} missing name:`, item)
       process.exit(1)
     }
 
@@ -76,17 +78,25 @@ function main() {
     }
     usedCodes.add(code)
 
-    return {
+    const base = {
       competition_id: competitionId,
       participant_code: code,
       display_id: item.display_id || `${(item.country || 'XX').toUpperCase()}-${String(i + 1).padStart(3, '0')}`,
       name: item.name,
       school: item.school || null,
       country: item.country?.toLowerCase() || null,
-      subject: item.subject,
-      level: Number(item.level),
     }
-  })
+
+    if (item.english_level) {
+      participants.push({ ...base, subject: 'english', level: Number(item.english_level) })
+    }
+    if (item.math_level) {
+      participants.push({ ...base, subject: 'math', level: Number(item.math_level) })
+    }
+    if (!item.english_level && !item.math_level && item.subject && item.level) {
+      participants.push({ ...base, subject: item.subject, level: Number(item.level) })
+    }
+  }
 
   // Output SQL to stdout
   console.log(`-- Roster for competition: ${competitionId}`)
@@ -99,12 +109,11 @@ function main() {
     `  (${escapeSql(p.competition_id)}, ${escapeSql(p.participant_code)}, ${escapeSql(p.display_id)}, ${escapeSql(p.name)}, ${escapeSql(p.school)}, ${escapeSql(p.country)}, ${escapeSql(p.subject)}, ${p.level})`
   )
   console.log(values.join(',\n'))
-  console.log(`ON CONFLICT (participant_code, competition_id) DO UPDATE SET`)
+  console.log(`ON CONFLICT (participant_code, competition_id, subject) DO UPDATE SET`)
   console.log(`  display_id = EXCLUDED.display_id,`)
   console.log(`  name = EXCLUDED.name,`)
   console.log(`  school = EXCLUDED.school,`)
   console.log(`  country = EXCLUDED.country,`)
-  console.log(`  subject = EXCLUDED.subject,`)
   console.log(`  level = EXCLUDED.level;`)
 
   // Write codes manifest to a JSON file (for printCodes.js)

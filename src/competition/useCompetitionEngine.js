@@ -5,7 +5,9 @@ import { seededShuffle } from './seededShuffle'
 const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
 const SYNC_INTERVAL = 30_000
 const JITTER_MAX = 5_000
-const POLL_INTERVAL = 4_000
+const POLL_INTERVAL = 5_000
+const HEARTBEAT_INTERVAL = 15_000
+const ACTIVE_POLL_INTERVAL = 30_000
 
 function jitter(base) { return base + Math.random() * JITTER_MAX }
 
@@ -54,6 +56,10 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const sessionRef = useRef(session)
   const timeLeftRef = useRef(timeLeft)
   const lastSyncedLenRef = useRef(0)
+  const unmountedRef = useRef(false)
+  const saveDebounceRef = useRef(null)
+
+  useEffect(() => { return () => { unmountedRef.current = true } }, [])
 
   answersRef.current = answers
   correctCountRef.current = correctCount
@@ -66,7 +72,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     try {
       const { data, error } = await supabase
         .from('competition_state')
-        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds')
+        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme')
         .eq('id', subject)
         .single()
       if (error) { console.warn('Poll state error:', error.message); return }
@@ -81,6 +87,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       await callFunction('heartbeat', {
         participant_code: sessionRef.current.participant_code,
         competition_id: competitionId,
+        subject,
         ready: ready || undefined,
       })
     } catch {}
@@ -98,16 +105,16 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   useEffect(() => {
     if (phase !== 'waiting' || !session) return
     let cancelled = false
-    function tick() { sendHeartbeat(); if (!cancelled) heartbeatRef.current = setTimeout(tick, jitter(8_000)) }
+    function tick() { sendHeartbeat(); if (!cancelled) heartbeatRef.current = setTimeout(tick, jitter(HEARTBEAT_INTERVAL)) }
     tick()
     return () => { cancelled = true; clearTimeout(heartbeatRef.current) }
   }, [phase, session, sendHeartbeat])
 
-  // Keep polling during active (for time extensions)
+  // Keep polling during active (for time extensions only — reduced frequency)
   useEffect(() => {
     if (phase !== 'active') return
     let cancelled = false; let tid
-    function tick() { pollState(); if (!cancelled) tid = setTimeout(tick, jitter(POLL_INTERVAL)) }
+    function tick() { pollState(); if (!cancelled) tid = setTimeout(tick, jitter(ACTIVE_POLL_INTERVAL)) }
     tid = setTimeout(tick, jitter(POLL_INTERVAL))
     return () => { cancelled = true; clearTimeout(tid) }
   }, [phase, pollState])
@@ -138,6 +145,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     const result = await callFunction('join', {
       participant_code: participantCode,
       competition_id: competitionId,
+      subject,
     })
 
     const sess = { ...result, participant_code: participantCode }
@@ -181,6 +189,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     const result = await callFunction('join', {
       participant_code: session.participant_code,
       competition_id: competitionId,
+      subject,
     })
 
     if (result.completed) {
@@ -237,7 +246,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     }, 1000)
 
     return () => clearInterval(timerRef.current)
-  }, [phase, timeLeft != null && timeLeft > 0])
+  }, [phase])
 
   // Admin time extension
   useEffect(() => {
@@ -262,6 +271,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         await callFunction('sync', {
           participant_code: session.participant_code,
           competition_id: competitionId,
+          subject,
           provisional_score: correctCountRef.current,
           questions_answered: answersRef.current.length,
           answers: answersRef.current,
@@ -293,6 +303,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         const result = await callFunction('submit', {
           participant_code: sess.participant_code,
           competition_id: competitionId,
+          subject,
           answers: answersRef.current,
         })
         setValidatedScore(result.validated_score)
@@ -307,6 +318,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         submittingRef.current = false
       } catch {
         retryCount++
+        if (unmountedRef.current) { submittingRef.current = false; return }
         if (retryCount <= 10) setTimeout(trySubmit, Math.min(3000 * Math.pow(1.5, retryCount - 1), 30000))
         else { submittingRef.current = false; setSubmitError(true) }
       }
@@ -322,7 +334,10 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       let next
       if (idx >= 0) { next = [...prev]; next[idx] = entry }
       else { next = [...prev, entry] }
-      saveLocal(competitionId, { ...loadLocal(competitionId), answers: next, correctCount: correctCountRef.current + (isCorrect ? 1 : 0) })
+      clearTimeout(saveDebounceRef.current)
+      saveDebounceRef.current = setTimeout(() => {
+        saveLocal(competitionId, { ...loadLocal(competitionId), answers: next, correctCount: correctCountRef.current })
+      }, 2000)
       return next
     })
     if (isCorrect) setCorrectCount(prev => prev + 1)

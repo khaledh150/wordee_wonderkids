@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Timer, QrCode, Users, Loader2, ShieldAlert, CheckCircle, TrendingUp, Sparkles, LogIn } from 'lucide-react'
+import { Trophy, Award, Star, Timer, QrCode, Users, Loader2, ShieldAlert, CheckCircle, TrendingUp, LogIn } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
 
@@ -26,7 +27,7 @@ function formatTime(seconds) {
 }
 
 export default function ProjectorPage() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('wordee_projector_theme') || 'dark')
+  const [theme, setTheme] = useState('dark')
   const [authed, setAuthed] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,20 +40,12 @@ export default function ProjectorPage() {
   const [elapsed, setElapsed] = useState(null)
   const [showPodium, setShowPodium] = useState(false)
   const channelRef = useRef(null)
+  const realtimeDebounceRef = useRef(null)
 
-  // Listen to cross-window or local storage changes from the Admin Dashboard in real-time
+  // Sync theme from DB state (admin controls it)
   useEffect(() => {
-    const syncTheme = () => {
-      const val = localStorage.getItem('wordee_projector_theme') || 'dark'
-      setTheme(val)
-    }
-    window.addEventListener('storage', syncTheme)
-    const timer = setInterval(syncTheme, 1000)
-    return () => {
-      window.removeEventListener('storage', syncTheme)
-      clearInterval(timer)
-    }
-  }, [])
+    if (state?.theme) setTheme(state.theme)
+  }, [state?.theme])
 
   // Auth check
   useEffect(() => {
@@ -107,7 +100,10 @@ export default function ProjectorPage() {
         schema: 'public',
         table: 'competition_sessions',
         filter: `competition_id=eq.${state.competition_id}`,
-      }, () => loadSessions())
+      }, () => {
+        clearTimeout(realtimeDebounceRef.current)
+        realtimeDebounceRef.current = setTimeout(loadSessions, 1000)
+      })
       .subscribe()
     channelRef.current = channel
     return () => supabase.removeChannel(channel)
@@ -220,7 +216,7 @@ export default function ProjectorPage() {
             }`}>
               Projector Portal
             </h1>
-            <p className={`text-sm mt-1 mb-6 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sign in to broadcast spelling board</p>
+            <p className={`text-sm mt-1 mb-6 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sign in to broadcast the championship</p>
 
             <AnimatePresence>
               {authError && (
@@ -290,131 +286,280 @@ export default function ProjectorPage() {
     )
   }
 
-  // 2. PEDESTAL WAITING SCREEN (before round is unlocked)
-  if (!state.is_unlocked && !showPodium) {
-    const readyStudents = sessions.filter(s => s.ready)
-    
+  // Derive phase for projector
+  const hasActive = sessions.some(s => s.status === 'active')
+  const isLobby = state.is_unlocked && !hasActive
+  const isPreLobby = !state.is_unlocked && !allCompleted
+
+  // 2A. CHAMPIONSHIP SPLASH — idle screen before admin opens lobby
+  if (isPreLobby) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors duration-300 ${
-        isDark ? 'bg-[#060814] text-white' : 'bg-[#f1f5f9] text-slate-800'
+      <div className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500 ${
+        isDark ? 'bg-[#030712] text-white' : 'bg-[#f1f5f9] text-slate-800'
       }`}>
-        {/* Dynamic ambient particles */}
-        <div className={`absolute inset-0 pointer-events-none transition-colors ${
-          isDark ? 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,rgba(0,0,0,0)_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.04)_0%,rgba(0,0,0,0)_70%)]'
-        }`} />
-        
-        {/* Glowing floating blobs */}
+        {/* Animated gradient orbs */}
         <motion.div
-          animate={{
-            scale: [1, 1.15, 0.9, 1],
-            x: [0, 50, -30, 0],
-            y: [0, -30, 40, 0]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-          className={`absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[120px] pointer-events-none transition-colors ${
-            isDark ? 'bg-indigo-500/10' : 'bg-indigo-500/5'
-          }`}
+          animate={{ scale: [1, 1.3, 1], x: [0, 80, 0], y: [0, -60, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-60 -left-60 w-[600px] h-[600px] rounded-full blur-[200px] pointer-events-none bg-blue-600/15"
+        />
+        <motion.div
+          animate={{ scale: [1, 0.8, 1.2, 1], x: [0, -70, 40, 0], y: [0, 50, -30, 0] }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-purple-600/12"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.1, 0.9, 1], y: [0, -40, 20, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/3 right-1/4 w-[400px] h-[400px] rounded-full blur-[160px] pointer-events-none bg-amber-500/8"
         />
 
-        <div className="text-center max-w-4xl w-full relative z-10 flex flex-col items-center">
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }}
+        />
+
+        <div className="text-center relative z-10 flex flex-col items-center px-8">
+          {/* Badge */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={`flex items-center gap-3.5 border px-6 py-2.5 rounded-2xl shadow-inner mb-4 transition-colors ${
-              isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-slate-100/10'
-            }`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-3 border px-8 py-3 rounded-full mb-10 bg-white/5 border-white/10 backdrop-blur-md shadow-lg"
           >
-            <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
-            <span className={`text-sm font-black uppercase tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Live Spelling Arena</span>
+            <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
+              <Star className="w-5 h-5 text-amber-400" />
+            </motion.div>
+            <span className="text-sm font-black uppercase tracking-[0.25em] text-amber-300/90">International Championship</span>
+            <motion.div animate={{ rotate: [0, -360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
+              <Star className="w-5 h-5 text-amber-400" />
+            </motion.div>
           </motion.div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`text-6xl sm:text-7xl font-black bg-gradient-to-r tracking-tight uppercase transition-colors ${
-              isDark ? 'from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'text-slate-800'
-            }`}
+          {/* Main title */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 12, delay: 0.4 }}
           >
-            Wordee Competition
-          </motion.h1>
-          
+            <h1 className="text-7xl sm:text-8xl lg:text-9xl font-black uppercase tracking-tight leading-[0.85] bg-gradient-to-b from-white via-blue-100 to-blue-300/60 bg-clip-text text-transparent drop-shadow-2xl">
+              International
+            </h1>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-[0.15em] mt-4 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              English Spelling &
+            </h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-[0.15em] mt-1 bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+              Math Championship
+            </h2>
+          </motion.div>
+
+          {/* Subjects */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="flex items-center gap-6 mt-12"
+          >
+            <div className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-blue-500/10 border-blue-500/20 backdrop-blur-sm">
+              <span className="text-3xl">📝</span>
+              <span className="text-lg font-black uppercase tracking-wider text-blue-300">English</span>
+            </div>
+            <div className="text-2xl font-black text-white/20">&</div>
+            <div className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-emerald-500/10 border-emerald-500/20 backdrop-blur-sm">
+              <span className="text-3xl">🔢</span>
+              <span className="text-lg font-black uppercase tracking-wider text-emerald-300">Mathematics</span>
+            </div>
+          </motion.div>
+
+          {/* Round label */}
           {state.round_label && (
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              className={`text-xl sm:text-2xl font-bold mt-2.5 mb-10 tracking-wide ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-2xl font-bold mt-8 text-slate-400 tracking-wide"
             >
               {state.round_label}
             </motion.p>
           )}
 
-          {/* QR Pedestal Container */}
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', damping: 15, delay: 0.3 }}
-            className={`backdrop-blur-xl -webkit-backdrop-blur-xl border rounded-[36px] p-8 shadow-[0_30px_70px_rgba(0,0,0,0.3)] relative overflow-hidden transition-colors ${
-              isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
-            }`}
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
-            <div className={`absolute -inset-0.5 rounded-[36px] blur-sm opacity-50 -z-10 transition-colors ${
-              isDark ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10' : 'bg-slate-200'
-            }`} />
+          {/* Decorative line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 1.2, duration: 1 }}
+            className="w-64 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mt-10"
+          />
 
-            <div className="bg-white rounded-3xl p-5 shadow-2xl relative">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin + '/play')}`}
-                alt="Scan to Spell"
-                className="w-64 h-64 sm:w-72 sm:h-72 object-contain"
+          {/* Waiting message */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ delay: 1.5, duration: 3, repeat: Infinity }}
+            className="mt-8 flex items-center gap-3 text-slate-500"
+          >
+            <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
+            <span className="text-sm font-bold uppercase tracking-[0.2em]">Awaiting Launch</span>
+          </motion.div>
+
+          {/* Trophy icons decoration */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.8 }}
+            className="flex items-center gap-8 mt-14 text-4xl"
+          >
+            <motion.span animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }}>🥉</motion.span>
+            <motion.span animate={{ y: [0, -12, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.3 }}>🥈</motion.span>
+            <motion.span animate={{ y: [0, -16, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.6 }} className="text-5xl">🏆</motion.span>
+            <motion.span animate={{ y: [0, -12, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.3 }}>🥈</motion.span>
+            <motion.span animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }}>🥉</motion.span>
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
+  // 2B. LOBBY — admin opened it, show transition + QR code
+  if (isLobby) {
+    const readyStudents = sessions.filter(s => s.ready)
+
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors duration-500 ${
+        isDark ? 'bg-[#030712] text-white' : 'bg-[#f1f5f9] text-slate-800'
+      }`}>
+        {/* Animated gradient orbs */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, -40, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-emerald-500/15"
+        />
+        <motion.div
+          animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -50, 30, 0] }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-blue-600/12"
+        />
+
+        <div className="text-center max-w-5xl w-full relative z-10 flex flex-col items-center">
+          {/* Entry transition banner */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: -40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', damping: 10, stiffness: 80 }}
+            className="mb-6"
+          >
+            <div className="flex items-center gap-4 border px-8 py-4 rounded-2xl bg-emerald-500/10 border-emerald-500/25 backdrop-blur-md shadow-lg shadow-emerald-500/5">
+              <span className="relative flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-lg font-black uppercase tracking-[0.2em] text-emerald-300">Competition is Open — Join Now!</span>
+              <span className="relative flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500" />
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-5xl sm:text-6xl font-black uppercase tracking-tight bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2"
+          >
+            International Championship
+          </motion.h1>
+
+          {state.round_label && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ delay: 0.5 }}
+              className="text-xl font-bold mb-8 text-slate-400 tracking-wide"
+            >
+              {state.round_label}
+            </motion.p>
+          )}
+
+          {/* QR Code — cinematic reveal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6, rotateX: 30 }}
+            animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+            transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.5 }}
+            className="backdrop-blur-xl border rounded-[36px] p-8 shadow-[0_30px_70px_rgba(0,0,0,0.4)] relative overflow-hidden bg-[#0e1224]/80 border-white/10"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.06)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+            <motion.div
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="absolute -inset-1 rounded-[36px] blur-md -z-10 bg-gradient-to-r from-emerald-500/15 via-blue-500/15 to-indigo-500/15"
+            />
+
+            <div className="bg-white rounded-3xl p-5 shadow-2xl">
+              <QRCodeSVG
+                value={window.location.origin + '/play'}
+                size={288}
+                level="M"
+                marginSize={0}
               />
             </div>
           </motion.div>
 
-          <div className="mt-8 flex items-center gap-2 text-indigo-500">
-            <QrCode className="w-5 h-5 animate-pulse" />
-            <p className="text-xl font-bold tracking-tight">Scan QR to Join Arena</p>
-          </div>
-          <p className="text-sm font-mono text-slate-500 mt-1">{window.location.origin}/play</p>
+          {/* Scan instruction */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="mt-8"
+          >
+            <div className="flex items-center gap-3 text-emerald-400 mb-2">
+              <QrCode className="w-6 h-6 animate-pulse" />
+              <p className="text-2xl font-black tracking-tight">Scan to Enter the Arena</p>
+              <QrCode className="w-6 h-6 animate-pulse" />
+            </div>
+            <p className="text-base font-mono text-slate-500">{window.location.origin}/play</p>
+          </motion.div>
 
-          {/* Connected Roster Cloud */}
+          {/* Connected students roster */}
           {sessions.length > 0 && (
-            <div className="mt-14 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="mt-12 w-full"
+            >
               <div className="flex items-center justify-center gap-2 mb-5">
                 <Users className="w-4 h-4 text-slate-500" />
                 <span className="text-xs font-black uppercase tracking-widest text-slate-500">
-                  Active Roster Ready: {readyStudents.length} / {sessions.length}
+                  Participants Ready: {readyStudents.length} / {sessions.length}
                 </span>
               </div>
-              
-              {/* Drifting bubble roster */}
-              <div className="flex flex-wrap justify-center gap-3.5 max-w-3xl mx-auto px-4 max-h-[140px] overflow-hidden">
+
+              <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto px-4 max-h-[160px] overflow-hidden">
                 <AnimatePresence>
-                  {sessions.map(s => (
+                  {sessions.map((s, i) => (
                     <motion.div
-                      key={s.participant_id}
+                      key={s.participant_id || s.id}
                       layout
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      className={`px-4.5 py-2.5 rounded-full border text-sm font-black flex items-center gap-2 shadow-md transition-colors ${
-                        s.ready 
-                          ? isDark 
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/5'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          : isDark
-                            ? 'bg-white/5 border-white/5 text-slate-400'
-                            : 'bg-white border-slate-200 text-slate-500'
+                      transition={{ delay: 1.3 + i * 0.04 }}
+                      className={`px-4 py-2.5 rounded-full border text-sm font-black flex items-center gap-2 shadow-md ${
+                        s.ready
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                          : 'bg-white/5 border-white/5 text-slate-400'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${s.ready ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.ready ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                       {s.name}
                       <FlagIcon country={s.country} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
@@ -548,7 +693,7 @@ export default function ProjectorPage() {
             <h1 className={`text-3xl font-black uppercase tracking-tight leading-none transition-colors ${
               isDark ? 'bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent' : 'text-slate-850'
             }`}>
-              Wordee Arena
+              Championship Arena
             </h1>
             {state.round_label && <p className="text-slate-450 text-sm font-bold mt-1.5 uppercase tracking-wider">{state.round_label}</p>}
           </div>

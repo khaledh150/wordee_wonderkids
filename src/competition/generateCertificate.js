@@ -43,7 +43,7 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(24)
   doc.setTextColor(79, 70, 229)
-  doc.text(eventName || 'Wordee Competition', w / 2, 50, { align: 'center' })
+  doc.text(eventName || 'International English Spelling & Math Championship', w / 2, 50, { align: 'center' })
 
   // Presented to
   doc.setFont('helvetica', 'normal')

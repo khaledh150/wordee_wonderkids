@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
-import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, Trophy } from 'lucide-react'
+import { supabase } from './supabaseClient'
+import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
 import CompetitionGameView from './CompetitionGameView'
+const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
 const CONCURRENCY = 5
 const CACHE_NAME = 'wordee-competition-assets-v1'
@@ -78,33 +80,215 @@ async function preloadWithConcurrency(urls, onProgress) {
   await Promise.all(workers)
 }
 
+function SubjectSelect({ onSelect }) {
+  const [englishState, setEnglishState] = useState(null)
+  const [mathState, setMathState] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchStates() {
+      try {
+        const { data } = await supabase
+          .from('competition_state')
+          .select('id, is_unlocked, round_label, theme')
+          .in('id', ['english', 'math'])
+        if (cancelled) return
+        if (data) {
+          setEnglishState(data.find(r => r.id === 'english') || null)
+          setMathState(data.find(r => r.id === 'math') || null)
+        }
+      } catch {}
+      if (!cancelled) setLoading(false)
+    }
+
+    fetchStates()
+    let tid
+    function schedulePoll() {
+      tid = setTimeout(() => { fetchStates(); if (!cancelled) schedulePoll() }, 4000 + Math.random() * 4000)
+    }
+    schedulePoll()
+    return () => { cancelled = true; clearTimeout(tid) }
+  }, [])
+
+  const isDark = englishState?.theme === 'dark' || mathState?.theme === 'dark'
+
+  const renderBackgroundBlobs = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <motion.div
+        animate={{ x: [0, 80, -40, 0], y: [0, -50, 60, 0], scale: [1, 1.2, 0.9, 1] }}
+        transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-300/30 to-purple-400/30 blur-3xl"
+      />
+      <motion.div
+        animate={{ x: [0, -90, 50, 0], y: [0, 60, -80, 0], scale: [1, 0.8, 1.1, 1] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -bottom-40 -right-40 w-112 h-112 rounded-full bg-gradient-to-tr from-amber-200/30 to-rose-300/30 blur-3xl"
+      />
+    </div>
+  )
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
+      isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
+    }`}>
+      {renderBackgroundBlobs()}
+
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', duration: 0.6 }}
+        className="w-full max-w-sm sm:max-w-md relative z-10"
+      >
+        <div className={`w-full backdrop-blur-xl border rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col transition-colors ${
+          isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/70 border-white/40'
+        }`}>
+          <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 border shadow-inner ${
+            isDark ? 'bg-indigo-500/15 border-indigo-500/20' : 'bg-indigo-50 border-indigo-100'
+          }`}>
+            <Lock className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-500 animate-float" />
+          </div>
+
+          <h1 className={`text-xl sm:text-2xl md:text-3xl font-black tracking-tight ${
+            isDark ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent'
+          }`}>
+            Competition Arena
+          </h1>
+          <p className={`text-xs sm:text-sm mt-1 mb-5 sm:mb-7 font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+            Choose your competition subject
+          </p>
+
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-indigo-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-bold">Loading competitions...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <motion.button
+                whileHover={englishState?.is_unlocked ? { scale: 1.03 } : {}}
+                whileTap={englishState?.is_unlocked ? { scale: 0.97 } : {}}
+                onClick={() => englishState?.is_unlocked && onSelect('english')}
+                disabled={!englishState?.is_unlocked}
+                className={`relative flex flex-col items-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer
+                  ${englishState?.is_unlocked
+                    ? isDark
+                      ? 'bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/30 shadow-lg shadow-pink-500/5 hover:shadow-xl'
+                      : 'bg-gradient-to-br from-pink-50 to-rose-50 border-pink-300 shadow-lg shadow-pink-200/30 hover:shadow-xl'
+                    : isDark
+                      ? 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed'
+                      : 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                  }
+                `}
+              >
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-md
+                  ${englishState?.is_unlocked
+                    ? 'bg-gradient-to-br from-pink-400 to-rose-500'
+                    : 'bg-gray-300'
+                  }
+                `}>
+                  <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className={`text-base sm:text-lg font-black tracking-tight ${englishState?.is_unlocked ? isDark ? 'text-pink-300' : 'text-pink-700' : isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+                    English
+                  </h3>
+                  <p className={`text-[9px] sm:text-[10px] font-bold mt-0.5 ${englishState?.is_unlocked ? 'text-pink-400' : isDark ? 'text-slate-600' : 'text-gray-300'}`}>
+                    {englishState?.is_unlocked ? 'ACTIVE' : 'LOCKED'}
+                  </p>
+                </div>
+                {englishState?.is_unlocked && (
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
+                )}
+              </motion.button>
+
+              <motion.button
+                whileHover={mathState?.is_unlocked ? { scale: 1.03 } : {}}
+                whileTap={mathState?.is_unlocked ? { scale: 0.97 } : {}}
+                onClick={() => mathState?.is_unlocked && onSelect('math')}
+                disabled={!mathState?.is_unlocked}
+                className={`relative flex flex-col items-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer
+                  ${mathState?.is_unlocked
+                    ? isDark
+                      ? 'bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border-teal-500/30 shadow-lg shadow-teal-500/5 hover:shadow-xl'
+                      : 'bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-300 shadow-lg shadow-teal-200/30 hover:shadow-xl'
+                    : isDark
+                      ? 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed'
+                      : 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                  }
+                `}
+              >
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-md
+                  ${mathState?.is_unlocked
+                    ? 'bg-gradient-to-br from-teal-400 to-cyan-500'
+                    : 'bg-gray-300'
+                  }
+                `}>
+                  <Calculator className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className={`text-base sm:text-lg font-black tracking-tight ${mathState?.is_unlocked ? isDark ? 'text-teal-300' : 'text-teal-700' : isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Math
+                  </h3>
+                  <p className={`text-[9px] sm:text-[10px] font-bold mt-0.5 ${mathState?.is_unlocked ? 'text-teal-400' : isDark ? 'text-slate-600' : 'text-gray-300'}`}>
+                    {mathState?.is_unlocked ? 'ACTIVE' : 'LOCKED'}
+                  </p>
+                </div>
+                {mathState?.is_unlocked && (
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
+                )}
+              </motion.button>
+            </div>
+          )}
+
+          {!loading && !englishState?.is_unlocked && !mathState?.is_unlocked && (
+            <p className="text-xs text-slate-400 font-bold mt-4">
+              No competition is currently active. Please wait for the host to start one.
+            </p>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 export default function CompetitionPlayPage() {
-  const [step, setStep] = useState('code') // code | waiting | active
+  const [step, setStep] = useState('subject') // subject | code | waiting | active
+  const [selectedSubject, setSelectedSubject] = useState(null) // 'english' | 'math'
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: 0 })
   const [preloadDone, setPreloadDone] = useState(false)
   const [questions, setQuestions] = useState(null)
-  
-  // Cinematic transition state
+
   const [countdownActive, setCountdownActive] = useState(false)
   const [countdownNum, setCountdownNum] = useState(3)
-  
+
   const competitionId = 'default'
 
   const engine = useCompetitionEngine({
     competitionId,
-    subject: 'english',
+    subject: selectedSubject || 'english',
     questions,
   })
 
   const { session, phase, competitionState, announcement, joinCompetition, startRace, markReady } = engine
 
-  // If engine restored state, handle it with countdown safety
+  const isDark = competitionState?.theme === 'dark'
+
+  async function getQuestionsForSession(sub, level) {
+    if (sub === 'math') {
+      const { getMathCompetitionQuestions } = await import('./mathCompetitionQuestions')
+      return getMathCompetitionQuestions(level)
+    }
+    return getCompetitionQuestions(level)
+  }
+
   useEffect(() => {
     if (session && questions == null) {
-      setQuestions(getCompetitionQuestions(session.level))
+      getQuestionsForSession(selectedSubject, session.level).then(setQuestions)
     }
     if (phase === 'completed' && session) {
       setStep('active')
@@ -112,7 +296,6 @@ export default function CompetitionPlayPage() {
       setStep('waiting')
     } else if (phase === 'active' && session) {
       if (step === 'waiting') {
-        // Trigger cinematic countdown instead of snapping immediately!
         setCountdownActive(true)
       } else {
         setStep('active')
@@ -120,7 +303,6 @@ export default function CompetitionPlayPage() {
     }
   }, [phase, session])
 
-  // Handle countdown interval
   useEffect(() => {
     if (!countdownActive) return
     setCountdownNum(3)
@@ -143,7 +325,11 @@ export default function CompetitionPlayPage() {
     return () => clearInterval(interval)
   }, [countdownActive])
 
-  // Handle code submission
+  function handleSubjectSelect(subject) {
+    setSelectedSubject(subject)
+    setStep('code')
+  }
+
   async function handleCodeSubmit(e) {
     e.preventDefault()
     if (!code.trim()) return
@@ -151,7 +337,8 @@ export default function CompetitionPlayPage() {
     setLoading(true)
     try {
       const result = await joinCompetition(code.trim().toUpperCase())
-      setQuestions(getCompetitionQuestions(result.level))
+      const q = await getQuestionsForSession(selectedSubject, result.level)
+      setQuestions(q)
       if (result.completed) setStep('active')
       else if (result.resume) setStep('active')
       else setStep('waiting')
@@ -161,9 +348,15 @@ export default function CompetitionPlayPage() {
     setLoading(false)
   }
 
-  // Preload images + audio when entering lobby
   useEffect(() => {
     if (step !== 'waiting' || !session) return
+
+    if (selectedSubject === 'math') {
+      setPreloadDone(true)
+      markReady()
+      return
+    }
+
     const vocab = getVocabForLevel(session.level)
     const urls = []
     for (const item of vocab) {
@@ -185,9 +378,8 @@ export default function CompetitionPlayPage() {
         markReady()
       }
     })
-  }, [step, session, markReady])
+  }, [step, session, markReady, selectedSubject])
 
-  // Start race — let engine handle the state, we follow
   async function handleStart() {
     try {
       await startRace()
@@ -196,7 +388,6 @@ export default function CompetitionPlayPage() {
     }
   }
 
-  // Visual background blobs for rich theme
   const renderBackgroundBlobs = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
       <motion.div
@@ -220,12 +411,21 @@ export default function CompetitionPlayPage() {
     </div>
   )
 
-  // ===== SCREENS =====
+  const isMath = selectedSubject === 'math'
+  const subjectLabel = isMath ? 'math' : 'spelling'
+  const subjectColor = isMath ? 'teal' : 'indigo'
 
-  // Code entry screen (Optimized for Portrait and Landscape viewports)
+  // ===== SUBJECT SELECTION =====
+  if (step === 'subject') {
+    return <SubjectSelect onSelect={handleSubjectSelect} />
+  }
+
+  // ===== CODE ENTRY =====
   if (step === 'code') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0] p-3 sm:p-4 relative overflow-hidden">
+      <div className={`min-h-screen flex items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
+        isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
+      }`}>
         {renderBackgroundBlobs()}
 
         <motion.div
@@ -236,18 +436,32 @@ export default function CompetitionPlayPage() {
         >
           <form
             onSubmit={handleCodeSubmit}
-            className="w-full bg-white/70 backdrop-blur-xl -webkit-backdrop-blur-xl border border-white/40 rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col justify-center"
+            className={`w-full backdrop-blur-xl border rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col justify-center transition-colors ${
+              isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/70 border-white/40'
+            }`}
           >
-            {/* Logo Icon (Compact on short landscape) */}
-            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-2 sm:mb-4 border border-indigo-100 shadow-inner landscape:w-9 landscape:h-9 landscape:mb-1.5">
-              <Lock className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-500 animate-float landscape:w-4.5 landscape:h-4.5" />
+            <button
+              type="button"
+              onClick={() => { setStep('subject'); setSelectedSubject(null); setCode(''); setError('') }}
+              className={`self-start text-xs font-bold mb-2 cursor-pointer transition-colors ${
+                isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              ← Back
+            </button>
+
+            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl ${isMath ? 'bg-teal-50 border-teal-100' : 'bg-indigo-50 border-indigo-100'} flex items-center justify-center mx-auto mb-2 sm:mb-4 border shadow-inner landscape:w-9 landscape:h-9 landscape:mb-1.5`}>
+              {isMath
+                ? <Calculator className="w-5 h-5 sm:w-7 sm:h-7 text-teal-500 animate-float landscape:w-4.5 landscape:h-4.5" />
+                : <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-500 animate-float landscape:w-4.5 landscape:h-4.5" />
+              }
             </div>
 
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent tracking-tight landscape:text-lg">
-              Competition Portal
+            <h1 className={`text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r ${isMath ? 'from-teal-600 via-cyan-600 to-teal-800' : 'from-indigo-600 via-purple-600 to-indigo-800'} bg-clip-text text-transparent tracking-tight landscape:text-lg`}>
+              {isMath ? 'Math Competition' : 'Spelling Competition'}
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 mb-4 sm:mb-6 font-medium landscape:mb-3.5 landscape:mt-0.5">
-              Enter your unique spelling participant code
+              Enter your unique participant code
             </p>
 
             <AnimatePresence mode="wait">
@@ -270,7 +484,7 @@ export default function CompetitionPlayPage() {
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
                 placeholder="ABC123"
-                className="w-full text-center text-2xl sm:text-3xl font-mono font-black tracking-[0.4em] pl-[0.4em] bg-white border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 rounded-xl py-2.5 sm:py-3.5 outline-none shadow-sm uppercase transition-all landscape:py-1.5 landscape:text-xl"
+                className={`w-full text-center text-2xl sm:text-3xl font-mono font-black tracking-[0.4em] pl-[0.4em] bg-white border-2 border-slate-200 focus:border-${subjectColor}-500 focus:ring-4 focus:ring-${subjectColor}-100 rounded-xl py-2.5 sm:py-3.5 outline-none shadow-sm uppercase transition-all landscape:py-1.5 landscape:text-xl`}
                 maxLength={6}
                 autoFocus
                 autoComplete="off"
@@ -281,7 +495,7 @@ export default function CompetitionPlayPage() {
             <button
               type="submit"
               disabled={loading || code.trim().length < 4}
-              className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black rounded-xl text-base sm:text-lg shadow-[0_4px_12px_rgba(79,70,229,0.2)] disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98] transition-all cursor-pointer landscape:py-2.5 landscape:text-sm"
+              className={`w-full py-3 sm:py-4 bg-gradient-to-r ${isMath ? 'from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 shadow-[0_4px_12px_rgba(20,184,166,0.2)]' : 'from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_4px_12px_rgba(79,70,229,0.2)]'} text-white font-black rounded-xl text-base sm:text-lg disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98] transition-all cursor-pointer landscape:py-2.5 landscape:text-sm`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-1.5">
@@ -298,13 +512,15 @@ export default function CompetitionPlayPage() {
     )
   }
 
-  // Waiting room / lobby screen (Fully optimized side-by-side 2-column grid in landscape viewports)
+  // ===== WAITING / LOBBY =====
   if (step === 'waiting' && session) {
     const isUnlocked = competitionState?.is_unlocked
     const canStart = isUnlocked && preloadDone
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0] p-3 sm:p-4 relative overflow-hidden">
+      <div className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
+        isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
+      }`}>
         {renderBackgroundBlobs()}
 
         <motion.div
@@ -313,22 +529,20 @@ export default function CompetitionPlayPage() {
           transition={{ type: 'spring', duration: 0.6 }}
           className="w-full max-w-md landscape:max-w-2xl relative z-10"
         >
-          <div className="w-full bg-white/70 backdrop-blur-xl -webkit-backdrop-blur-xl border border-white/40 rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col">
-            
-            {/* Header capsule for Portrait (hidden in landscape to save height) */}
-            <h2 className="text-xs font-black text-indigo-500 uppercase tracking-widest leading-none mb-4.5 landscape:hidden">
-              Competition Lobby
+          <div className={`w-full backdrop-blur-xl border rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col transition-colors ${
+            isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/70 border-white/40'
+          }`}>
+
+            <h2 className={`text-xs font-black ${isMath ? 'text-teal-500' : 'text-indigo-500'} uppercase tracking-widest leading-none mb-4.5 landscape:hidden`}>
+              {isMath ? 'Math' : 'Spelling'} Competition Lobby
             </h2>
 
-            {/* Responsive side-by-side layout for Landscape mobile viewports */}
             <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 sm:gap-6 text-center landscape:text-left">
-              
-              {/* Left Column: Student profile card & Loading progress bar */}
+
               <div className="flex flex-col justify-between gap-3">
-                {/* Student Avatar Card */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/50 p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left">
+                <div className={`bg-gradient-to-br ${isMath ? 'from-teal-50 to-cyan-50 border-teal-100/50' : 'from-indigo-50 to-purple-50 border-indigo-100/50'} rounded-2xl border p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shrink-0">
+                    <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${isMath ? 'from-teal-500 to-cyan-600' : 'from-indigo-500 to-purple-600'} text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shrink-0`}>
                       {session.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -337,16 +551,16 @@ export default function CompetitionPlayPage() {
                         <FlagIcon country={session.country} />
                       </div>
                       {session.school && (
-                        <p className="text-[10px] sm:text-xs text-indigo-600/80 font-bold flex items-center gap-1 mt-0.5 truncate">
+                        <p className={`text-[10px] sm:text-xs ${isMath ? 'text-teal-600/80' : 'text-indigo-600/80'} font-bold flex items-center gap-1 mt-0.5 truncate`}>
                           <GraduationCap className="w-3.5 h-3.5" />
                           {session.school}
                         </p>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="mt-3 flex items-center justify-between border-t border-indigo-100/30 pt-2 px-0.5">
-                    <span className="inline-block px-2 py-0.5 bg-indigo-500/10 text-indigo-600 text-[9px] sm:text-[10px] font-extrabold rounded-full border border-indigo-200/50 uppercase tracking-wider">
+                    <span className={`inline-block px-2 py-0.5 ${isMath ? 'bg-teal-500/10 text-teal-600 border-teal-200/50' : 'bg-indigo-500/10 text-indigo-600 border-indigo-200/50'} text-[9px] sm:text-[10px] font-extrabold rounded-full border uppercase tracking-wider`}>
                       Level {session.level}
                     </span>
                     <span className="text-[10px] font-mono text-slate-400 font-bold">
@@ -355,8 +569,7 @@ export default function CompetitionPlayPage() {
                   </div>
                 </div>
 
-                {/* Asset Preload Meter */}
-                {!preloadDone ? (
+                {selectedSubject === 'english' && !preloadDone ? (
                   <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
                     <div className="flex items-center justify-between mb-1.5 px-0.5">
                       <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">Caching Vocab</span>
@@ -380,16 +593,14 @@ export default function CompetitionPlayPage() {
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-center gap-2.5">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-wiggle" />
                     <div className="text-left">
-                      <p className="text-[10px] sm:text-xs font-black text-emerald-800 uppercase tracking-widest">Assets Cached</p>
+                      <p className="text-[10px] sm:text-xs font-black text-emerald-800 uppercase tracking-widest">Ready</p>
                       <p className="text-[9px] sm:text-[10px] font-bold text-emerald-600/80 leading-none mt-0.5">Engine is fully ready</p>
                     </div>
                   </div>
                 )}
               </div>
-              
-              {/* Right Column: Live Announcements & Start/Lock Triggers */}
+
               <div className="flex flex-col justify-center gap-3 border-t border-slate-100 pt-4 landscape:border-t-0 landscape:border-l landscape:border-slate-200/50 landscape:pl-5 sm:landscape:pl-6 landscape:pt-0">
-                {/* Live Announcements (Saves space on landscape) */}
                 <AnimatePresence>
                   {announcement && (
                     <motion.div
@@ -409,7 +620,6 @@ export default function CompetitionPlayPage() {
                   )}
                 </AnimatePresence>
 
-                {/* Waiting State spinner */}
                 {!isUnlocked && (
                   <div className="py-2.5 text-center flex flex-col items-center justify-center flex-1">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-center mb-2.5 relative shadow-inner landscape:w-10 landscape:h-10 landscape:mb-1.5">
@@ -422,7 +632,7 @@ export default function CompetitionPlayPage() {
                     </div>
                     <h3 className="text-sm sm:text-base font-black text-slate-800 tracking-tight">Arena Door Locked</h3>
                     <p className="text-[10px] sm:text-xs text-slate-400 mt-1 font-semibold leading-normal max-w-[180px] mx-auto">
-                      Game Master is currently preparing spelling pools. Please wait.
+                      Game Master is preparing the {subjectLabel} arena. Please wait.
                     </p>
                   </div>
                 )}
@@ -431,12 +641,11 @@ export default function CompetitionPlayPage() {
                   <div className="py-3 text-center flex items-center justify-center flex-1">
                     <p className="text-amber-600 font-extrabold text-xs flex items-center justify-center gap-1.5 animate-pulse">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-                      Finalizing spelling configurations...
+                      Finalizing {subjectLabel} configurations...
                     </p>
                   </div>
                 )}
 
-                {/* Giant Active Start Trigger */}
                 {canStart && (
                   <div className="flex-1 flex items-center justify-center">
                     <motion.button
@@ -461,11 +670,10 @@ export default function CompetitionPlayPage() {
     )
   }
 
-  // Active game (handles countdown transition state or renders GameView)
+  // ===== ACTIVE GAME =====
   if (step === 'active' && session && questions) {
     return (
       <>
-        {/* Cinematic E-Sports Countdown Transition Overlay (Compact landscape) */}
         <AnimatePresence>
           {countdownActive && (
             <motion.div
@@ -475,53 +683,53 @@ export default function CompetitionPlayPage() {
               className="fixed inset-0 z-50 bg-[#060814] flex flex-col items-center justify-center text-white"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
-              
+
               <AnimatePresence mode="wait">
                 <motion.div
                   key={countdownNum}
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ 
-                    scale: [0, 1.3, 1],
-                    opacity: 1 
-                  }}
+                  animate={{ scale: [0, 1.3, 1], opacity: 1 }}
                   exit={{ scale: 1.8, opacity: 0 }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 240, 
-                    damping: 20,
-                    duration: 0.7
-                  }}
+                  transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
                   className={`text-7xl sm:text-8xl md:text-9xl font-black font-mono tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
-                    countdownNum === 'GO!' 
+                    countdownNum === 'GO!'
                       ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
-                      : 'bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400 bg-clip-text text-transparent'
+                      : `bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
                   }`}
                 >
                   {countdownNum}
                 </motion.div>
               </AnimatePresence>
-              
+
               <motion.p
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 0.6, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-indigo-300 font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4"
+                className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
               >
-                Entering spelling arena
+                Entering {subjectLabel} arena
               </motion.p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <CompetitionGameView engine={engine} level={session.level} />
+        {isMath ? (
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
+            <MathCompetitionGameView engine={engine} level={session.level} />
+          </Suspense>
+        ) : (
+          <CompetitionGameView engine={engine} level={session.level} />
+        )}
       </>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFF5F0] text-indigo-400 font-bold gap-2.5">
+    <div className={`min-h-screen flex flex-col items-center justify-center font-bold gap-2.5 transition-colors ${
+      isDark ? 'bg-[#060814] text-indigo-400' : 'bg-[#FFF5F0] text-indigo-400'
+    }`}>
       <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-      <span className="text-sm font-black">Entering spelling vault...</span>
+      <span className="text-sm font-black">Loading arena...</span>
     </div>
   )
 }

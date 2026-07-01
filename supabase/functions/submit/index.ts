@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
   try {
-    const { participant_code, competition_id, answers } = await req.json();
+    const { participant_code, competition_id, subject, answers } = await req.json();
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400);
     }
@@ -33,12 +33,13 @@ Deno.serve(async (req: Request) => {
     );
 
     // Look up session
-    const { data: session, error: lookupErr } = await supabase
+    let lookupQuery = supabase
       .from("competition_sessions")
       .select("*")
       .eq("participant_code", participant_code)
-      .eq("competition_id", competition_id)
-      .single();
+      .eq("competition_id", competition_id);
+    if (subject) lookupQuery = lookupQuery.eq("subject", subject);
+    const { data: session, error: lookupErr } = await lookupQuery.single();
 
     if (lookupErr || !session) {
       return json({ error: "Invalid participant code" }, 404);
@@ -122,7 +123,8 @@ Deno.serve(async (req: Request) => {
         answers_snapshot: answers,
         updated_at: now.toISOString(),
       })
-      .eq("participant_id", session.participant_id);
+      .eq("participant_id", session.participant_id)
+      .eq("status", "active");
 
     if (updateErr) {
       return json({ error: "Failed to save result" }, 500);
