@@ -26,17 +26,12 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
       setStartError('')
       return
     }
-    if (onlineCount === 0) {
-      setStartError('No students are online yet. Wait for at least one student to connect.')
-      setConfirmStart(false)
-      return
-    }
     try {
+      setConfirmStart(false)
       await updateState({ is_unlocked: true, started_at: new Date().toISOString() })
-      setConfirmStart(false)
     } catch (err) {
+      console.error('Start competition failed:', err)
       setStartError('Failed to start competition. Please try again.')
-      setConfirmStart(false)
     }
   }
 
