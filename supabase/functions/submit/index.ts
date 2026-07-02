@@ -47,10 +47,23 @@ Deno.serve(async (req: Request) => {
 
     // IDEMPOTENT: if already completed, return existing official result
     if (session.status === "completed") {
+      let rank: number | null = null;
+      try {
+        const { count } = await supabase
+          .from("competition_sessions")
+          .select("*", { count: "exact", head: true })
+          .eq("competition_id", competition_id)
+          .eq("subject", session.subject)
+          .eq("level", session.level)
+          .eq("status", "completed")
+          .gt("validated_score", session.validated_score);
+        rank = (count ?? 0) + 1;
+      } catch {}
       return json({
         validated_score: session.validated_score,
         time_spent_seconds: session.time_spent_seconds,
         already_submitted: true,
+        rank,
       });
     }
 
@@ -139,9 +152,24 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Calculate rank among same level/subject/competition peers
+    let rank: number | null = null;
+    try {
+      const { count } = await supabase
+        .from("competition_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("competition_id", competition_id)
+        .eq("subject", session.subject)
+        .eq("level", session.level)
+        .eq("status", "completed")
+        .gt("validated_score", validatedScore);
+      rank = (count ?? 0) + 1;
+    } catch {}
+
     return json({
       validated_score: validatedScore,
       time_spent_seconds: clampedTime,
+      rank,
     });
   } catch (err) {
     return json({ error: "Internal error" }, 500);

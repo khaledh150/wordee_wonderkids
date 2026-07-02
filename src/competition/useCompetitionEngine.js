@@ -38,6 +38,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [answers, setAnswers] = useState([])
   const [correctCount, setCorrectCount] = useState(0)
   const [validatedScore, setValidatedScore] = useState(null)
+  const [rank, setRank] = useState(null)
   const [submitError, setSubmitError] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [announcement, setAnnouncement] = useState('')
@@ -132,6 +133,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
       if (saved.phase === 'completed' && saved.validatedScore != null) {
         setValidatedScore(saved.validatedScore)
+        if (saved.rank != null) setRank(saved.rank)
         setPhase('completed')
       } else {
         // Always go to waiting — startRace will re-validate with server
@@ -155,7 +157,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     if (result.completed) {
       setPhase('completed')
       setValidatedScore(result.validated_score)
-      saveLocal(competitionId, { participantCode, phase: 'completed', validatedScore: result.validated_score, session: sess, answers: [], correctCount: 0 })
+      if (result.rank != null) setRank(result.rank)
+      saveLocal(competitionId, { participantCode, phase: 'completed', validatedScore: result.validated_score, rank: result.rank ?? null, session: sess, answers: [], correctCount: 0 })
       return result
     }
 
@@ -195,7 +198,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     if (result.completed) {
       setPhase('completed')
       setValidatedScore(result.validated_score)
-      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'completed', validatedScore: result.validated_score })
+      if (result.rank != null) setRank(result.rank)
+      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'completed', validatedScore: result.validated_score, rank: result.rank ?? null })
       return
     }
 
@@ -307,12 +311,14 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
           answers: answersRef.current,
         })
         setValidatedScore(result.validated_score)
+        if (result.rank != null) setRank(result.rank)
         setPhase('completed')
         clearInterval(timerRef.current)
         clearTimeout(syncRef.current)
         saveLocal(competitionId, {
           participantCode: sess.participant_code, phase: 'completed',
-          validatedScore: result.validated_score, correctCount: correctCountRef.current,
+          validatedScore: result.validated_score, rank: result.rank ?? null,
+          correctCount: correctCountRef.current,
           answers: answersRef.current, session: sess,
         })
         submittingRef.current = false
@@ -358,7 +364,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
   return {
     phase, session, timeLeft, currentScore: correctCount,
-    questionsAnswered: answers.length, validatedScore, isSyncing,
+    questionsAnswered: answers.length, validatedScore, rank, isSyncing,
     announcement, competitionState, orderedQuestions, hapticPulse,
     submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
   }

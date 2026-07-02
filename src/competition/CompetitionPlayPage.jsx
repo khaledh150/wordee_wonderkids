@@ -5,6 +5,7 @@ import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
+import { enterFullscreen } from '../utils/useFullscreen'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
@@ -154,6 +155,36 @@ export default function CompetitionPlayPage() {
     return () => clearInterval(interval)
   }, [countdownActive])
 
+  // Auto-transition: when student is on completed screen and admin opens a new lobby
+  useEffect(() => {
+    if (phase !== 'completed' || !verifiedCode) return
+    let cancelled = false
+    const check = async () => {
+      try {
+        const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+        const res = await fetch(`${FUNC_BASE}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ participant_code: verifiedCode, competition_id: competitionId }),
+        })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        const subjects = data.subjects || []
+        const otherSubjects = subjects.filter(s => s !== selectedSubject)
+        if (otherSubjects.length > 0 && !cancelled) {
+          setAvailableSubjects(subjects)
+          setStep('subject')
+          setQuestions(null)
+          setSelectedSubject(null)
+          setPreloadDone(false)
+          setPreloadProgress({ loaded: 0, total: 0 })
+        }
+      } catch {}
+    }
+    const id = setInterval(check, 5000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [phase, verifiedCode, selectedSubject, competitionId])
+
   async function handleCodeSubmit(e) {
     e.preventDefault()
     if (!code.trim()) return
@@ -194,6 +225,7 @@ export default function CompetitionPlayPage() {
     setError('')
     setLoading(true)
     try {
+      enterFullscreen()
       const result = await joinCompetition(useCode)
       const q = await getQuestionsForSession(subject, result.level)
       setQuestions(q)

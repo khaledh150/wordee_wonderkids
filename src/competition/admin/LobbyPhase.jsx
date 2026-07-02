@@ -18,13 +18,26 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
 
   const onlineCount = sessions.filter(s => isOnline(s)).length
 
+  const [startError, setStartError] = useState('')
+
   const handleStart = async () => {
     if (!confirmStart) {
       setConfirmStart(true)
+      setStartError('')
       return
     }
-    await updateState({ is_unlocked: true, started_at: new Date().toISOString() })
-    setConfirmStart(false)
+    if (onlineCount === 0) {
+      setStartError('No students are online yet. Wait for at least one student to connect.')
+      setConfirmStart(false)
+      return
+    }
+    try {
+      await updateState({ is_unlocked: true, started_at: new Date().toISOString() })
+      setConfirmStart(false)
+    } catch (err) {
+      setStartError('Failed to start competition. Please try again.')
+      setConfirmStart(false)
+    }
   }
 
   const handleBack = async () => {
@@ -119,7 +132,7 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
               : 'bg-green-600 hover:bg-green-700'
           }`}
         >
-          {confirmStart ? 'TAP TO CONFIRM' : 'START COMPETITION'}
+          {confirmStart ? 'TAP TO CONFIRM' : `START ${subject === 'math' ? 'MATHEMATICS' : 'ENGLISH SPELLING'} COMPETITION`}
         </motion.button>
 
         <AnimatePresence>
@@ -128,13 +141,19 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              onClick={() => setConfirmStart(false)}
+              onClick={() => { setConfirmStart(false); setStartError('') }}
               className={`text-sm cursor-pointer ${textMuted} hover:underline`}
             >
               Cancel
             </motion.button>
           )}
         </AnimatePresence>
+
+        {startError && (
+          <p className={`text-xs font-bold px-4 py-2 rounded-lg border ${
+            isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-200'
+          }`}>{startError}</p>
+        )}
 
         <button
           onClick={handleBack}

@@ -48,15 +48,16 @@ const QuestionArea = memo(function QuestionArea({ current, level, allVocab, answ
 
 export default function CompetitionGameView({ engine, level, isDark = false }) {
   const { 
-    orderedQuestions, 
-    timeLeft, 
-    questionsAnswered, 
-    recordAnswer, 
-    finish, 
-    isSyncing, 
-    hapticPulse, 
-    phase, 
+    orderedQuestions,
+    timeLeft,
+    questionsAnswered,
+    recordAnswer,
+    finish,
+    isSyncing,
+    hapticPulse,
+    phase,
     validatedScore,
+    rank,
     submitError,
     session,
     competitionState
@@ -139,7 +140,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
       const { downloadCertificate } = await import('./generateCertificate')
       await downloadCertificate({
         name: session.name,
-        rank: undefined, // Omit specific rank inside live student download
+        rank: rank ?? undefined,
         score: validatedScore,
         totalQuestions: total,
         level: level,

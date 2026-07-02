@@ -31,6 +31,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
     isSyncing,
     phase,
     validatedScore,
+    rank,
     submitError,
     session,
     competitionState
@@ -90,7 +91,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
       const { downloadCertificate } = await import('./generateCertificate')
       await downloadCertificate({
         name: session.name,
-        rank: undefined,
+        rank: rank ?? undefined,
         score: validatedScore,
         totalQuestions: total,
         level: level,
