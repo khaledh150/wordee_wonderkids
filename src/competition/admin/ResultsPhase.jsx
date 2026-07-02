@@ -1,14 +1,36 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Download, FileText } from 'lucide-react'
-import { supabase } from '../supabaseClient'
+import { Download, FileText, ArrowRight } from 'lucide-react'
+import { supabase, SUBJECTS } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import { fmt } from './shared'
 
-export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions }) {
+const mathQuestionCountCache = {}
+
+function getEnglishTotal(level) {
+  return getVocabForLevel(level).length
+}
+
+export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject }) {
   const [levelFilter, setLevelFilter] = useState(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [batchProgress, setBatchProgress] = useState(null)
+  const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
+
+  useEffect(() => {
+    if (subject !== 'math' || Object.keys(mathQuestionCountCache).length > 0) return
+    import('../../data/mathQuestionBank').then(({ getExamQuestions }) => {
+      for (let l = 1; l <= 8; l++) {
+        try { mathQuestionCountCache[l] = getExamQuestions(l).length } catch {}
+      }
+      setMathCounts({ ...mathQuestionCountCache })
+    }).catch(() => {})
+  }, [subject])
+
+  function getTotalQuestions(level) {
+    if (subject === 'math') return mathCounts[level] || 20
+    return getEnglishTotal(level)
+  }
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
   const text = isDark ? 'text-white' : 'text-slate-900'
@@ -33,9 +55,15 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     ? Math.max(...sessions.filter(s => s.validated_score != null).map(s => s.validated_score))
     : 0
 
+  const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+  const otherLabel = otherSubject === 'math' ? 'Mathematics' : 'English Spelling'
+
   function exportCSV() {
-    const h = ['Rank', 'Name', 'Display ID', 'School', 'Country', 'Level', 'Score', 'Time (s)']
-    const r = officialSorted.map((s, i) => [i + 1, s.name, s.display_id, s.school || '', s.country || '', s.level, s.validated_score, s.time_spent_seconds])
+    const h = ['Rank', 'Name', 'Display ID', 'School', 'Country', 'Level', 'Score', 'Total', 'Time (s)']
+    const r = officialSorted.map((s, i) => [
+      i + 1, s.name, s.display_id, s.school || '', s.country || '', s.level,
+      s.validated_score, getTotalQuestions(s.level), s.time_spent_seconds
+    ])
     const csv = [h, ...r].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
@@ -46,9 +74,18 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
   async function handleBatchDownload() {
     if (!officialSorted.length || batchProgress) return
     const { downloadBatchCertificates } = await import('../generateCertificate')
-    const students = officialSorted.map((s, i) => ({ ...s, rank: i + 1, totalQuestions: getVocabForLevel(s.level).length }))
+    const students = officialSorted.map((s, i) => ({
+      ...s,
+      rank: i + 1,
+      totalQuestions: getTotalQuestions(s.level),
+    }))
     setBatchProgress({ done: 0, total: students.length })
-    await downloadBatchCertificates(students, state.round_label || 'International English Spelling & Math Championship', state.competition_id, (done, total) => setBatchProgress({ done, total }))
+    await downloadBatchCertificates(
+      students,
+      state.round_label || 'International English Spelling & Math Championship',
+      state.competition_id,
+      (done, total) => setBatchProgress({ done, total })
+    )
     setBatchProgress(null)
   }
 
@@ -58,7 +95,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
       return
     }
     await supabase.from('competition_sessions').update({
-      status: 'waiting',
+      status: 'registered',
       provisional_score: 0,
       validated_score: null,
       questions_answered: 0,
@@ -69,7 +106,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
       completed_at: null,
       updated_at: new Date().toISOString(),
     }).eq('competition_id', state.competition_id).eq('subject', subject)
-    await updateState({ is_unlocked: false, extra_seconds: 0 })
+    await updateState({ is_unlocked: false, started_at: null, extra_seconds: 0 })
     setConfirmReset(false)
     await loadSessions()
   }
@@ -189,7 +226,10 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                     L{s.level}
                   </span>
                 </td>
-                <td className={`px-4 py-4 text-right font-black text-base ${text}`}>{s.validated_score}</td>
+                <td className={`px-4 py-4 text-right font-black text-base ${text}`}>
+                  {s.validated_score}
+                  <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {getTotalQuestions(s.level)}</span>
+                </td>
                 <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{fmt(s.time_spent_seconds)}</td>
                 <td className="px-6 py-4 text-center">
                   <button
@@ -199,7 +239,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                         name: s.name,
                         rank: i + 1,
                         score: s.validated_score,
-                        totalQuestions: getVocabForLevel(s.level).length,
+                        totalQuestions: getTotalQuestions(s.level),
                         level: s.level,
                         school: s.school,
                         country: s.country,
@@ -229,7 +269,18 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
         </table>
       </div>
 
-      <div className="flex flex-col items-center gap-2 pt-4 print:hidden">
+      <div className="flex flex-col items-center gap-4 pt-4 print:hidden">
+        {onSwitchSubject && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onSwitchSubject(otherSubject)}
+            className="w-full max-w-md px-8 py-4 rounded-xl font-black text-base uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+          >
+            Proceed to {otherLabel}
+            <ArrowRight className="w-5 h-5" />
+          </motion.button>
+        )}
+
         <div className="flex items-center gap-3">
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -238,19 +289,19 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
               confirmReset ? 'bg-red-600 animate-pulse' : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
-            {confirmReset ? 'TAP TO CONFIRM RESET' : 'New Round'}
+            {confirmReset ? 'TAP TO CONFIRM RESET' : 'Reset This Subject'}
           </motion.button>
           {confirmReset && (
             <button
               onClick={() => setConfirmReset(false)}
-              className={`text-xs font-bold underline cursor-pointer ${textMuted} hover:${text}`}
+              className={`text-xs font-bold underline cursor-pointer ${textMuted}`}
             >
               Cancel
             </button>
           )}
         </div>
         <p className={`text-xs ${textMuted}`}>
-          This resets all sessions back to waiting. Scores are cleared.
+          ⚠ Reset clears all {subject === 'math' ? 'math' : 'English'} scores permanently. Download certificates first!
         </p>
       </div>
 
@@ -279,7 +330,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                       <td className="px-3 py-2 font-semibold">{s.name}</td>
                       <td className="px-3 py-2 text-center font-mono text-gray-500">{s.display_id}</td>
                       <td className="px-3 py-2 text-gray-600">{s.school || '-'}</td>
-                      <td className="px-3 py-2 text-right font-bold">{s.validated_score}</td>
+                      <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {getTotalQuestions(s.level)}</td>
                       <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(s.time_spent_seconds)}</td>
                     </tr>
                   ))}

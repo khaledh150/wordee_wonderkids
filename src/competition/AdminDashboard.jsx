@@ -138,6 +138,7 @@ export default function AdminDashboard() {
                 isDark={isDark}
                 updateState={updateState}
                 loadSessions={loadSessions}
+                onSwitchSubject={(sub) => setSubject(sub)}
               />
             </motion.div>
           )}
