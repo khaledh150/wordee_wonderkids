@@ -31,7 +31,7 @@ export default function AdminDashboard() {
     setDialog({
       message: 'Open the lobby? Students will be able to join via QR code.',
       onConfirm: async () => {
-        await updateState({ is_unlocked: true })
+        await updateState({ is_unlocked: true, started_at: null })
         setDialog(null)
       },
       onCancel: () => setDialog(null),

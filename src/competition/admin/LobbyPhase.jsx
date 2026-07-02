@@ -80,7 +80,14 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
             <AnimatePresence mode="popLayout">
               {sorted.map((s, i) => {
                 const online = isOnline(s)
-                const dotColor = s.ready ? 'bg-green-500' : online ? 'bg-blue-500' : 'bg-slate-400'
+                const statusLabel = s.ready ? 'Ready' : online ? 'Online' : 'Offline'
+                const dotColor = s.ready ? 'bg-green-500' : online ? 'bg-green-400' : 'bg-slate-400'
+                const dotGlow = (s.ready || online) ? 'shadow-[0_0_6px_rgba(34,197,94,0.6)]' : ''
+                const labelColor = s.ready
+                  ? (isDark ? 'text-green-400' : 'text-green-600')
+                  : online
+                    ? (isDark ? 'text-green-300' : 'text-green-500')
+                    : textMuted
                 return (
                   <motion.div
                     key={s.id}
@@ -91,8 +98,9 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
                     transition={{ delay: i * 0.03 }}
                     className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm border ${card}`}
                   >
-                    <span className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`} />
-                    <span className={`truncate ${text}`}>{s.name}</span>
+                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColor} ${dotGlow}`} />
+                    <span className={`truncate flex-1 ${text}`}>{s.name}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${labelColor}`}>{statusLabel}</span>
                   </motion.div>
                 )
               })}

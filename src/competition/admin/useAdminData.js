@@ -91,11 +91,11 @@ export default function useAdminData({ subject }) {
   // Derive phase
   const phase = (() => {
     if (!state) return 'setup'
-    const hasActive = sessions.some(s => s.status === 'active')
     const hasCompleted = sessions.some(s => s.status === 'completed')
-    if (hasActive) return 'live'
-    if (state.is_unlocked && !hasActive) return 'lobby'
-    if (!state.is_unlocked && hasCompleted) return 'results'
+    const hasActive = sessions.some(s => s.status === 'active')
+    if (state.is_unlocked && state.started_at) return 'live'
+    if (state.is_unlocked && !state.started_at) return 'lobby'
+    if (!state.is_unlocked && (hasCompleted || hasActive)) return 'results'
     return 'setup'
   })()
 

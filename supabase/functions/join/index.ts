@@ -42,18 +42,23 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Invalid participant code" }, 404);
     }
 
-    // Get competition state for duration + extra_seconds
+    // Get competition state — check is_unlocked, started_at, duration
+    const stateId = session.subject || subject || "english";
     const { data: state } = await supabase
       .from("competition_state")
-      .select("duration_seconds, extra_seconds")
-      .eq("competition_id", competition_id)
-      .limit(1)
+      .select("is_unlocked, started_at, duration_seconds, extra_seconds")
+      .eq("id", stateId)
       .single();
+
+    if (!state?.is_unlocked) {
+      return json({ error: "Competition is not open yet" }, 403);
+    }
 
     const duration = state?.duration_seconds ?? 300;
     const extra = state?.extra_seconds ?? 0;
     const totalSeconds = duration + extra;
     const now = new Date();
+    const competitionStarted = !!state.started_at;
 
     // Already completed — return existing result (idempotent)
     if (session.status === "completed") {
@@ -100,7 +105,6 @@ Deno.serve(async (req: Request) => {
             if (keyMap.get(a.question_id) === a.submitted_answer) validatedScore++;
           }
 
-          // Insert audit rows
           const submissionRows = answersSnapshot.map((a) => ({
             participant_id: session.participant_id,
             question_id: a.question_id,
@@ -159,8 +163,42 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fresh start — set active (atomic: only if still registered/waiting)
+    // Competition not started by admin yet — put student in waiting/lobby
+    if (!competitionStarted) {
+      // Update status to waiting + mark last_seen
+      await supabase
+        .from("competition_sessions")
+        .update({
+          status: "waiting",
+          last_seen_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .eq("participant_id", session.participant_id)
+        .in("status", ["registered", "waiting"]);
+
+      return json({
+        participant_id: session.participant_id,
+        name: session.name,
+        school: session.school,
+        country: session.country,
+        level: session.level,
+        subject: session.subject,
+        display_id: session.display_id,
+        not_started: true,
+      });
+    }
+
+    // Competition IS started — activate the student
     const startedAt = now.toISOString();
+    // Calculate remaining time from when the competition was started by admin
+    const compStartedAt = new Date(state.started_at);
+    const compElapsed = (now.getTime() - compStartedAt.getTime()) / 1000;
+    const remaining = Math.max(0, Math.round(totalSeconds - compElapsed));
+
+    if (remaining <= 0) {
+      return json({ error: "Competition has ended" }, 410);
+    }
+
     const { data: updated, error: startErr } = await supabase
       .from("competition_sessions")
       .update({
@@ -187,7 +225,7 @@ Deno.serve(async (req: Request) => {
       display_id: session.display_id,
       started_at: startedAt,
       server_now: startedAt,
-      remaining: totalSeconds,
+      remaining,
       resume: false,
     });
   } catch (err) {

@@ -65,10 +65,26 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Invalid participant code" }, 404);
     }
 
+    // Check which subjects are unlocked
+    const allSubjects = sessions.map((s) => s.subject);
+    const { data: states } = await supabase
+      .from("competition_state")
+      .select("id, is_unlocked")
+      .in("id", allSubjects);
+
+    const unlockedSet = new Set(
+      (states ?? []).filter((s) => s.is_unlocked).map((s) => s.id)
+    );
+    const availableSubjects = allSubjects.filter((s) => unlockedSet.has(s));
+
+    if (availableSubjects.length === 0) {
+      return json({ error: "No competition is currently open for you" }, 403);
+    }
+
     return json({
       valid: true,
       name: sessions[0].name,
-      subjects: sessions.map((s) => s.subject),
+      subjects: availableSubjects,
     });
   } catch {
     return json({ error: "Internal error" }, 500);

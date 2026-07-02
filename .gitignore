@@ -30,3 +30,4 @@ dist-ssr
 
 # MCP config (contains project refs)
 .mcp.json
+supabase/.temp/
