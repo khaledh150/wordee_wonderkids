@@ -752,34 +752,36 @@ export default function ProjectorPage() {
             {sorted.map((s, i) => {
               const liveState = s.status === 'active'
               
-              // Top 3 specific card configurations based on active theme
-              const cardThemes = i === 0 
+              // Top 3 get bold, distinct backgrounds
+              const cardThemes = i === 0
                 ? isDark
-                  ? 'bg-gradient-to-r from-amber-500/10 via-amber-600/5 to-transparent border-amber-500/40 shadow-amber-500/5'
-                  : 'bg-gradient-to-r from-yellow-100 to-yellow-50/50 border-yellow-350 shadow-yellow-100/30'
-                : i === 1 
+                  ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/15 to-amber-500/5 border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                  : 'bg-gradient-to-r from-yellow-200/80 via-amber-100/60 to-yellow-50 border-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.12)]'
+                : i === 1
                   ? isDark
-                    ? 'bg-gradient-to-r from-slate-400/10 via-slate-500/5 to-transparent border-slate-400/30 shadow-slate-400/5'
-                    : 'bg-gradient-to-r from-slate-100 to-slate-50/50 border-slate-350 shadow-slate-100/30'
-                  : i === 2 
+                    ? 'bg-gradient-to-r from-slate-300/15 via-slate-400/10 to-slate-300/5 border-slate-400/40 shadow-[0_0_15px_rgba(148,163,184,0.1)]'
+                    : 'bg-gradient-to-r from-slate-200/80 via-slate-100/60 to-slate-50 border-slate-300 shadow-[0_0_15px_rgba(148,163,184,0.1)]'
+                  : i === 2
                     ? isDark
-                      ? 'bg-gradient-to-r from-amber-700/15 via-amber-800/5 to-transparent border-amber-600/30 shadow-amber-700/5'
-                      : 'bg-gradient-to-r from-orange-100/80 to-orange-50/50 border-orange-350 shadow-orange-100/30'
+                      ? 'bg-gradient-to-r from-orange-600/20 via-amber-700/10 to-orange-600/5 border-orange-500/40 shadow-[0_0_15px_rgba(234,88,12,0.1)]'
+                      : 'bg-gradient-to-r from-orange-200/70 via-orange-100/50 to-orange-50 border-orange-300 shadow-[0_0_15px_rgba(234,88,12,0.08)]'
                     : s.status === 'completed'
-                      ? isDark 
-                        ? 'bg-emerald-500/5 border-emerald-500/20' 
+                      ? isDark
+                        ? 'bg-emerald-500/5 border-emerald-500/20'
                         : 'bg-emerald-50/30 border-emerald-200'
                       : isDark
                         ? 'bg-[#0e1224]/30 border-transparent hover:bg-white/[0.01]'
                         : 'bg-white border-slate-200/60 shadow-[0_4px_15px_rgba(0,0,0,0.01)] hover:bg-slate-50/50'
 
-              const rankTextColors = i === 0 
-                ? isDark ? 'text-amber-400' : 'text-yellow-600'
-                : i === 1 
-                  ? isDark ? 'text-slate-300' : 'text-slate-500'
-                  : i === 2 
-                    ? isDark ? 'text-amber-600' : 'text-orange-700'
+              const rankTextColors = i === 0
+                ? isDark ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'text-yellow-600'
+                : i === 1
+                  ? isDark ? 'text-slate-300 drop-shadow-[0_0_6px_rgba(148,163,184,0.4)]' : 'text-slate-500'
+                  : i === 2
+                    ? isDark ? 'text-orange-400 drop-shadow-[0_0_6px_rgba(234,88,12,0.4)]' : 'text-orange-700'
                     : 'text-slate-500'
+
+              const rankSize = i < 3 ? 'text-3xl' : 'text-2xl'
 
               return (
                 <motion.div
@@ -791,8 +793,8 @@ export default function ProjectorPage() {
                   transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                   className={`grid grid-cols-[4rem_4rem_1.5fr_1fr_6rem_6rem_6rem] gap-4 items-center px-6 py-4.5 rounded-2xl border text-base font-black ${cardThemes}`}
                 >
-                  <span className={`text-2xl font-black ${rankTextColors} font-mono`}>
-                    {i + 1}
+                  <span className={`${rankSize} font-black ${rankTextColors} font-mono`}>
+                    {i < 3 ? ['🥇','🥈','🥉'][i] : i + 1}
                   </span>
                   <span><FlagIcon country={s.country} /></span>
                   <span className={`font-black truncate text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
