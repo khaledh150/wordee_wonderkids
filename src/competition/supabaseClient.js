@@ -4,11 +4,15 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. ' +
-    'Competition features will not work. ' +
-    'Add them to your .env file.'
-  )
+  const msg = `Missing env vars — VITE_SUPABASE_URL=${supabaseUrl ? 'set' : 'MISSING'}, VITE_SUPABASE_ANON_KEY=${supabaseAnonKey ? 'set' : 'MISSING'}`
+  console.error(msg)
+  if (typeof document !== 'undefined') {
+    document.title = 'ENV ERROR'
+    const pre = document.createElement('pre')
+    pre.style.cssText = 'color:red;padding:2em'
+    pre.textContent = msg + '\n\nIf deployed, add these in Vercel → Settings → Environment Variables, then redeploy without cache.'
+    document.body.appendChild(pre)
+  }
 }
 
 export const supabase = createClient(
