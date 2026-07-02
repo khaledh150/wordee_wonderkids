@@ -2,19 +2,21 @@ import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, Download, X, AlertCircle, CheckCircle2 } from 'lucide-react'
 
-const HEADERS = ['Name', 'School', 'Country', 'English Level', 'Math Level']
-const EXAMPLE_ROW = ['Jane Doe', 'Springfield Academy', 'TH', '3', '2']
-
 const COL_MAP = {
-  name: ['name'],
-  school: ['school'],
-  country: ['country'],
-  english_level: ['english level', 'englishlevel', 'english_level', 'eng level', 'eng_level'],
-  math_level: ['math level', 'mathlevel', 'math_level'],
+  name: ['name', 'ชื่อ', 'ชื่อ-นามสกุล', 'ชื่อ - นามสกุล', 'ชื่อ-นามสกุล (ผู้เข้าแข่งขัน)', 'ชื่อ - นามสกุล (ผู้เข้าแข่งขัน)', 'student name', 'full name'],
+  school: ['school', 'สำขา', 'สาขา', 'โรงเรียน', 'branch'],
+  age: ['age', 'อายุ'],
+  country: ['country', 'ประเทศ'],
+  english_level: ['english level', 'englishlevel', 'english_level', 'eng level', 'eng_level', 'english', 'ภาษาอังกฤษ', 'eng'],
+  math_level: ['math level', 'mathlevel', 'math_level', 'math', 'คณิตศาสตร์', 'mathematics'],
+  grade: ['grade', 'ชั้น'],
+  parent: ['parent', 'ผู้ปกครอง', 'guardian'],
+  shirt_size: ['shirt size', 'ไซด์เสื้อ', 'size'],
+  phone: ['phone', 'เบอร์โทร', 'tel', 'telephone'],
 }
 
 function normalize(header) {
-  return String(header).trim().toLowerCase()
+  return String(header).trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
 function mapColumns(raw) {
@@ -41,6 +43,74 @@ function validateRow(row) {
   return errors
 }
 
+function buildTemplateSheet(XLSX, lang) {
+  const isTh = lang === 'th'
+  const title = isTh
+    ? 'ลงทะเบียนรายชื่อผู้เข้าแข่งขันระดับนานาชาติ'
+    : 'International Championship Registration Form'
+
+  const rows = []
+
+  // Row 1: Title (merged)
+  rows.push([title, '', '', '', '', '', '', '', '', '', ''])
+
+  // Row 2: Group headers
+  rows.push([
+    isTh ? 'สาขา' : 'Branch',
+    '', '', '', '',
+    isTh ? 'วิชาที่ลงแข่ง' : 'Subjects',
+    '', '',
+    isTh ? 'ผู้ปกครอง' : 'Parent',
+    isTh ? 'ไซด์เสื้อ' : 'Shirt Size',
+    isTh ? 'เบอร์โทร' : 'Phone',
+  ])
+
+  // Row 3: Column headers
+  rows.push([
+    'No.',
+    isTh ? 'ชื่อ - นามสกุล (ผู้เข้าแข่งขัน)' : 'Student Name',
+    'Level',
+    isTh ? 'อายุ' : 'Age',
+    isTh ? 'ชั้น' : 'Grade',
+    isTh ? 'จินตคณิต' : 'Mental Math',
+    isTh ? 'ภาษาอังกฤษ' : 'English',
+    isTh ? 'คณิตศาสตร์' : 'Mathematics',
+    isTh ? 'ผู้ปกครอง' : 'Parent',
+    isTh ? 'ไซด์เสื้อ' : 'Shirt Size',
+    isTh ? 'เบอร์โทร' : 'Phone',
+  ])
+
+  // Rows 4-34: Numbered empty rows
+  for (let i = 1; i <= 31; i++) {
+    rows.push([i, '', '', '', '', '', '', '', '', '', ''])
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+
+  // Merge title row A1:K1
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+    { s: { r: 1, c: 5 }, e: { r: 1, c: 7 } },
+  ]
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 5 },   // No.
+    { wch: 30 },  // Name
+    { wch: 7 },   // Level
+    { wch: 6 },   // Age
+    { wch: 8 },   // Grade
+    { wch: 12 },  // Mental Math
+    { wch: 14 },  // English
+    { wch: 14 },  // Mathematics
+    { wch: 16 },  // Parent
+    { wch: 10 },  // Shirt Size
+    { wch: 14 },  // Phone
+  ]
+
+  return ws
+}
+
 export default function RosterUpload({ open, onClose, onImport, competitionId, subject, isDark }) {
   const [rows, setRows] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -59,11 +129,15 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
 
   async function downloadTemplate() {
     const XLSX = await import('xlsx')
-    const ws = XLSX.utils.aoa_to_sheet([HEADERS, EXAMPLE_ROW])
-    ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 12 }]
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Roster')
-    XLSX.writeFile(wb, 'roster_template.xlsx')
+
+    const wsTh = buildTemplateSheet(XLSX, 'th')
+    XLSX.utils.book_append_sheet(wb, wsTh, 'ลงทะเบียน (TH)')
+
+    const wsEn = buildTemplateSheet(XLSX, 'en')
+    XLSX.utils.book_append_sheet(wb, wsEn, 'Registration (EN)')
+
+    XLSX.writeFile(wb, 'registration_template.xlsx')
   }
 
   async function parseFile(file) {
@@ -71,20 +145,42 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
     const buffer = await file.arrayBuffer()
     const wb = XLSX.read(buffer)
     const sheet = wb.Sheets[wb.SheetNames[0]]
-    const json = XLSX.utils.sheet_to_json(sheet)
+
+    // Detect header row: find the row containing "No." or name-like header
+    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1')
+    let headerRow = 0
+    for (let r = range.s.r; r <= Math.min(range.e.r, 5); r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = sheet[XLSX.utils.encode_cell({ r, c })]
+        if (cell) {
+          const v = normalize(String(cell.v))
+          if (v === 'name' || v === 'student name' || v.includes('นามสกุล') || v.includes('ชื่อ')) {
+            headerRow = r
+            break
+          }
+        }
+      }
+      if (headerRow > 0) break
+    }
+
+    const json = XLSX.utils.sheet_to_json(sheet, { range: headerRow })
 
     const parsed = json.map((raw, i) => {
       const mapped = mapColumns(raw)
+      // Skip empty/number-only rows (the "No." column)
+      if (!mapped.name && !mapped.school) return null
+
       const row = {
         name: String(mapped.name || '').trim(),
         school: String(mapped.school || '').trim(),
         country: String(mapped.country || '').trim().toLowerCase() || 'th',
+        age: mapped.age !== undefined && mapped.age !== '' ? Number(mapped.age) : null,
         english_level: mapped.english_level !== undefined && mapped.english_level !== '' ? Number(mapped.english_level) : 0,
         math_level: mapped.math_level !== undefined && mapped.math_level !== '' ? Number(mapped.math_level) : 0,
       }
       const errors = validateRow({ ...mapped, name: row.name })
-      return { ...row, _index: i + 2, _errors: errors, _valid: errors.length === 0 }
-    })
+      return { ...row, _index: headerRow + i + 2, _errors: errors, _valid: errors.length === 0 }
+    }).filter(Boolean)
 
     setRows(parsed)
   }
@@ -156,7 +252,7 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
             }`}
           >
             <Download className="w-4 h-4" />
-            Download Template
+            Download Template (Thai + English)
           </button>
 
           {!rows ? (
@@ -178,7 +274,7 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
                 Drop Excel file here or click to browse
               </p>
               <p className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                .xlsx or .csv
+                .xlsx or .csv — supports Thai and English headers
               </p>
               <input
                 ref={fileRef}
@@ -217,13 +313,9 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
                 <table className="w-full text-sm">
                   <thead>
                     <tr className={isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>#</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Name</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>School</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Country</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Eng</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Math</th>
-                      <th className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                      {['#', 'Name', 'School', 'Age', 'Eng', 'Math', 'Status'].map(h => (
+                        <th key={h} className={`px-3 py-2 text-left font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -239,7 +331,7 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{row._index}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{row.name || '—'}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.school || '—'}</td>
-                        <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.country}</td>
+                        <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.age || '—'}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.english_level}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.math_level}</td>
                         <td className="px-3 py-1.5">

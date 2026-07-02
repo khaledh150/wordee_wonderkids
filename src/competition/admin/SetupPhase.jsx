@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus } from 'lucide-react'
+import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { generateCode } from './shared'
 
@@ -10,26 +10,35 @@ const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 export default function SetupPhase({ state, sessions, subject, isDark, updateState, loadSessions, onOpenLobby, onShowUpload }) {
   const [showAddRow, setShowAddRow] = useState(false)
-  const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', englishLevel: 0, mathLevel: 0 })
+  const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
   const [roundLabel, setRoundLabel] = useState(state?.round_label || '')
   const [adding, setAdding] = useState(false)
+  const [exportSchool, setExportSchool] = useState('all')
 
-  // Group sessions by participant_code to get unified student view
   const grouped = useMemo(() => {
     const map = new Map()
     for (const s of sessions) {
       const key = s.participant_code
       if (!map.has(key)) {
-        map.set(key, { code: key, name: s.name, school: s.school, country: s.country, display_id: s.display_id, english: null, math: null })
+        map.set(key, { code: key, name: s.name, school: s.school, country: s.country, display_id: s.display_id, age: s.age, english: null, math: null })
       }
       const entry = map.get(key)
       if (s.subject === 'english') entry.english = s
       if (s.subject === 'math') entry.math = s
+      if (s.age && !entry.age) entry.age = s.age
     }
     return [...map.values()]
   }, [sessions])
 
   const studentCount = grouped.length
+
+  const schools = useMemo(() => {
+    const set = new Set()
+    for (const s of grouped) {
+      if (s.school) set.add(s.school)
+    }
+    return [...set].sort()
+  }, [grouped])
 
   const cardClass = isDark
     ? 'bg-[#0e1224]/50 border-white/10'
@@ -48,13 +57,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
     const level = Number(newLevel)
 
     if (row && level === 0) {
-      // Delete this subject row
       await supabase.from('competition_sessions').delete().eq('id', row.id)
     } else if (row && level > 0) {
-      // Update existing row
       await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('id', row.id)
     } else if (!row && level > 0) {
-      // Insert new row for this subject
       const refRow = student.english || student.math
       await supabase.from('competition_sessions').insert({
         competition_id: state.competition_id,
@@ -63,9 +69,19 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
         name: student.name,
         school: student.school || null,
         country: student.country || null,
+        age: student.age || null,
         subject: subjectKey,
         level,
       })
+    }
+    await loadSessions()
+  }
+
+  async function handleAgeChange(student, newAge) {
+    const age = newAge === '' ? null : Number(newAge)
+    const ids = [student.english?.id, student.math?.id].filter(Boolean)
+    for (const id of ids) {
+      await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('id', id)
     }
     await loadSessions()
   }
@@ -93,6 +109,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
         name: newStudent.name.trim(),
         school: newStudent.school.trim() || null,
         country: newStudent.country.toLowerCase() || null,
+        age: newStudent.age ? Number(newStudent.age) : null,
       }
 
       if (Number(newStudent.englishLevel) > 0) {
@@ -108,11 +125,37 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
       }
 
       await supabase.from('competition_sessions').insert(rows)
-      setNewStudent({ name: '', school: '', country: 'th', englishLevel: 0, mathLevel: 0 })
+      setNewStudent({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
       await loadSessions()
     } finally {
       setAdding(false)
     }
+  }
+
+  function handleExport() {
+    const list = exportSchool === 'all' ? grouped : grouped.filter(s => s.school === exportSchool)
+    if (list.length === 0) return
+
+    const header = ['Name', 'School', 'Country', 'Age', 'Code', 'English Level', 'Math Level']
+    const csvRows = [header.join(',')]
+    for (const s of list) {
+      csvRows.push([
+        `"${(s.name || '').replace(/"/g, '""')}"`,
+        `"${(s.school || '').replace(/"/g, '""')}"`,
+        s.country || '',
+        s.age || '',
+        s.code,
+        s.english?.level || 0,
+        s.math?.level || 0,
+      ].join(','))
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `roster${exportSchool !== 'all' ? '_' + exportSchool.replace(/\s+/g, '_') : ''}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -139,20 +182,50 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                 </span>
               )}
             </div>
-            {studentCount > 0 && (
-              <button
-                onClick={onShowUpload}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                  isDark
-                    ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-                    : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                Upload Excel
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {studentCount > 0 && (
+                <>
+                  <button
+                    onClick={onShowUpload}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      isDark
+                        ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      isDark
+                        ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+
+          {/* Export school filter */}
+          {studentCount > 0 && schools.length > 1 && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Export:</span>
+              <select
+                value={exportSchool}
+                onChange={(e) => setExportSchool(e.target.value)}
+                className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none ${selectClass}`}
+              >
+                <option value="all">All Schools</option>
+                {schools.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
 
           {studentCount === 0 && !showAddRow ? (
             /* Empty State */
@@ -195,12 +268,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['Name', 'School', 'Code', 'Eng Lvl', 'Math Lvl', ''].map((h, i) => (
+                    {['Name', 'School', 'Age', 'Code', 'Eng', 'Math', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`text-left py-2.5 px-3 text-xs font-bold uppercase tracking-wider ${
                           isDark ? 'text-slate-500' : 'text-slate-400'
-                        } ${i === 5 ? 'w-10' : ''}`}
+                        } ${i === 6 ? 'w-10' : ''}`}
                       >
                         {h}
                       </th>
@@ -222,6 +295,17 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                       </td>
                       <td className={`py-2.5 px-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {student.school || '—'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="number"
+                          min="4"
+                          max="18"
+                          value={student.age || ''}
+                          onChange={(e) => handleAgeChange(student, e.target.value)}
+                          placeholder="—"
+                          className={`w-12 px-1.5 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}`}
+                        />
                       </td>
                       <td className="py-2.5 px-3">
                         <span className={`font-mono text-xs font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
@@ -284,11 +368,22 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                     </td>
                     <td className="py-2.5 px-3">
                       <input
+                        type="number"
+                        min="4"
+                        max="18"
+                        value={newStudent.age}
+                        onChange={(e) => setNewStudent(p => ({ ...p, age: e.target.value }))}
+                        placeholder="—"
+                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
+                      />
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <input
                         value={newStudent.country}
                         onChange={(e) => setNewStudent(p => ({ ...p, country: e.target.value }))}
                         placeholder="th"
                         maxLength={2}
-                        className={`w-16 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
+                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
                       />
                     </td>
                     <td className="py-2.5 px-3">

@@ -52,6 +52,7 @@ export default function AdminDashboard() {
         name: row.name,
         school: row.school || null,
         country: row.country || null,
+        age: row.age || null,
       }
       if (row.english_level > 0) inserts.push({ ...base, subject: 'english', level: row.english_level })
       if (row.math_level > 0) inserts.push({ ...base, subject: 'math', level: row.math_level })
