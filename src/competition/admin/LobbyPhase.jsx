@@ -35,9 +35,15 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
     }
   }
 
-  const handleBack = async () => {
-    await updateState({ is_unlocked: false })
-    onBackToSetup()
+  const [confirmBack, setConfirmBack] = useState(false)
+
+  const handleBack = () => {
+    if (!confirmBack) {
+      setConfirmBack(true)
+      return
+    }
+    setConfirmBack(false)
+    updateState({ is_unlocked: false }).then(onBackToSetup)
   }
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
@@ -152,11 +158,20 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
 
         <button
           onClick={handleBack}
-          className={`flex items-center gap-1 text-sm mt-2 cursor-pointer ${textMuted} hover:underline`}
+          className={`flex items-center gap-1 text-sm mt-2 cursor-pointer ${
+            confirmBack
+              ? 'text-amber-500 font-bold animate-pulse'
+              : `${textMuted} hover:underline`
+          }`}
         >
           <ArrowLeft size={14} />
-          Back to Setup
+          {confirmBack ? 'Tap again to confirm' : 'Back to Setup'}
         </button>
+        {confirmBack && (
+          <button onClick={() => setConfirmBack(false)} className={`text-xs cursor-pointer ${textMuted} hover:underline`}>
+            Cancel
+          </button>
+        )}
       </div>
     </div>
   )

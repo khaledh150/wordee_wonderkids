@@ -3,7 +3,7 @@ import { Shield, LogOut, Sun, Moon } from 'lucide-react'
 const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results' }
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results']
 
-export default function AdminHeader({ subject, setSubject, phase, isDark, setTheme, onLogout, competitionId }) {
+export default function AdminHeader({ subject, setSubject, phase, isDark, setTheme, onLogout }) {
   return (
     <header className={`border-b px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-40 print:hidden transition-colors ${
       isDark ? 'bg-[#0e1224]/90 border-white/5 shadow-lg' : 'bg-white border-slate-200 shadow-sm'
@@ -57,11 +57,6 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, setThe
       </div>
 
       <div className="flex items-center gap-2">
-        <span className={`hidden sm:inline text-xs font-mono px-2.5 py-1 rounded-lg border ${
-          isDark ? 'bg-slate-900 border-white/5 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-500'
-        }`}>
-          {competitionId}
-        </span>
         <button
           onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
           className={`p-2 rounded-xl border cursor-pointer ${
