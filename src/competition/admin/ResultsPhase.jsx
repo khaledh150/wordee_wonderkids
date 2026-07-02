@@ -16,6 +16,29 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
   const [confirmReset, setConfirmReset] = useState(false)
   const [batchProgress, setBatchProgress] = useState(null)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
+  const [otherSubjectDone, setOtherSubjectDone] = useState(false)
+
+  const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+
+  useEffect(() => {
+    if (!state) return
+    supabase
+      .from('competition_sessions')
+      .select('status', { count: 'exact', head: true })
+      .eq('competition_id', state.competition_id)
+      .eq('subject', otherSubject)
+      .neq('status', 'completed')
+      .then(({ count }) => {
+        supabase
+          .from('competition_sessions')
+          .select('status', { count: 'exact', head: true })
+          .eq('competition_id', state.competition_id)
+          .eq('subject', otherSubject)
+          .then(({ count: total }) => {
+            setOtherSubjectDone(total > 0 && count === 0)
+          })
+      })
+  }, [state?.competition_id, otherSubject])
 
   useEffect(() => {
     if (subject !== 'math' || Object.keys(mathQuestionCountCache).length > 0) return
@@ -55,7 +78,6 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     ? Math.max(...sessions.filter(s => s.validated_score != null).map(s => s.validated_score))
     : 0
 
-  const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
   const otherLabel = otherSubject === 'math' ? 'Mathematics' : 'English Spelling'
 
   function exportCSV() {
@@ -270,7 +292,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
       </div>
 
       <div className="flex flex-col items-center gap-4 pt-4 print:hidden">
-        {onSwitchSubject && (
+        {onSwitchSubject && subject === SUBJECTS.ENGLISH && !otherSubjectDone && (
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => onSwitchSubject(otherSubject)}
