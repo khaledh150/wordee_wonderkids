@@ -14,14 +14,40 @@ function json(data: unknown, status = 200) {
   });
 }
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  entry.count++;
+  return entry.count > 10;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(clientIp)) {
+    return json({ error: "Too many attempts. Please wait a moment." }, 429);
+  }
+
   try {
-    const { participant_code, competition_id } = await req.json();
-    if (!participant_code || !competition_id) {
-      return json({ error: "participant_code and competition_id required" }, 400);
+    const body = await req.json();
+    const { participant_code, competition_id } = body;
+
+    if (typeof participant_code !== "string" || typeof competition_id !== "string") {
+      return json({ error: "Invalid input" }, 400);
+    }
+    if (participant_code.length < 4 || participant_code.length > 10) {
+      return json({ error: "Invalid code format" }, 400);
+    }
+    if (competition_id.length > 50) {
+      return json({ error: "Invalid competition ID" }, 400);
     }
 
     const supabase = createClient(

@@ -11,7 +11,6 @@ export function getCompetitionQuestions(level) {
     thai: item.thai,
     image: item.image,
     audio: item.audio,
-    correct_answer: item.word,
   }))
 }
 
