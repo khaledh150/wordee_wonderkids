@@ -451,7 +451,7 @@ export default function CompetitionPlayPage() {
                     </div>
                     <div>
                       <h3 className={`text-base sm:text-lg font-black tracking-tight ${isDark ? 'text-teal-300' : 'text-teal-700'}`}>Math</h3>
-                      <p className="text-[9px] sm:text-[10px] font-bold mt-0.5 text-teal-400">ARITHMETIC</p>
+                      <p className="text-[9px] sm:text-[10px] font-bold mt-0.5 text-teal-400">MATHEMATICS</p>
                     </div>
                   </motion.button>
                 )}
