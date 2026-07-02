@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, Globe, BookOpen, Calculator } from 'lucide-react'
+import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
 import FullscreenBtn from '../components/FullscreenBtn'
+import logo from '../assets/logo.webp'
 
 const FLAG_CDN = 'https://flagcdn.com/w40'
 
@@ -284,7 +285,7 @@ export default function ProjectorPage() {
 
         <div className="text-center relative z-10 flex flex-col items-center px-8">
           <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', damping: 12 }}>
-            <Globe className={`w-20 h-20 mb-6 ${isDark ? 'text-blue-400/60' : 'text-blue-500/40'}`} />
+            <img src={logo} alt="Wonder Kids" className="w-48 sm:w-56 lg:w-64 object-contain mb-4 drop-shadow-2xl" />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', damping: 12, delay: 0.2 }}>
