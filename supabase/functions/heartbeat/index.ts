@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = [
+  "https://wordee-wonderkids.vercel.app",
   "https://wordee-sigma.vercel.app",
   "https://wordee.vercel.app",
   "http://localhost:5173",
