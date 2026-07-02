@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2 } from 'lucide-react'
+import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Home } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
@@ -29,6 +29,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
     recordAnswer,
     finish,
     isSyncing,
+    isOffline,
     phase,
     validatedScore,
     rank,
@@ -245,6 +246,13 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                     <><Download className="w-4 h-4" /> View math certificate</>
                   )}
                 </motion.button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  Exit to Arena
+                </button>
                 <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal mt-1 text-center landscape:text-left">
                   Your final math score has been captured by the competition registry.
                 </p>
@@ -306,6 +314,12 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {isOffline && (
+        <div className="shrink-0 relative z-20 bg-amber-500 text-white text-center text-[10px] font-black py-1 px-2 tracking-wide uppercase">
+          Offline — answers saved locally, will sync when reconnected
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 shrink-0 relative z-10 bg-white/30 backdrop-blur-md border-b border-white/20">
         <span className="text-xs sm:text-sm lg:text-base font-bold text-teal-600 shrink-0">Math · Level {level}</span>
         <div className="flex-1 h-1.5 sm:h-2 lg:h-2.5 bg-teal-100 rounded-full overflow-hidden min-w-6">

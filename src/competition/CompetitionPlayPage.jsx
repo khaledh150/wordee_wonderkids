@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
@@ -14,13 +14,15 @@ const CACHE_NAME = 'wordee-competition-assets-v1'
 const FLAG_CDN = 'https://flagcdn.com/w40'
 
 function FlagIcon({ country }) {
+  const [failed, setFailed] = useState(false)
   if (!country) return null
+  if (failed) return <span className="text-xs" title={country}>🌍</span>
   return (
     <img
       src={`${FLAG_CDN}/${country.toLowerCase()}.png`}
       alt={country}
       className="w-6.5 h-4 object-cover rounded-sm inline-block shadow-sm"
-      onError={e => { e.target.style.display = 'none' }}
+      onError={() => setFailed(true)}
     />
   )
 }
@@ -108,17 +110,17 @@ export default function CompetitionPlayPage() {
 
   const isDark = competitionState?.theme === 'dark'
 
-  async function getQuestionsForSession(sub, level) {
+  async function getQuestionsForSession(sub, level, participantId) {
     if (sub === 'math') {
       const { getMathCompetitionQuestions } = await import('./mathCompetitionQuestions')
-      return getMathCompetitionQuestions(level)
+      return getMathCompetitionQuestions(level, participantId)
     }
     return getCompetitionQuestions(level)
   }
 
   useEffect(() => {
     if (session && questions == null) {
-      getQuestionsForSession(selectedSubject, session.level).then(setQuestions)
+      getQuestionsForSession(selectedSubject, session.level, session.participant_id).then(setQuestions)
     }
     if (phase === 'completed' && session) {
       setStep('active')
@@ -227,7 +229,7 @@ export default function CompetitionPlayPage() {
     try {
       enterFullscreen()
       const result = await joinCompetition(useCode)
-      const q = await getQuestionsForSession(subject, result.level)
+      const q = await getQuestionsForSession(subject, result.level, result.participant_id)
       setQuestions(q)
       if (result.completed) setStep('active')
       else if (result.resume) setStep('active')

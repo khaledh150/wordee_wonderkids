@@ -1,27 +1,41 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = [
+  "https://wordee-sigma.vercel.app",
+  "https://wordee.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5177",
+];
 
-function json(data: unknown, status = 200) {
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
+  const headers = req ? getCorsHeaders(req) : { "Content-Type": "application/json" };
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
     const { participant_code, competition_id, subject } = await req.json();
     if (!participant_code || !competition_id) {
-      return json({ error: "participant_code and competition_id required" }, 400);
+      return json({ error: "participant_code and competition_id required" }, 400, req);
     }
 
     const supabase = createClient(
@@ -39,7 +53,7 @@ Deno.serve(async (req: Request) => {
     const { data: session, error: lookupErr } = await query.single();
 
     if (lookupErr || !session) {
-      return json({ error: "Invalid participant code" }, 404);
+      return json({ error: "Invalid participant code" }, 404, req);
     }
 
     // Get competition state — check is_unlocked, started_at, duration
@@ -51,7 +65,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (!state?.is_unlocked) {
-      return json({ error: "Competition is not open yet" }, 403);
+      return json({ error: "Competition is not open yet" }, 403, req);
     }
 
     const duration = state?.duration_seconds ?? 300;
@@ -74,7 +88,7 @@ Deno.serve(async (req: Request) => {
         validated_score: session.validated_score,
         time_spent_seconds: session.time_spent_seconds,
         completed: true,
-      });
+      }, 200, req);
     }
 
     // Already active — this is a RECONNECT
@@ -97,7 +111,7 @@ Deno.serve(async (req: Request) => {
             .eq("competition_id", competition_id);
 
           if (keysErr) {
-            return json({ error: "Failed to load answer keys" }, 500);
+            return json({ error: "Failed to load answer keys" }, 500, req);
           }
 
           const keyMap = new Map((keys ?? []).map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
@@ -126,7 +140,7 @@ Deno.serve(async (req: Request) => {
           .eq("participant_id", session.participant_id);
 
         if (updateErr) {
-          return json({ error: "Failed to finalize session" }, 500);
+          return json({ error: "Failed to finalize session" }, 500, req);
         }
 
         return json({
@@ -141,7 +155,7 @@ Deno.serve(async (req: Request) => {
           validated_score: validatedScore,
           time_spent_seconds: Math.min(Math.round(elapsed), totalSeconds + 5),
           completed: true,
-        });
+        }, 200, req);
       }
 
       // Still has time — resume
@@ -160,7 +174,7 @@ Deno.serve(async (req: Request) => {
         questions_answered: session.questions_answered,
         provisional_score: session.provisional_score,
         answers_snapshot: session.answers_snapshot,
-      });
+      }, 200, req);
     }
 
     // Competition not started by admin yet — put student in waiting/lobby
@@ -185,7 +199,7 @@ Deno.serve(async (req: Request) => {
         subject: session.subject,
         display_id: session.display_id,
         not_started: true,
-      });
+      }, 200, req);
     }
 
     // Competition IS started — activate the student
@@ -196,7 +210,7 @@ Deno.serve(async (req: Request) => {
     const remaining = Math.max(0, Math.round(totalSeconds - compElapsed));
 
     if (remaining <= 0) {
-      return json({ error: "Competition has ended" }, 410);
+      return json({ error: "Competition has ended" }, 410, req);
     }
 
     const { data: updated, error: startErr } = await supabase
@@ -212,7 +226,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (startErr || !updated) {
-      return json({ error: "Session already started" }, 409);
+      return json({ error: "Session already started" }, 409, req);
     }
 
     return json({
@@ -227,8 +241,8 @@ Deno.serve(async (req: Request) => {
       server_now: startedAt,
       remaining,
       resume: false,
-    });
+    }, 200, req);
   } catch (err) {
-    return json({ error: "Internal error" }, 500);
+    return json({ error: "Internal error" }, 500, req);
   }
 });

@@ -1,28 +1,41 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = [
+  "https://wordee-sigma.vercel.app",
+  "https://wordee.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5177",
+];
 
-function json(data: unknown, status = 200) {
+function getCorsHeaders(req?: Request) {
+  const origin = req?.headers.get("Origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
     // Verify the caller is an authenticated admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return json({ error: "Authorization required" }, 401);
+      return json({ error: "Authorization required" }, 401, req);
     }
 
     const anonClient = createClient(
@@ -32,12 +45,12 @@ Deno.serve(async (req: Request) => {
     );
     const { data: { user }, error: authErr } = await anonClient.auth.getUser();
     if (authErr || !user) {
-      return json({ error: "Unauthorized" }, 401);
+      return json({ error: "Unauthorized" }, 401, req);
     }
 
     const { competition_id, subject, level } = await req.json();
     if (!competition_id || !subject) {
-      return json({ error: "competition_id and subject required" }, 400);
+      return json({ error: "competition_id and subject required" }, 400, req);
     }
 
     const supabase = createClient(
@@ -74,11 +87,11 @@ Deno.serve(async (req: Request) => {
     const { data: stragglers, error: queryErr } = await query;
 
     if (queryErr) {
-      return json({ error: "Failed to query sessions" }, 500);
+      return json({ error: "Failed to query sessions" }, 500, req);
     }
 
     if (!stragglers || stragglers.length === 0) {
-      return json({ finalized: 0, message: "No stragglers found" });
+      return json({ finalized: 0, message: "No stragglers found" }, 200, req);
     }
 
     // Load all answer keys for this subject (and optionally level)
@@ -108,7 +121,7 @@ Deno.serve(async (req: Request) => {
     });
 
     if (eligible.length === 0) {
-      return json({ finalized: 0, message: "No stragglers past time window" });
+      return json({ finalized: 0, message: "No stragglers past time window" }, 200, req);
     }
 
     const tasks = eligible.map(async (session) => {
@@ -163,8 +176,8 @@ Deno.serve(async (req: Request) => {
     const results = settled
       .filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled')
       .map(r => r.value);
-    return json({ finalized: results.length, results });
+    return json({ finalized: results.length, results }, 200, req);
   } catch (err) {
-    return json({ error: "Internal error" }, 500);
+    return json({ error: "Internal error" }, 500, req);
   }
 });

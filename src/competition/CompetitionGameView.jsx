@@ -47,13 +47,14 @@ const QuestionArea = memo(function QuestionArea({ current, level, allVocab, answ
 })
 
 export default function CompetitionGameView({ engine, level, isDark = false }) {
-  const { 
+  const {
     orderedQuestions,
     timeLeft,
     questionsAnswered,
     recordAnswer,
     finish,
     isSyncing,
+    isOffline,
     hapticPulse,
     phase,
     validatedScore,
@@ -334,8 +335,15 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
                   )}
                 </motion.button>
                 
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  Exit to Arena
+                </button>
                 <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal mt-1 text-center landscape:text-left">
-                  Your final spelling score has been successfully captured by the competition registry.
+                  Your final spelling score has been captured by the competition registry.
                 </p>
               </div>
             </div>
@@ -407,6 +415,13 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Offline banner */}
+      {isOffline && (
+        <div className="shrink-0 relative z-20 bg-amber-500 text-white text-center text-[10px] font-black py-1 px-2 tracking-wide uppercase">
+          Offline — answers saved locally, will sync when reconnected
+        </div>
+      )}
+
       {/* Top Banner stats */}
       <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 xl:gap-4 px-2 sm:px-3 lg:px-4 xl:px-6 py-1 sm:py-1.5 lg:py-2 xl:py-3 shrink-0 relative z-10 bg-white/30 backdrop-blur-md -webkit-backdrop-blur-md border-b border-white/20">
         <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-orange-500 shrink-0">Competition · Level {level}</span>

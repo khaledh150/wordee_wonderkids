@@ -1,20 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Timer, QrCode, Users, Loader2, ShieldAlert, CheckCircle, TrendingUp, LogIn } from 'lucide-react'
+import { Trophy, Award, Star, Timer, QrCode, Users, Loader2, ShieldAlert, CheckCircle, TrendingUp, LogIn, WifiOff } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
+import FullscreenBtn from '../components/FullscreenBtn'
 
 const FLAG_CDN = 'https://flagcdn.com/w40'
 
 function FlagIcon({ country }) {
+  const [failed, setFailed] = useState(false)
   if (!country) return null
+  if (failed) return <span className="text-sm" title={country}>🌍</span>
   return (
     <img
       src={`${FLAG_CDN}/${country.toLowerCase()}.png`}
       alt={country}
       className="w-8 h-5.5 object-cover rounded-sm inline-block shadow-sm"
-      onError={e => { e.target.style.display = 'none' }}
+      onError={() => setFailed(true)}
     />
   )
 }
@@ -41,6 +44,10 @@ export default function ProjectorPage() {
   const [showPodium, setShowPodium] = useState(false)
   const channelRef = useRef(null)
   const realtimeDebounceRef = useRef(null)
+
+  const qrCode = useMemo(() => (
+    <QRCodeSVG value={window.location.origin + '/play'} size={400} level="H" marginSize={0} />
+  ), [])
 
   // Sync theme from DB state (admin controls it)
   useEffect(() => {
@@ -497,12 +504,7 @@ export default function ProjectorPage() {
             />
 
             <div className="bg-white rounded-3xl p-5 shadow-2xl">
-              <QRCodeSVG
-                value={window.location.origin + '/play'}
-                size={288}
-                level="M"
-                marginSize={0}
-              />
+              {qrCode}
             </div>
           </motion.div>
 
@@ -711,8 +713,9 @@ export default function ProjectorPage() {
           )}
         </div>
 
-        {/* Level Filters */}
+        {/* Level Filters + Fullscreen */}
         <div className="flex items-center gap-4">
+          <FullscreenBtn />
           <div className={`flex border rounded-xl p-1 relative z-10 shadow-inner transition-colors ${
             isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'
           }`}>

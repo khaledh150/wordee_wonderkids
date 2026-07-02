@@ -59,8 +59,41 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const lastSyncedLenRef = useRef(0)
   const unmountedRef = useRef(false)
   const saveDebounceRef = useRef(null)
+  const autoSubmitRef = useRef(null)
+  const broadcastRef = useRef(null)
+  const [isOffline, setIsOffline] = useState(false)
+  const syncFailCountRef = useRef(0)
 
   useEffect(() => { return () => { unmountedRef.current = true } }, [])
+
+  // Multi-tab detection via BroadcastChannel
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel(`wordee_comp_${competitionId}`)
+    broadcastRef.current = channel
+    channel.postMessage({ type: 'tab_open', ts: Date.now() })
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'tab_open' && phaseRef.current === 'active') {
+        channel.postMessage({ type: 'tab_active', ts: Date.now() })
+      }
+      if (e.data?.type === 'tab_active' && phaseRef.current === 'active') {
+        alert('Competition is open in another tab. This tab will be disabled to protect your score.')
+        setPhase('idle')
+        clearInterval(timerRef.current)
+        clearTimeout(syncRef.current)
+      }
+    }
+    return () => { channel.close(); broadcastRef.current = null }
+  }, [competitionId])
+
+  // Online/offline detection
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true)
+    const goOnline = () => { setIsOffline(false); syncFailCountRef.current = 0 }
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online', goOnline)
+    return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline) }
+  }, [])
 
   answersRef.current = answers
   correctCountRef.current = correctCount
@@ -242,7 +275,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
         if (next <= 0) {
           clearInterval(timerRef.current)
-          setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
+          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
           return 0
         }
         return next
@@ -281,7 +314,11 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
           answers: answersRef.current,
         })
         lastSyncedLenRef.current = answersRef.current.length
-      } catch {}
+        syncFailCountRef.current = 0
+      } catch {
+        syncFailCountRef.current++
+        if (syncFailCountRef.current >= 2) setIsOffline(true)
+      }
       setIsSyncing(false)
     }
 
@@ -325,7 +362,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       } catch {
         retryCount++
         if (unmountedRef.current) { submittingRef.current = false; return }
-        if (retryCount <= 10) setTimeout(trySubmit, Math.min(3000 * Math.pow(1.5, retryCount - 1), 30000))
+        if (retryCount <= 3) setTimeout(trySubmit, Math.min(3000 * Math.pow(2, retryCount - 1), 15000))
         else { submittingRef.current = false; setSubmitError(true) }
       }
     }
@@ -353,7 +390,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const finish = useCallback(() => {
     if (phaseRef.current !== 'active' || submittingRef.current) return
     clearInterval(timerRef.current)
-    setTimeout(() => doSubmit(), Math.random() * 3000)
+    clearTimeout(autoSubmitRef.current)
+    doSubmit()
   }, [doSubmit])
 
   // ── Mark Ready ──
@@ -364,7 +402,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
   return {
     phase, session, timeLeft, currentScore: correctCount,
-    questionsAnswered: answers.length, validatedScore, rank, isSyncing,
+    questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline,
     announcement, competitionState, orderedQuestions, hapticPulse,
     submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
   }

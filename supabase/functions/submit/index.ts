@@ -1,30 +1,44 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = [
+  "https://wordee-sigma.vercel.app",
+  "https://wordee.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5177",
+];
 
-function json(data: unknown, status = 200) {
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
+  const headers = req ? getCorsHeaders(req) : getCorsHeaders(new Request("http://localhost"));
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
     const { participant_code, competition_id, subject, answers } = await req.json();
     if (!participant_code || !competition_id) {
-      return json({ error: "participant_code and competition_id required" }, 400);
+      return json({ error: "participant_code and competition_id required" }, 400, req);
     }
-    if (!Array.isArray(answers)) {
-      return json({ error: "answers must be an array" }, 400);
+    if (!Array.isArray(answers) || answers.length > 200) {
+      return json({ error: "answers must be an array (max 200)" }, 400, req);
     }
 
     const supabase = createClient(
@@ -42,7 +56,7 @@ Deno.serve(async (req: Request) => {
     const { data: session, error: lookupErr } = await lookupQuery.single();
 
     if (lookupErr || !session) {
-      return json({ error: "Invalid participant code" }, 404);
+      return json({ error: "Invalid participant code" }, 404, req);
     }
 
     // IDEMPOTENT: if already completed, return existing official result
@@ -64,12 +78,12 @@ Deno.serve(async (req: Request) => {
         time_spent_seconds: session.time_spent_seconds,
         already_submitted: true,
         rank,
-      });
+      }, 200, req);
     }
 
     // Must be active to submit
     if (session.status !== "active" || !session.started_at) {
-      return json({ error: "Session not active" }, 400);
+      return json({ error: "Session not active" }, 400, req);
     }
 
     // Get competition state for duration + extra
@@ -90,6 +104,11 @@ Deno.serve(async (req: Request) => {
     const serverElapsed = (now.getTime() - startedAt.getTime()) / 1000;
     const clampedTime = Math.min(Math.round(serverElapsed), allowedWindow);
 
+    // Reject submissions that arrive way too late (>60s past deadline)
+    if (serverElapsed > allowedWindow + 60) {
+      return json({ error: "Submission window has closed" }, 410, req);
+    }
+
     // Load answer keys (service role only — never sent to client)
     const { data: keys, error: keysErr } = await supabase
       .from("answer_keys")
@@ -99,7 +118,7 @@ Deno.serve(async (req: Request) => {
       .eq("competition_id", competition_id);
 
     if (keysErr) {
-      return json({ error: "Failed to load answer keys" }, 500);
+      return json({ error: "Failed to load answer keys" }, 500, req);
     }
 
     // Build answer key map and compute validated score
@@ -124,8 +143,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Write official result
-    const { error: updateErr } = await supabase
+    // Write official result — atomic: only updates if still 'active' (prevents double-submit)
+    const { data: updated, error: updateErr } = await supabase
       .from("competition_sessions")
       .update({
         validated_score: validatedScore,
@@ -137,10 +156,27 @@ Deno.serve(async (req: Request) => {
         updated_at: now.toISOString(),
       })
       .eq("participant_id", session.participant_id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .select("participant_id")
+      .maybeSingle();
 
     if (updateErr) {
-      return json({ error: "Failed to save result" }, 500);
+      return json({ error: "Failed to save result" }, 500, req);
+    }
+
+    // If no row was updated, another submit already completed this session
+    if (!updated) {
+      const { data: latest } = await supabase
+        .from("competition_sessions")
+        .select("validated_score, time_spent_seconds")
+        .eq("participant_id", session.participant_id)
+        .single();
+      return json({
+        validated_score: latest?.validated_score ?? validatedScore,
+        time_spent_seconds: latest?.time_spent_seconds ?? clampedTime,
+        already_submitted: true,
+        rank: null,
+      }, 200, req);
     }
 
     // Insert audit trail (batch)
@@ -170,8 +206,8 @@ Deno.serve(async (req: Request) => {
       validated_score: validatedScore,
       time_spent_seconds: clampedTime,
       rank,
-    });
+    }, 200, req);
   } catch (err) {
-    return json({ error: "Internal error" }, 500);
+    return json({ error: "Internal error" }, 500, req);
   }
 });

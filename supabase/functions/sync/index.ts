@@ -1,27 +1,41 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = [
+  "https://wordee-sigma.vercel.app",
+  "https://wordee.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5177",
+];
 
-function json(data: unknown, status = 200) {
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
+  const headers = req ? getCorsHeaders(req) : { "Content-Type": "application/json" };
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
     const { participant_code, competition_id, subject, provisional_score, questions_answered, answers } = await req.json();
     if (!participant_code || !competition_id) {
-      return json({ error: "participant_code and competition_id required" }, 400);
+      return json({ error: "participant_code and competition_id required" }, 400, req);
     }
 
     const supabase = createClient(
@@ -39,15 +53,15 @@ Deno.serve(async (req: Request) => {
     const { data: session, error: lookupErr } = await lookupQuery.single();
 
     if (lookupErr || !session) {
-      return json({ error: "Invalid participant code" }, 404);
+      return json({ error: "Invalid participant code" }, 404, req);
     }
 
     // Reject if not active
     if (session.status === "completed") {
-      return json({ ok: true, note: "already completed" });
+      return json({ ok: true, note: "already completed" }, 200, req);
     }
     if (session.status !== "active") {
-      return json({ error: "Session not active" }, 400);
+      return json({ error: "Session not active" }, 400, req);
     }
 
     // Rate limit: if answers_snapshot already exists AND updated less than 25s ago, throttle
@@ -56,7 +70,7 @@ Deno.serve(async (req: Request) => {
       const lastUpdate = new Date(session.updated_at).getTime();
       const now = Date.now();
       if (now - lastUpdate < 25_000) {
-        return json({ ok: true, throttled: true });
+        return json({ ok: true, throttled: true }, 200, req);
       }
     }
 
@@ -81,11 +95,11 @@ Deno.serve(async (req: Request) => {
       .eq("status", "active");
 
     if (updateErr) {
-      return json({ error: "Sync failed" }, 500);
+      return json({ error: "Sync failed" }, 500, req);
     }
 
-    return json({ ok: true, time_spent_seconds: timeSpent });
+    return json({ ok: true, time_spent_seconds: timeSpent }, 200, req);
   } catch (err) {
-    return json({ error: "Internal error" }, 500);
+    return json({ error: "Internal error" }, 500, req);
   }
 });
