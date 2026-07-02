@@ -32,8 +32,8 @@ function validateRow(row) {
   if (!row.name || !String(row.name).trim()) errors.push('Name is required')
   const engLvl = Number(row.english_level)
   const mathLvl = Number(row.math_level)
-  if (row.english_level !== undefined && row.english_level !== '' && (isNaN(engLvl) || engLvl < 0 || engLvl > 8)) {
-    errors.push('English Level must be 0-8')
+  if (row.english_level !== undefined && row.english_level !== '' && (isNaN(engLvl) || engLvl < 0 || engLvl > 4)) {
+    errors.push('English Level must be 0-4')
   }
   if (row.math_level !== undefined && row.math_level !== '' && (isNaN(mathLvl) || mathLvl < 0 || mathLvl > 8)) {
     errors.push('Math Level must be 0-8')

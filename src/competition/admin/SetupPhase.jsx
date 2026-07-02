@@ -5,7 +5,8 @@ import { supabase } from '../supabaseClient'
 import { generateCode } from './shared'
 
 const DURATION_OPTIONS = [3, 5, 8, 10, 15]
-const LEVEL_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+const ENGLISH_LEVELS = [0, 1, 2, 3, 4]
+const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 export default function SetupPhase({ state, sessions, subject, isDark, updateState, loadSessions, onOpenLobby, onShowUpload }) {
   const [showAddRow, setShowAddRow] = useState(false)
@@ -233,7 +234,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                           className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                         >
                           <option value={0}>—</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map(l => (
+                          {ENGLISH_LEVELS.slice(1).map(l => (
                             <option key={l} value={l}>{l}</option>
                           ))}
                         </select>
@@ -245,7 +246,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                           className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                         >
                           <option value={0}>—</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map(l => (
+                          {MATH_LEVELS.slice(1).map(l => (
                             <option key={l} value={l}>{l}</option>
                           ))}
                         </select>
@@ -295,7 +296,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                         onChange={(e) => setNewStudent(p => ({ ...p, englishLevel: Number(e.target.value) }))}
                         className={`px-2 py-1.5 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                       >
-                        {LEVEL_OPTIONS.map(l => (
+                        {ENGLISH_LEVELS.map(l => (
                           <option key={l} value={l}>{l === 0 ? '—' : l}</option>
                         ))}
                       </select>
@@ -306,7 +307,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                         onChange={(e) => setNewStudent(p => ({ ...p, mathLevel: Number(e.target.value) }))}
                         className={`px-2 py-1.5 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                       >
-                        {LEVEL_OPTIONS.map(l => (
+                        {MATH_LEVELS.map(l => (
                           <option key={l} value={l}>{l === 0 ? '—' : l}</option>
                         ))}
                       </select>
