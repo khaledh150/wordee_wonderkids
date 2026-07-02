@@ -88,7 +88,7 @@ export default function AdminDashboard() {
         isDark={isDark}
         setTheme={setTheme}
         onLogout={handleLogout}
-        onPhaseClick={(p) => setPhaseOverride(p === autoPhase ? null : p)}
+        onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
                 isDark={isDark}
                 updateState={updateState}
                 loadSessions={loadSessions}
-                onSwitchSubject={(sub) => setSubject(sub)}
+                onSwitchSubject={(sub) => { setPhaseOverride(null); setSubject(sub) }}
               />
             </motion.div>
           )}

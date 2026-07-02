@@ -26,7 +26,7 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, setThe
           {['english', 'math'].map(s => (
             <button
               key={s}
-              onClick={() => setSubject(s)}
+              onClick={() => { setSubject(s); onPhaseClick?.(null) }}
               className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                 subject === s
                   ? 'bg-blue-600 text-white shadow-md'
