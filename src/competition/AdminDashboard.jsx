@@ -40,9 +40,11 @@ export default function AdminDashboard() {
 
   async function handleRosterImport(rows) {
     if (!state) return
+    const existingCodes = sessions.map(s => s.participant_code)
     const inserts = []
     for (const row of rows) {
-      const code = generateCode()
+      const code = generateCode(existingCodes)
+      existingCodes.push(code)
       const base = {
         competition_id: state.competition_id,
         participant_code: code,

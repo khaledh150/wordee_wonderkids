@@ -1,8 +1,11 @@
-export const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-export function generateCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(bytes, b => CODE_CHARS[b % CODE_CHARS.length]).join('')
+export function generateCode(existingCodes = []) {
+  const used = new Set(existingCodes)
+  let code
+  do {
+    const n = crypto.getRandomValues(new Uint32Array(1))[0] % 10000
+    code = String(n).padStart(4, '0')
+  } while (used.has(code))
+  return code
 }
 
 export function isOnline(s) {

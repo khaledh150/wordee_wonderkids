@@ -83,7 +83,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
     if (!newStudent.name.trim() || adding) return
     setAdding(true)
     try {
-      const code = generateCode()
+      const existingCodes = sessions.map(s => s.participant_code)
+      const code = generateCode(existingCodes)
       const rows = []
       const base = {
         competition_id: state.competition_id,

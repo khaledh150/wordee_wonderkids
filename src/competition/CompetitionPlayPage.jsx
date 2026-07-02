@@ -361,14 +361,16 @@ export default function CompetitionPlayPage() {
               <input
                 type="text"
                 value={code}
-                onChange={e => setCode(e.target.value.toUpperCase())}
-                placeholder="ABC123"
-                className={`w-full text-center text-2xl sm:text-3xl font-mono font-black tracking-[0.4em] pl-[0.4em] border-2 focus:ring-4 rounded-xl py-2.5 sm:py-3.5 outline-none shadow-sm uppercase transition-all landscape:py-1.5 landscape:text-xl ${
+                onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="1234"
+                className={`w-full text-center text-3xl sm:text-4xl font-mono font-black tracking-[0.5em] pl-[0.5em] border-2 focus:ring-4 rounded-xl py-3 sm:py-4 outline-none shadow-sm transition-all landscape:py-2 landscape:text-2xl ${
                   isDark
                     ? 'bg-slate-900 border-slate-700 text-white focus:border-indigo-500 focus:ring-indigo-500/20'
                     : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500 focus:ring-indigo-100'
                 }`}
-                maxLength={6}
+                maxLength={4}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 autoFocus
                 autoComplete="off"
                 disabled={loading}
