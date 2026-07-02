@@ -106,7 +106,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     try {
       const { data, error } = await supabase
         .from('competition_state')
-        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme')
+        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme, started_at')
         .eq('id', subject)
         .single()
       if (error) { console.warn('Poll state error:', error.message); return }

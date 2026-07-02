@@ -6,6 +6,7 @@ import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
+import FullscreenBtn from '../components/FullscreenBtn'
 import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
@@ -194,6 +195,7 @@ export default function CompetitionPlayPage() {
     setError('')
     setLoading(true)
     try {
+      enterFullscreen()
       const upperCode = code.trim().toUpperCase()
       const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
       const res = await fetch(`${FUNC_BASE}/verify`, {
@@ -501,14 +503,18 @@ export default function CompetitionPlayPage() {
 
   // ===== WAITING / LOBBY =====
   if (step === 'waiting' && session) {
-    const isUnlocked = competitionState?.is_unlocked
-    const canStart = isUnlocked && preloadDone
+    const adminStarted = !!competitionState?.started_at
+    const canStart = adminStarted && preloadDone
 
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
         isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
       }`}>
         {renderBackgroundBlobs()}
+
+        <div className="fixed top-3 right-3 z-50">
+          <FullscreenBtn />
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
@@ -527,14 +533,14 @@ export default function CompetitionPlayPage() {
             <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 sm:gap-6 text-center landscape:text-left">
 
               <div className="flex flex-col justify-between gap-3">
-                <div className={`bg-gradient-to-br ${isMath ? 'from-teal-50 to-cyan-50 border-teal-100/50' : 'from-indigo-50 to-purple-50 border-indigo-100/50'} rounded-2xl border p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left`}>
+                <div className={`bg-gradient-to-br ${isDark ? (isMath ? 'from-teal-950/50 to-cyan-950/50 border-teal-800/30' : 'from-indigo-950/50 to-purple-950/50 border-indigo-800/30') : (isMath ? 'from-teal-50 to-cyan-50 border-teal-100/50' : 'from-indigo-50 to-purple-50 border-indigo-100/50')} rounded-2xl border p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left`}>
                   <div className="flex items-center gap-3">
                     <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${isMath ? 'from-teal-500 to-cyan-600' : 'from-indigo-500 to-purple-600'} text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shrink-0`}>
                       {session.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-base sm:text-lg font-black text-slate-800 truncate leading-tight">{session.name}</p>
+                        <p className={`text-base sm:text-lg font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
                         <FlagIcon country={session.country} />
                       </div>
                       {session.school && (
@@ -546,111 +552,125 @@ export default function CompetitionPlayPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-indigo-100/30 pt-2 px-0.5">
+                  <div className={`mt-3 flex items-center justify-between border-t pt-2 px-0.5 ${isDark ? 'border-white/10' : 'border-indigo-100/30'}`}>
                     <span className={`inline-block px-2 py-0.5 ${isMath ? 'bg-teal-500/10 text-teal-600 border-teal-200/50' : 'bg-indigo-500/10 text-indigo-600 border-indigo-200/50'} text-[9px] sm:text-[10px] font-extrabold rounded-full border uppercase tracking-wider`}>
                       Level {session.level}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400 font-bold">
+                    <span className={`text-[10px] font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                       Code: {session.participant_code}
                     </span>
                   </div>
                 </div>
 
                 {selectedSubject === 'english' && !preloadDone ? (
-                  <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className={`rounded-2xl border p-3 sm:p-4 text-center shadow-sm ${isDark ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-200/50'}`}>
                     <div className="flex items-center justify-between mb-1.5 px-0.5">
-                      <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">Caching Vocab</span>
+                      <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Caching Vocab</span>
                       <span className="text-[10px] font-black text-indigo-600 font-mono">
                         {preloadProgress.total ? Math.round((preloadProgress.loaded / preloadProgress.total) * 100) : 0}%
                       </span>
                     </div>
-                    <div className="h-3 bg-slate-200/60 border border-slate-200 rounded-full p-0.5 overflow-hidden shadow-inner">
+                    <div className={`h-3 border rounded-full p-0.5 overflow-hidden shadow-inner ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-200/60 border-slate-200'}`}>
                       <motion.div
                         className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full"
                         animate={{ width: preloadProgress.total ? `${(preloadProgress.loaded / preloadProgress.total) * 100}%` : '0%' }}
                         transition={{ type: 'spring', damping: 20 }}
                       />
                     </div>
-                    <p className="text-[9px] text-slate-400 font-bold mt-1.5 flex items-center justify-center gap-1">
+                    <p className={`text-[9px] font-bold mt-1.5 flex items-center justify-center gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                       <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
                       Loading Vocab ({preloadProgress.loaded}/{preloadProgress.total})
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-center gap-2.5">
+                  <div className={`rounded-2xl p-3 flex items-center justify-center gap-2.5 ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-wiggle" />
                     <div className="text-left">
-                      <p className="text-[10px] sm:text-xs font-black text-emerald-800 uppercase tracking-widest">Ready</p>
+                      <p className={`text-[10px] sm:text-xs font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>Ready</p>
                       <p className="text-[9px] sm:text-[10px] font-bold text-emerald-600/80 leading-none mt-0.5">Engine is fully ready</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col justify-center gap-3 border-t border-slate-100 pt-4 landscape:border-t-0 landscape:border-l landscape:border-slate-200/50 landscape:pl-5 sm:landscape:pl-6 landscape:pt-0">
+              <div className={`flex flex-col justify-center gap-3 border-t pt-4 landscape:border-t-0 landscape:border-l landscape:pl-5 sm:landscape:pl-6 landscape:pt-0 ${isDark ? 'border-white/10 landscape:border-white/10' : 'border-slate-100 landscape:border-slate-200/50'}`}>
                 <AnimatePresence>
                   {announcement && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95, y: -6 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -6 }}
-                      className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-left relative overflow-hidden"
+                      className={`rounded-2xl p-3 text-left relative overflow-hidden ${isDark ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}
                     >
                       <div className="flex items-start gap-2">
                         <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest leading-none">Coordinator Notice</p>
-                          <p className="text-xs font-bold text-amber-950 mt-1 leading-normal max-h-[50px] overflow-y-auto">{announcement}</p>
+                          <p className={`text-[9px] font-black uppercase tracking-widest leading-none ${isDark ? 'text-amber-400' : 'text-amber-800'}`}>Coordinator Notice</p>
+                          <p className={`text-xs font-bold mt-1 leading-normal max-h-[50px] overflow-y-auto ${isDark ? 'text-amber-200' : 'text-amber-950'}`}>{announcement}</p>
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {!isUnlocked && (
-                  <div className="py-2.5 text-center flex flex-col items-center justify-center flex-1">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-center mb-2.5 relative shadow-inner landscape:w-10 landscape:h-10 landscape:mb-1.5">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                        className="absolute inset-0 rounded-full border-t-2 border-indigo-400 border-r-2 border-transparent"
-                      />
-                      <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
-                    </div>
-                    <h3 className="text-sm sm:text-base font-black text-slate-800 tracking-tight">Arena Door Locked</h3>
-                    <p className="text-[10px] sm:text-xs text-slate-400 mt-1 font-semibold leading-normal max-w-[180px] mx-auto">
-                      Game Master is preparing the {subjectLabel} arena. Please wait.
-                    </p>
-                  </div>
-                )}
-
-                {isUnlocked && !preloadDone && (
-                  <div className="py-3 text-center flex items-center justify-center flex-1">
-                    <p className="text-amber-600 font-extrabold text-xs flex items-center justify-center gap-1.5 animate-pulse">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-                      Finalizing {subjectLabel} configurations...
-                    </p>
-                  </div>
-                )}
-
-                {canStart && (
-                  <div className="flex-1 flex items-center justify-center">
-                    <motion.button
-                      onClick={handleStart}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white text-lg sm:text-xl font-black rounded-2xl shadow-[0_6px_15px_rgba(16,185,129,0.25)] border-b-4 border-emerald-700 active:border-b-0 cursor-pointer transition-all flex items-center justify-center gap-2 tracking-wide landscape:py-2.5 landscape:text-base landscape:border-b-2"
-                    >
-                      <Play className="w-5 h-5 fill-current" />
-                      START RACE
-                    </motion.button>
-                  </div>
-                )}
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-2">
+                  {!canStart ? (
+                    <>
+                      <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center relative ${isDark ? 'bg-slate-800 border-2 border-slate-700' : 'bg-slate-100 border-2 border-slate-200'}`}>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${isDark ? 'border-t-slate-500' : 'border-t-slate-400'}`}
+                        />
+                        <Lock className={`w-8 h-8 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                      </div>
+                      <div className="text-center">
+                        <h3 className={`text-sm sm:text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                          {!preloadDone ? 'Loading...' : 'Waiting for Admin'}
+                        </h3>
+                        <p className={`text-[10px] sm:text-xs mt-1 font-semibold leading-normal max-w-[200px] mx-auto ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {!preloadDone ? `Finalizing ${subjectLabel} configurations...` : 'The competition will be unlocked shortly.'}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <motion.button
+                        onClick={handleStart}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(239,68,68,0.5)] cursor-pointer relative flex items-center justify-center border-4 border-red-400"
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                          className="absolute inset-0 rounded-full bg-red-500/40"
+                        />
+                        <motion.div
+                          animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+                          className="absolute inset-0 rounded-full bg-red-500/20"
+                        />
+                        <motion.div
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                          className="relative z-10 flex flex-col items-center"
+                        >
+                          <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current drop-shadow-lg" />
+                          <span className="text-xs sm:text-sm mt-0.5 drop-shadow-lg">START</span>
+                        </motion.div>
+                      </motion.button>
+                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-red-400' : 'text-red-500'}`}>
+                        Tap to begin!
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
 
             </div>
 
-            {error && <p className="text-rose-500 text-[10px] font-bold mt-3 leading-tight bg-rose-50 p-2 rounded-xl border border-rose-200/50">{error}</p>}
+            {error && <p className={`text-[10px] font-bold mt-3 leading-tight p-2 rounded-xl border ${isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' : 'text-rose-500 bg-rose-50 border-rose-200/50'}`}>{error}</p>}
           </div>
         </motion.div>
       </div>
