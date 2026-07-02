@@ -318,10 +318,10 @@ export default function ProjectorPage() {
           <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1, duration: 1 }}
             className={`w-64 h-px mt-10 ${isDark ? 'bg-gradient-to-r from-transparent via-white/15 to-transparent' : 'bg-gradient-to-r from-transparent via-slate-300 to-transparent'}`} />
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ delay: 1.2, duration: 3, repeat: Infinity }}
-            className={`mt-8 flex items-center gap-3 ${textDim}`}>
-            <div className={`w-2 h-2 rounded-full animate-pulse ${isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
-            <span className="text-sm font-bold uppercase tracking-[0.2em]">Awaiting Launch</span>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0.5, 1, 0.5] }} transition={{ delay: 1.2, duration: 3, repeat: Infinity }}
+            className={`mt-10 flex items-center gap-4 px-8 py-4 rounded-2xl border ${isDark ? 'border-white/10 bg-white/5 text-slate-200' : 'border-slate-300 bg-slate-100 text-slate-700'}`}>
+            <div className={`w-3 h-3 rounded-full animate-pulse ${isDark ? 'bg-amber-400' : 'bg-amber-500'}`} />
+            <span className="text-lg font-black uppercase tracking-[0.25em]">Awaiting Launch</span>
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
