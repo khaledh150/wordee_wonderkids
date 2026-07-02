@@ -57,8 +57,8 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
   ]
 
   const handleEmergencyStop = () => {
-    if (window.confirm('EMERGENCY STOP: This will lock the competition immediately. Students currently playing can still submit, but no new students can start. Continue?')) {
-      updateState({ is_unlocked: false })
+    if (window.confirm('Stop the competition? Students currently playing can still submit, but no new students can start. You will see the results screen.')) {
+      updateState({ is_unlocked: false, started_at: null })
     }
   }
 

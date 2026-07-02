@@ -27,7 +27,9 @@ export default function AdminDashboard() {
     ])
   }, [theme])
 
-  const { state, sessions, elapsed, phase, loadSessions, updateState } = useAdminData({ subject })
+  const { state, sessions, elapsed, phase: autoPhase, loadSessions, updateState } = useAdminData({ subject })
+  const [phaseOverride, setPhaseOverride] = useState(null)
+  const phase = phaseOverride || autoPhase
 
   async function handleOpenLobby() {
     setDialog({
@@ -86,6 +88,7 @@ export default function AdminDashboard() {
         isDark={isDark}
         setTheme={setTheme}
         onLogout={handleLogout}
+        onPhaseClick={(p) => setPhaseOverride(p === autoPhase ? null : p)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
