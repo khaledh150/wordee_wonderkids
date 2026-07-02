@@ -43,72 +43,126 @@ function validateRow(row) {
   return errors
 }
 
-function buildTemplateSheet(XLSX, lang) {
-  const isTh = lang === 'th'
-  const title = isTh
-    ? 'ลงทะเบียนรายชื่อผู้เข้าแข่งขันระดับนานาชาติ'
-    : 'International Championship Registration Form'
+const NAVY = { argb: 'FF1B1464' }
+const WHITE_FONT = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+const THIN_BORDER = {
+  top: { style: 'thin' }, bottom: { style: 'thin' },
+  left: { style: 'thin' }, right: { style: 'thin' },
+}
 
-  const rows = []
+async function buildStyledWorkbook() {
+  const ExcelJS = await import('exceljs')
+  const wb = new ExcelJS.Workbook()
 
-  // Row 1: Title (merged)
-  rows.push([title, '', '', '', '', '', '', '', '', '', ''])
+  for (const lang of ['th', 'en']) {
+    const isTh = lang === 'th'
+    const sheetName = isTh ? 'ลงทะเบียน (TH)' : 'Registration (EN)'
+    const ws = wb.addWorksheet(sheetName)
 
-  // Row 2: Group headers
-  rows.push([
-    isTh ? 'สาขา' : 'Branch',
-    '', '', '', '',
-    isTh ? 'วิชาที่ลงแข่ง' : 'Subjects',
-    '', '',
-    isTh ? 'ผู้ปกครอง' : 'Parent',
-    isTh ? 'ไซด์เสื้อ' : 'Shirt Size',
-    isTh ? 'เบอร์โทร' : 'Phone',
-  ])
+    // Column widths
+    ws.columns = [
+      { width: 6 },   // A: No.
+      { width: 32 },  // B: Name
+      { width: 8 },   // C: Level
+      { width: 7 },   // D: Age
+      { width: 9 },   // E: Grade
+      { width: 13 },  // F: Mental Math
+      { width: 15 },  // G: English
+      { width: 15 },  // H: Mathematics
+      { width: 18 },  // I: Parent
+      { width: 12 },  // J: Shirt Size
+      { width: 15 },  // K: Phone
+    ]
 
-  // Row 3: Column headers
-  rows.push([
-    'No.',
-    isTh ? 'ชื่อ - นามสกุล (ผู้เข้าแข่งขัน)' : 'Student Name',
-    'Level',
-    isTh ? 'อายุ' : 'Age',
-    isTh ? 'ชั้น' : 'Grade',
-    isTh ? 'จินตคณิต' : 'Mental Math',
-    isTh ? 'ภาษาอังกฤษ' : 'English',
-    isTh ? 'คณิตศาสตร์' : 'Mathematics',
-    isTh ? 'ผู้ปกครอง' : 'Parent',
-    isTh ? 'ไซด์เสื้อ' : 'Shirt Size',
-    isTh ? 'เบอร์โทร' : 'Phone',
-  ])
+    // Row 1: Title (merged A1:K1)
+    ws.mergeCells('A1:K1')
+    const titleCell = ws.getCell('A1')
+    titleCell.value = isTh
+      ? 'ลงทะเบียนรายชื่อผู้เข้าแข่งขันระดับนานาชาติ'
+      : 'International Championship Registration Form'
+    titleCell.font = { bold: true, size: 20 }
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.getRow(1).height = 45
 
-  // Rows 4-34: Numbered empty rows
-  for (let i = 1; i <= 31; i++) {
-    rows.push([i, '', '', '', '', '', '', '', '', '', ''])
+    // Row 2: Group headers
+    const row2 = ws.getRow(2)
+    row2.height = 28
+
+    // A2: Branch label (merged A2:E2)
+    ws.mergeCells('A2:E2')
+    const branchCell = ws.getCell('A2')
+    branchCell.value = isTh ? 'สาขา' : 'Branch'
+    branchCell.font = WHITE_FONT
+    branchCell.fill = { type: 'pattern', pattern: 'solid', fgColor: NAVY }
+    branchCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    branchCell.border = THIN_BORDER
+
+    // F2:H2: Subjects (merged)
+    ws.mergeCells('F2:H2')
+    const subjectsCell = ws.getCell('F2')
+    subjectsCell.value = isTh ? 'วิชาที่ลงแข่ง' : 'Subjects'
+    subjectsCell.font = WHITE_FONT
+    subjectsCell.fill = { type: 'pattern', pattern: 'solid', fgColor: NAVY }
+    subjectsCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    subjectsCell.border = THIN_BORDER
+
+    // I2, J2, K2: Individual headers (merged vertically with row 3)
+    const r2Headers = [
+      { col: 'I', label: isTh ? 'ผู้ปกครอง' : 'Parent' },
+      { col: 'J', label: isTh ? 'ไซด์เสื้อ' : 'Shirt Size' },
+      { col: 'K', label: isTh ? 'เบอร์โทร' : 'Phone' },
+    ]
+    for (const { col, label } of r2Headers) {
+      ws.mergeCells(`${col}2:${col}3`)
+      const cell = ws.getCell(`${col}2`)
+      cell.value = label
+      cell.font = WHITE_FONT
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: NAVY }
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      cell.border = THIN_BORDER
+    }
+
+    // Row 3: Column sub-headers
+    const row3 = ws.getRow(3)
+    row3.height = 24
+
+    const subHeaders = [
+      { col: 1, label: 'No.', fill: NAVY },
+      { col: 2, label: isTh ? 'ชื่อ - นามสกุล (ผู้เข้าแข่งขัน)' : 'Student Name', fill: NAVY },
+      { col: 3, label: 'Level', fill: NAVY },
+      { col: 4, label: isTh ? 'อายุ' : 'Age', fill: NAVY },
+      { col: 5, label: isTh ? 'ชั้น' : 'Grade', fill: NAVY },
+      { col: 6, label: isTh ? 'จินตคณิต' : 'Mental Math', fill: { argb: 'FFFFD700' } },
+      { col: 7, label: isTh ? 'ภาษาอังกฤษ' : 'English', fill: { argb: 'FFCC0000' } },
+      { col: 8, label: isTh ? 'คณิตศาสตร์' : 'Mathematics', fill: { argb: 'FF3333CC' } },
+    ]
+
+    for (const { col, label, fill } of subHeaders) {
+      const cell = row3.getCell(col)
+      cell.value = label
+      const isYellow = fill.argb === 'FFFFD700'
+      cell.font = { bold: true, color: { argb: isYellow ? 'FF000000' : 'FFFFFFFF' }, size: 10 }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: fill }
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      cell.border = THIN_BORDER
+    }
+
+    // Rows 4-34: Numbered rows with borders
+    for (let i = 1; i <= 31; i++) {
+      const row = ws.getRow(i + 3)
+      row.height = 22
+      const noCell = row.getCell(1)
+      noCell.value = i
+      noCell.font = { bold: true, color: { argb: 'FFCC0000' }, size: 10 }
+      noCell.alignment = { horizontal: 'center', vertical: 'middle' }
+
+      for (let c = 1; c <= 11; c++) {
+        row.getCell(c).border = THIN_BORDER
+      }
+    }
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(rows)
-
-  // Merge title row A1:K1
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-    { s: { r: 1, c: 5 }, e: { r: 1, c: 7 } },
-  ]
-
-  // Column widths
-  ws['!cols'] = [
-    { wch: 5 },   // No.
-    { wch: 30 },  // Name
-    { wch: 7 },   // Level
-    { wch: 6 },   // Age
-    { wch: 8 },   // Grade
-    { wch: 12 },  // Mental Math
-    { wch: 14 },  // English
-    { wch: 14 },  // Mathematics
-    { wch: 16 },  // Parent
-    { wch: 10 },  // Shirt Size
-    { wch: 14 },  // Phone
-  ]
-
-  return ws
+  return wb
 }
 
 export default function RosterUpload({ open, onClose, onImport, competitionId, subject, isDark }) {
@@ -128,16 +182,15 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
   }, [reset, onClose])
 
   async function downloadTemplate() {
-    const XLSX = await import('xlsx')
-    const wb = XLSX.utils.book_new()
-
-    const wsTh = buildTemplateSheet(XLSX, 'th')
-    XLSX.utils.book_append_sheet(wb, wsTh, 'ลงทะเบียน (TH)')
-
-    const wsEn = buildTemplateSheet(XLSX, 'en')
-    XLSX.utils.book_append_sheet(wb, wsEn, 'Registration (EN)')
-
-    XLSX.writeFile(wb, 'registration_template.xlsx')
+    const wb = await buildStyledWorkbook()
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'registration_template.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function parseFile(file) {
