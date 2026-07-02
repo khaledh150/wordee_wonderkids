@@ -163,7 +163,9 @@ export default function ProjectorPage() {
     if (b.provisional_score !== a.provisional_score) return b.provisional_score - a.provisional_score
     return a.time_spent_seconds - b.time_spent_seconds
   })
-  const sorted = [...sortedScored, ...unscored]
+  const statusPriority = { waiting: 0, registered: 1 }
+  const sortedUnscored = [...unscored].sort((a, b) => (statusPriority[a.status] ?? 2) - (statusPriority[b.status] ?? 2))
+  const sorted = [...sortedScored, ...sortedUnscored]
 
   const allCompleted = levelSessions.length > 0 && levelSessions.every(s => s.status === 'completed')
 
@@ -552,39 +554,23 @@ export default function ProjectorPage() {
       )}
 
       {/* Header */}
-      <header className={`flex items-center justify-between mb-6 border px-5 py-4 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
-        <div className="flex items-center gap-5">
-          <div>
-            <div className="flex items-center gap-2.5">
-              {activeSubject === 'math'
-                ? <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                : <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              }
-              <h1 className={`text-2xl font-black uppercase tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                {subjectLabel}
-              </h1>
-              {activeLevel != null && (
-                <span className={`ml-2 text-sm font-black px-2.5 py-1 rounded-lg border ${
-                  isDark ? `bg-${subjectColor}-500/10 border-${subjectColor}-500/25 text-${subjectColor}-400` : `bg-${subjectColor}-50 border-${subjectColor}-200 text-${subjectColor}-600`
-                }`}>
-                  Level {activeLevel}
-                </span>
-              )}
-            </div>
-            {activeState?.round_label && <p className={`text-xs font-bold mt-1.5 uppercase tracking-wider ${textDim}`}>{activeState.round_label}</p>}
-          </div>
-
-          {elapsed != null && (
-            <div className={`border rounded-xl px-4 py-2 flex items-center gap-3 ${
-              isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
+      <header className={`flex items-center justify-between mb-6 border px-5 py-3 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
+        <div className="flex items-center gap-3">
+          {activeSubject === 'math'
+            ? <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+            : <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          }
+          <h1 className={`text-2xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            {subjectLabel}
+          </h1>
+          {activeLevel != null && (
+            <span className={`text-sm font-black px-2.5 py-1 rounded-lg border ${
+              isDark ? `bg-${subjectColor}-500/10 border-${subjectColor}-500/25 text-${subjectColor}-400` : `bg-${subjectColor}-50 border-${subjectColor}-200 text-${subjectColor}-600`
             }`}>
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest leading-none">Elapsed</p>
-                <p className="text-xl font-mono font-black leading-none mt-0.5">{formatElapsed(elapsed)}</p>
-              </div>
-              <Timer className="w-4 h-4 animate-pulse" />
-            </div>
+              Level {activeLevel}
+            </span>
           )}
+          {activeState?.round_label && <span className={`text-xs font-bold uppercase tracking-wider ${textDim}`}>{activeState.round_label}</span>}
         </div>
 
         <div className="flex items-center gap-3">
@@ -618,6 +604,15 @@ export default function ProjectorPage() {
                   </button>
                 )
               })}
+            </div>
+          )}
+
+          {elapsed != null && (
+            <div className={`flex items-center gap-2 border rounded-xl px-3.5 py-1.5 font-mono ${
+              isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
+            }`}>
+              <Timer className="w-4 h-4" />
+              <span className="text-lg font-black">{formatElapsed(elapsed)}</span>
             </div>
           )}
         </div>
@@ -723,7 +718,6 @@ export default function ProjectorPage() {
           {levelSessions.filter(s => s.status === 'completed').length} / {levelSessions.length} Completed
         </span>
         <span>Level {activeLevel} • {subjectLabel}</span>
-        {elapsed != null && <span className="font-mono text-rose-500 text-sm font-black">{formatElapsed(elapsed)}</span>}
       </footer>
     </div>
   )

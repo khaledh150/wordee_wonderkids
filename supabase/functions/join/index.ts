@@ -185,6 +185,7 @@ Deno.serve(async (req: Request) => {
         .from("competition_sessions")
         .update({
           status: "waiting",
+          ready: false,
           last_seen_at: now.toISOString(),
           updated_at: now.toISOString(),
         })

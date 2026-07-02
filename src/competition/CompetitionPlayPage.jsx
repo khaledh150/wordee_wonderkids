@@ -275,11 +275,16 @@ export default function CompetitionPlayPage() {
     })
   }, [step, session, markReady, selectedSubject])
 
+  const [starting, setStarting] = useState(false)
+
   async function handleStart() {
+    if (starting) return
+    setStarting(true)
     try {
       await startRace()
     } catch (err) {
       setError(err.message || 'Failed to start')
+      setStarting(false)
     }
   }
 
@@ -637,31 +642,42 @@ export default function CompetitionPlayPage() {
                     <>
                       <motion.button
                         onClick={handleStart}
-                        whileHover={{ scale: 1.08 }}
-                        whileTap={{ scale: 0.92 }}
-                        className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(239,68,68,0.5)] cursor-pointer relative flex items-center justify-center border-4 border-red-400"
+                        disabled={starting}
+                        whileHover={starting ? {} : { scale: 1.08 }}
+                        whileTap={starting ? {} : { scale: 0.92 }}
+                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(239,68,68,0.5)] cursor-pointer relative flex items-center justify-center border-4 ${starting ? 'bg-gradient-to-br from-red-400 to-red-600 border-red-300' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-400'}`}
                       >
+                        {!starting && (
+                          <>
+                            <motion.div
+                              animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                              className="absolute inset-0 rounded-full bg-red-500/40"
+                            />
+                            <motion.div
+                              animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
+                              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+                              className="absolute inset-0 rounded-full bg-red-500/20"
+                            />
+                          </>
+                        )}
                         <motion.div
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                          className="absolute inset-0 rounded-full bg-red-500/40"
-                        />
-                        <motion.div
-                          animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                          className="absolute inset-0 rounded-full bg-red-500/20"
-                        />
-                        <motion.div
-                          animate={{ scale: [1, 1.05, 1] }}
-                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                          animate={starting ? { rotate: 360 } : { scale: [1, 1.05, 1] }}
+                          transition={starting ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
                           className="relative z-10 flex flex-col items-center"
                         >
-                          <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current drop-shadow-lg" />
-                          <span className="text-xs sm:text-sm mt-0.5 drop-shadow-lg">START</span>
+                          {starting ? (
+                            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
+                          ) : (
+                            <>
+                              <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current drop-shadow-lg" />
+                              <span className="text-xs sm:text-sm mt-0.5 drop-shadow-lg">START</span>
+                            </>
+                          )}
                         </motion.div>
                       </motion.button>
                       <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-red-400' : 'text-red-500'}`}>
-                        Tap to begin!
+                        {starting ? 'Entering arena...' : 'Tap to begin!'}
                       </p>
                     </>
                   )}
