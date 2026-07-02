@@ -22,7 +22,7 @@ const MathQuestionArea = memo(function MathQuestionArea({ current, answered, onC
   )
 })
 
-export default function MathCompetitionGameView({ engine, level }) {
+export default function MathCompetitionGameView({ engine, level, isDark = false }) {
   const {
     orderedQuestions,
     timeLeft,
@@ -343,25 +343,31 @@ export default function MathCompetitionGameView({ engine, level }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#060814]/90 backdrop-blur-md flex flex-col items-center justify-center text-white"
+            className={`fixed inset-0 z-50 backdrop-blur-md flex flex-col items-center justify-center ${
+              isDark ? 'bg-[#060814]/90 text-white' : 'bg-white/90 text-slate-900'
+            }`}
           >
-            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse top-1/4" />
-            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse bottom-1/4" />
-            <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-              <Timer className="w-8 h-8 text-rose-500 animate-wiggle" />
+            <div className={`absolute inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse ${isDark ? 'top-1/4' : 'top-[30%] landscape:top-[15%]'}`} />
+            <div className={`absolute inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse ${isDark ? 'bottom-1/4' : 'bottom-[30%] landscape:bottom-[15%]'}`} />
+            <div className={`w-14 h-14 landscape:w-12 landscape:h-12 rounded-full border flex items-center justify-center mb-3 landscape:mb-2 ${
+              isDark ? 'bg-rose-500/10 border-rose-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'bg-rose-50 border-rose-200 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+            }`}>
+              <Timer className="w-7 h-7 landscape:w-6 landscape:h-6 text-rose-500 animate-wiggle" />
             </div>
             <motion.h1
               initial={{ scale: 0.8, y: 15 }}
               animate={{ scale: [0.8, 1.1, 1], y: 0 }}
-              className="text-3xl sm:text-4xl md:text-5xl font-black text-rose-500 uppercase tracking-widest text-center"
+              className="text-3xl sm:text-4xl md:text-5xl landscape:text-2xl font-black text-rose-500 uppercase tracking-widest text-center"
             >
               TIME'S UP!
             </motion.h1>
-            <p className="text-teal-300 font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-2">
+            <p className={`font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-2 landscape:mt-1 ${isDark ? 'text-teal-300' : 'text-teal-600'}`}>
               Calculating scores...
             </p>
-            <div className="mt-6 flex items-center gap-2 text-slate-400 font-bold text-xs bg-slate-900/50 px-4 py-2.5 border border-slate-800 rounded-xl">
-              <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+            <div className={`mt-5 landscape:mt-3 flex items-center gap-2 font-bold text-xs px-4 py-2.5 border rounded-xl ${
+              isDark ? 'text-slate-400 bg-slate-900/50 border-slate-800' : 'text-slate-500 bg-slate-100/80 border-slate-200'
+            }`}>
+              <Loader2 className={`w-4 h-4 animate-spin ${isDark ? 'text-teal-500' : 'text-teal-600'}`} />
               Securing math scores...
             </div>
           </motion.div>

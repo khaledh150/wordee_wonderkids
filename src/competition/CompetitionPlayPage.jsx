@@ -669,10 +669,10 @@ export default function CompetitionPlayPage() {
 
         {isMath ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
-            <MathCompetitionGameView engine={engine} level={session.level} />
+            <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} />
           </Suspense>
         ) : (
-          <CompetitionGameView engine={engine} level={session.level} />
+          <CompetitionGameView engine={engine} level={session.level} isDark={isDark} />
         )}
       </>
     )
