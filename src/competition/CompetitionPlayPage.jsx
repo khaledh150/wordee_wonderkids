@@ -4,7 +4,6 @@ import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
-import { supabase } from './supabaseClient'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
@@ -162,17 +161,19 @@ export default function CompetitionPlayPage() {
     setLoading(true)
     try {
       const upperCode = code.trim().toUpperCase()
-      const { data: sessions, error: lookupErr } = await supabase
-        .from('competition_sessions')
-        .select('subject')
-        .eq('participant_code', upperCode)
-        .eq('competition_id', competitionId)
-      if (lookupErr || !sessions || sessions.length === 0) {
-        setError('Invalid code. Please check and try again.')
+      const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+      const res = await fetch(`${FUNC_BASE}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participant_code: upperCode, competition_id: competitionId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Invalid code. Please check and try again.')
         setLoading(false)
         return
       }
-      const subjects = sessions.map(s => s.subject)
+      const subjects = data.subjects || []
       setVerifiedCode(upperCode)
       setAvailableSubjects(subjects)
       if (subjects.length === 1) {
@@ -182,7 +183,7 @@ export default function CompetitionPlayPage() {
         setLoading(false)
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.')
+      setError('Connection error. Please try again.')
       setLoading(false)
     }
   }
