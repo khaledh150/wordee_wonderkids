@@ -50,13 +50,13 @@ const THIN_BORDER = {
   left: { style: 'thin' }, right: { style: 'thin' },
 }
 
-async function buildStyledWorkbook() {
+async function buildStyledWorkbook(lang = 'en') {
   const ExcelJS = await import('exceljs')
   const wb = new ExcelJS.Workbook()
 
-  for (const lang of ['th', 'en']) {
+  {
     const isTh = lang === 'th'
-    const sheetName = isTh ? 'ลงทะเบียน (TH)' : 'Registration (EN)'
+    const sheetName = isTh ? 'ลงทะเบียน' : 'Registration'
     const ws = wb.addWorksheet(sheetName)
 
     // Column widths
@@ -181,14 +181,14 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
     onClose()
   }, [reset, onClose])
 
-  async function downloadTemplate() {
-    const wb = await buildStyledWorkbook()
+  async function downloadTemplate(lang) {
+    const wb = await buildStyledWorkbook(lang)
     const buffer = await wb.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'registration_template.xlsx'
+    a.download = lang === 'th' ? 'ใบลงทะเบียน.xlsx' : 'registration_template.xlsx'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -296,17 +296,31 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
             </button>
           </div>
 
-          <button
-            onClick={downloadTemplate}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium mb-4 transition-colors cursor-pointer ${
-              isDark
-                ? 'bg-white/5 hover:bg-white/10 text-slate-300'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            Download Template (Thai + English)
-          </button>
+          <div className="flex items-center gap-2 mb-4">
+            <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <Download className="w-3.5 h-3.5 inline mr-1" />Template:
+            </span>
+            <button
+              onClick={() => downloadTemplate('en')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-white/5 hover:bg-white/10 text-slate-300'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              🇬🇧 English
+            </button>
+            <button
+              onClick={() => downloadTemplate('th')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-white/5 hover:bg-white/10 text-slate-300'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              🇹🇭 ไทย
+            </button>
+          </div>
 
           {!rows ? (
             <div

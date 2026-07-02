@@ -4,8 +4,7 @@ import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Ca
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
-import FullscreenBtn from '../components/FullscreenBtn'
-import logo from '../assets/logo.webp'
+import logo from '../assets/wonderkids_logo.webp'
 
 const FLAG_CDN = 'https://flagcdn.com/w40'
 
@@ -73,6 +72,11 @@ export default function ProjectorPage() {
     if (engState?.theme) setTheme(engState.theme)
     else if (mathState?.theme) setTheme(mathState.theme)
   }, [engState?.theme, mathState?.theme])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { if (data.session) setAuthed(true) })
@@ -148,20 +152,18 @@ export default function ProjectorPage() {
   const activeLevel = activeState?.active_level || displayLevel || (levels[0] ?? null)
 
   useEffect(() => {
-    if (activeState?.active_level || levels.length <= 1) return
-    let idx = levels.indexOf(displayLevel) || 0
-    const timer = setInterval(() => {
-      idx = (idx + 1) % levels.length
-      setDisplayLevel(levels[idx])
-    }, 15000)
-    return () => clearInterval(timer)
-  }, [activeState?.active_level, levels.length, displayLevel])
+    if (!displayLevel && levels.length > 0) setDisplayLevel(levels[0])
+  }, [levels.length])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)
-  const sorted = [...levelSessions].sort((a, b) => {
+
+  const scored = levelSessions.filter(s => s.status === 'active' || s.status === 'completed')
+  const unscored = levelSessions.filter(s => s.status !== 'active' && s.status !== 'completed')
+  const sortedScored = [...scored].sort((a, b) => {
     if (b.provisional_score !== a.provisional_score) return b.provisional_score - a.provisional_score
     return a.time_spent_seconds - b.time_spent_seconds
   })
+  const sorted = [...sortedScored, ...unscored]
 
   const allCompleted = levelSessions.length > 0 && levelSessions.every(s => s.status === 'completed')
 
@@ -306,23 +308,6 @@ export default function ProjectorPage() {
             </h2>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-            className="flex items-center gap-5 mt-10">
-            <div className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl border backdrop-blur-sm ${
-              isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'
-            }`}>
-              <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              <span className={`text-base font-black uppercase tracking-wider ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>English</span>
-            </div>
-            <span className={`text-xl font-black ${isDark ? 'text-white/15' : 'text-slate-300'}`}>&amp;</span>
-            <div className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl border backdrop-blur-sm ${
-              isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
-            }`}>
-              <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-              <span className={`text-base font-black uppercase tracking-wider ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>Mathematics</span>
-            </div>
-          </motion.div>
-
           {state.round_label && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
               className={`text-xl font-bold mt-8 tracking-wide ${textMuted}`}>
@@ -341,15 +326,14 @@ export default function ProjectorPage() {
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
             className="flex items-center gap-8 mt-12 text-4xl">
-            <motion.span animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }}>🥉</motion.span>
-            <motion.span animate={{ y: [0, -12, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.3 }}>🥈</motion.span>
-            <motion.span animate={{ y: [0, -16, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.6 }} className="text-5xl">🏆</motion.span>
-            <motion.span animate={{ y: [0, -12, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.3 }}>🥈</motion.span>
-            <motion.span animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }}>🥉</motion.span>
+            <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 3.5, repeat: Infinity }}>🥉</motion.span>
+            <motion.span animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.2 }}>🥈</motion.span>
+            <motion.span animate={{ y: [0, -16, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.4 }} className="text-6xl">🏆</motion.span>
+            <motion.span animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 0.6 }}>🥈</motion.span>
+            <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.8 }}>🥉</motion.span>
           </motion.div>
         </div>
 
-        <div className="absolute bottom-6 right-6 z-20"><FullscreenBtn /></div>
       </div>
     )
   }
@@ -464,7 +448,6 @@ export default function ProjectorPage() {
           )}
         </div>
 
-        <div className="absolute bottom-6 right-6 z-20"><FullscreenBtn /></div>
       </div>
     )
   }
@@ -474,13 +457,13 @@ export default function ProjectorPage() {
     const podiumColors = isDark
       ? [
           'from-amber-400 via-yellow-500 to-orange-500 shadow-amber-500/20 border-amber-300/30',
-          'from-slate-300 via-slate-400 to-slate-500 shadow-slate-400/20 border-slate-300/30',
+          'from-sky-300 via-cyan-400 to-blue-500 shadow-sky-400/20 border-sky-300/30',
           'from-amber-600 via-amber-700 to-orange-800 shadow-amber-700/20 border-amber-600/30'
         ]
       : [
           'from-amber-300 via-yellow-400 to-yellow-500 shadow-amber-200/40 border-amber-200',
-          'from-slate-100 via-slate-200 to-slate-300 shadow-slate-200/40 border-slate-200',
-          'from-orange-100 via-orange-200 to-orange-300 shadow-orange-200/40 border-orange-200'
+          'from-sky-200 via-blue-300 to-cyan-300 shadow-sky-200/40 border-sky-200',
+          'from-orange-200 via-orange-300 to-amber-300 shadow-orange-200/40 border-orange-200'
         ]
     const podiumHeights = ['h-60 sm:h-64', 'h-48 sm:h-52', 'h-36 sm:h-40']
     const podiumLabels = ['1st', '2nd', '3rd']
@@ -545,7 +528,6 @@ export default function ProjectorPage() {
           </motion.div>
         )}
 
-        <div className="absolute bottom-6 right-6 z-20"><FullscreenBtn /></div>
       </div>
     )
   }
@@ -553,10 +535,19 @@ export default function ProjectorPage() {
   // ── LIVE LEADERBOARD ──
   return (
     <div className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
-      {isDark && (
+      {isDark ? (
         <>
-          <div className="absolute top-[-30%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-blue-600/5" />
-          <div className="absolute bottom-[-30%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-indigo-600/5" />
+          <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-[-30%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-blue-600/8" />
+          <motion.div animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -40, 20, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute bottom-[-30%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-indigo-600/8" />
+        </>
+      ) : (
+        <>
+          <motion.div animate={{ scale: [1, 1.15, 1], x: [0, 40, 0] }} transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-[-30%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-blue-300/15" />
+          <motion.div animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -30, 15, 0] }} transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute bottom-[-30%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-indigo-300/10" />
         </>
       )}
 
@@ -572,6 +563,13 @@ export default function ProjectorPage() {
               <h1 className={`text-2xl font-black uppercase tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 {subjectLabel}
               </h1>
+              {activeLevel != null && (
+                <span className={`ml-2 text-sm font-black px-2.5 py-1 rounded-lg border ${
+                  isDark ? `bg-${subjectColor}-500/10 border-${subjectColor}-500/25 text-${subjectColor}-400` : `bg-${subjectColor}-50 border-${subjectColor}-200 text-${subjectColor}-600`
+                }`}>
+                  Level {activeLevel}
+                </span>
+              )}
             </div>
             {activeState?.round_label && <p className={`text-xs font-bold mt-1.5 uppercase tracking-wider ${textDim}`}>{activeState.round_label}</p>}
           </div>
@@ -590,19 +588,36 @@ export default function ProjectorPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <FullscreenBtn />
           {levels.length > 1 && (
             <div className={`flex border rounded-xl p-1 shadow-inner ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-              {levels.map(l => (
-                <button key={l} onClick={() => setDisplayLevel(l)}
-                  className={`px-4 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                    activeLevel === l
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : isDark ? 'text-slate-400 hover:text-white/80' : 'text-slate-500 hover:text-slate-800'
-                  }`}>
-                  Level {l}
-                </button>
-              ))}
+              {levels.map(l => {
+                const lvlSessions = subjectSessions.filter(s => s.level === l)
+                const doneCount = lvlSessions.filter(s => s.status === 'completed').length
+                const activeCount = lvlSessions.filter(s => s.status === 'active').length
+                const hasActivity = activeCount > 0 || doneCount > 0
+                return (
+                  <button key={l} onClick={() => setDisplayLevel(l)}
+                    className={`px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+                      activeLevel === l
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : isDark ? 'text-slate-400 hover:text-white/80' : 'text-slate-500 hover:text-slate-800'
+                    }`}>
+                    <span>Lv {l}</span>
+                    {hasActivity && (
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-md ${
+                        activeLevel === l
+                          ? 'bg-white/20'
+                          : doneCount === lvlSessions.length
+                            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'
+                            : isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {activeCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse mr-1 align-middle" />}
+                        {doneCount}/{lvlSessions.length}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
@@ -620,32 +635,38 @@ export default function ProjectorPage() {
       </div>
 
       {/* Rows */}
-      <div className="flex-1 space-y-1.5 relative z-10 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+      <div className="flex-1 space-y-1.5 relative z-10 max-h-[calc(100vh-220px)] overflow-y-auto pr-1 projector-scroll">
         <AnimatePresence mode="popLayout">
-          {sorted.map((s, i) => {
-            const cardThemes = i === 0
-              ? isDark
-                ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-400/40'
-                : 'bg-gradient-to-r from-yellow-100 via-amber-50 to-transparent border-amber-300'
-              : i === 1
-                ? isDark
-                  ? 'bg-gradient-to-r from-slate-300/10 via-slate-400/5 to-transparent border-slate-400/30'
-                  : 'bg-gradient-to-r from-slate-100 via-slate-50 to-transparent border-slate-300'
-                : i === 2
-                  ? isDark
-                    ? 'bg-gradient-to-r from-orange-600/15 via-amber-700/5 to-transparent border-orange-500/30'
-                    : 'bg-gradient-to-r from-orange-100 via-orange-50 to-transparent border-orange-300'
-                  : s.status === 'completed'
-                    ? isDark ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-emerald-50/50 border-emerald-200'
-                    : isDark ? 'bg-[#0e1224]/30 border-white/[0.03]' : 'bg-white border-slate-200/60'
+          {sorted.map((s) => {
+            const hasScore = s.status === 'active' || s.status === 'completed'
+            const scoredRank = hasScore ? sortedScored.indexOf(s) : -1
 
-            const rankColors = i === 0
-              ? isDark ? 'text-amber-400' : 'text-yellow-600'
-              : i === 1
-                ? isDark ? 'text-slate-300' : 'text-slate-500'
-                : i === 2
-                  ? isDark ? 'text-orange-400' : 'text-orange-600'
-                  : textDim
+            const cardThemes = !hasScore
+              ? isDark ? 'bg-white/[0.02] border-white/[0.03] opacity-50' : 'bg-slate-50 border-slate-200/40 opacity-50'
+              : scoredRank === 0
+                ? isDark
+                  ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-400/40'
+                  : 'bg-gradient-to-r from-yellow-100 via-amber-50 to-transparent border-amber-300'
+              : scoredRank === 1
+                ? isDark
+                  ? 'bg-gradient-to-r from-sky-400/15 via-cyan-400/8 to-transparent border-sky-400/30'
+                  : 'bg-gradient-to-r from-sky-100 via-blue-50 to-transparent border-sky-300'
+              : scoredRank === 2
+                ? isDark
+                  ? 'bg-gradient-to-r from-orange-600/15 via-amber-700/5 to-transparent border-orange-500/30'
+                  : 'bg-gradient-to-r from-orange-100 via-orange-50 to-transparent border-orange-300'
+              : s.status === 'completed'
+                ? isDark ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-emerald-50/50 border-emerald-200'
+                : isDark ? 'bg-[#0e1224]/30 border-white/[0.03]' : 'bg-white border-slate-200/60'
+
+            const rankColors = !hasScore ? textDim
+              : scoredRank === 0
+                ? isDark ? 'text-amber-400' : 'text-yellow-600'
+              : scoredRank === 1
+                ? isDark ? 'text-sky-300' : 'text-sky-600'
+              : scoredRank === 2
+                ? isDark ? 'text-orange-400' : 'text-orange-600'
+              : textDim
 
             return (
               <motion.div key={s.participant_id} layout
@@ -653,7 +674,7 @@ export default function ProjectorPage() {
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 className={`grid grid-cols-[3.5rem_3.5rem_1.5fr_1fr_5rem_5rem_5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-2xl font-black font-mono ${rankColors}`}>
-                  {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
+                  {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
                 <span><FlagIcon country={s.country} /></span>
                 <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
@@ -665,13 +686,21 @@ export default function ProjectorPage() {
                     <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
                       isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
                     }`}>Done</span>
-                  ) : (
+                  ) : s.status === 'active' ? (
                     <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg inline-flex items-center gap-1 ${
                       isDark ? 'text-blue-400 bg-blue-500/10 border-blue-500/25' : 'text-blue-600 bg-blue-50 border-blue-200'
                     }`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
                       Live
                     </span>
+                  ) : s.status === 'waiting' ? (
+                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                      isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/25' : 'text-amber-600 bg-amber-50 border-amber-200'
+                    }`}>Lobby</span>
+                  ) : (
+                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                      isDark ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-100 border-slate-200'
+                    }`}>Offline</span>
                   )}
                 </span>
               </motion.div>

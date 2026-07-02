@@ -6,6 +6,7 @@ import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
+import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
@@ -326,11 +327,7 @@ export default function CompetitionPlayPage() {
               isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/70 border-white/40'
             }`}
           >
-            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 border shadow-inner landscape:w-9 landscape:h-9 landscape:mb-1.5 ${
-              isDark ? 'bg-indigo-500/15 border-indigo-500/20' : 'bg-indigo-50 border-indigo-100'
-            }`}>
-              <Lock className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-500 animate-float landscape:w-4.5 landscape:h-4.5" />
-            </div>
+            <img src={wonderkidsLogo} alt="Wonder Kids" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-1 sm:mb-3 landscape:w-12 landscape:h-12 landscape:mb-1 drop-shadow-lg" />
 
             <h1 className={`text-xl sm:text-2xl md:text-3xl font-black tracking-tight landscape:text-lg ${
               isDark ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent'

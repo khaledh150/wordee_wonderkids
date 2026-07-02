@@ -21,8 +21,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     localStorage.setItem('wordee_admin_theme', theme)
-    supabase.from('competition_state').update({ theme }).eq('id', 'english')
-    supabase.from('competition_state').update({ theme }).eq('id', 'math')
+    Promise.all([
+      supabase.from('competition_state').update({ theme }).eq('id', 'english'),
+      supabase.from('competition_state').update({ theme }).eq('id', 'math'),
+    ])
   }, [theme])
 
   const { state, sessions, elapsed, phase, loadSessions, updateState } = useAdminData({ subject })
