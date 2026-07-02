@@ -40,7 +40,7 @@ export default function AdminLogin({ onLogin }) {
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)}
               className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
-              placeholder="admin@wordee.app" required autoFocus
+              placeholder="your@email.com" required autoFocus
             />
           </div>
           <div>

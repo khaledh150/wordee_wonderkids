@@ -239,7 +239,7 @@ export default function ProjectorPage() {
                   type="email" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  placeholder="admin@arena.com" 
+                  placeholder="your@email.com" 
                   className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors focus:outline-none ${
                     isDark ? 'bg-slate-950 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-600 focus:bg-white'
                   }`} 
