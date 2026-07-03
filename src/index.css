@@ -45,6 +45,12 @@ input, textarea {
   user-select: text;
 }
 
+/* Dark mode number input spinners */
+input[type="number"].dark-spinner::-webkit-inner-spin-button,
+input[type="number"].dark-spinner::-webkit-outer-spin-button {
+  filter: invert(1);
+}
+
 .h-screen-safe {
   height: 100vh;
   height: 100dvh;

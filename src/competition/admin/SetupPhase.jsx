@@ -59,9 +59,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
     const level = Number(newLevel)
 
     if (row && level === 0) {
-      await supabase.from('competition_sessions').delete().eq('id', row.id)
+      await supabase.from('competition_sessions').delete().eq('participant_id', row.participant_id)
     } else if (row && level > 0) {
-      await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('id', row.id)
+      await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('participant_id', row.participant_id)
     } else if (!row && level > 0) {
       const refRow = student.english || student.math
       await supabase.from('competition_sessions').insert({
@@ -81,18 +81,18 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
 
   async function handleAgeChange(student, newAge) {
     const age = newAge === '' ? null : Number(newAge)
-    const ids = [student.english?.id, student.math?.id].filter(Boolean)
+    const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
-      await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('id', id)
+      await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('participant_id', id)
     }
     await loadSessions()
   }
 
   async function handleDelete(student) {
-    const ids = [student.english?.id, student.math?.id].filter(Boolean)
+    const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     if (ids.length === 0) return
     for (const id of ids) {
-      await supabase.from('competition_sessions').delete().eq('id', id)
+      await supabase.from('competition_sessions').delete().eq('participant_id', id)
     }
     await loadSessions()
   }
@@ -109,9 +109,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
       country: editForm.country.trim().toLowerCase() || null,
       updated_at: new Date().toISOString(),
     }
-    const ids = [student.english?.id, student.math?.id].filter(Boolean)
+    const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
-      await supabase.from('competition_sessions').update(updates).eq('id', id)
+      await supabase.from('competition_sessions').update(updates).eq('participant_id', id)
     }
     setEditingCode(null)
     await loadSessions()
@@ -367,7 +367,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                           value={student.age || ''}
                           onChange={(e) => handleAgeChange(student, e.target.value)}
                           placeholder="—"
-                          className={`w-12 px-1.5 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}`}
+                          className={`w-14 px-1.5 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
                         />
                       </td>
                       <td className="py-2 px-2">
@@ -478,7 +478,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                         value={newStudent.age}
                         onChange={(e) => setNewStudent(p => ({ ...p, age: e.target.value }))}
                         placeholder="—"
-                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
+                        className={`w-14 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}${isDark ? ' dark-spinner' : ''}`}
                       />
                     </td>
                     <td className="py-2 px-2">
