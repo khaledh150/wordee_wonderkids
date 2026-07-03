@@ -196,8 +196,27 @@ export default function ProjectorPage() {
   const textMuted = isDark ? 'text-slate-400' : 'text-slate-500'
   const textDim = isDark ? 'text-slate-500' : 'text-slate-400'
   const cardBg = isDark ? 'bg-[#0e1224]/60 border-white/5' : 'bg-white border-slate-200'
-  const subjectColor = activeSubject === 'math' ? 'emerald' : 'blue'
-  const subjectLabel = activeSubject === 'math' ? 'Mathematics' : 'English Spelling'
+  const isMathSubject = activeSubject === 'math'
+  const subjectLabel = isMathSubject ? 'Mathematics' : 'English Spelling'
+  const sc = {
+    blob: isMathSubject
+      ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-300/20')
+      : (isDark ? 'bg-blue-500/15' : 'bg-blue-300/20'),
+    badgeBg: isMathSubject
+      ? (isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200')
+      : (isDark ? 'bg-blue-500/10 border-blue-500/25' : 'bg-blue-50 border-blue-200'),
+    badgeText: isMathSubject
+      ? (isDark ? 'text-emerald-300' : 'text-emerald-700')
+      : (isDark ? 'text-blue-300' : 'text-blue-700'),
+    dot: isMathSubject ? 'bg-emerald-500' : 'bg-blue-500',
+    dotPing: isMathSubject ? 'bg-emerald-400' : 'bg-blue-400',
+    accent: isMathSubject
+      ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
+      : (isDark ? 'text-blue-400' : 'text-blue-600'),
+    levelBadge: isMathSubject
+      ? (isDark ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600')
+      : (isDark ? 'bg-blue-500/10 border-blue-500/25 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'),
+  }
 
   const formatElapsed = (sec) => {
     if (sec == null) return '--:--'
@@ -349,13 +368,13 @@ export default function ProjectorPage() {
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, -40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-              className={`absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-${subjectColor}-500/15`} />
+              className={`absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none ${sc.blob}`} />
             <motion.div animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -50, 30, 0] }} transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-indigo-600/12" />
           </>
         ) : (
           <>
-            <div className={`absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-${subjectColor}-300/20`} />
+            <div className={`absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none ${sc.blob}`} />
             <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[180px] pointer-events-none bg-indigo-300/15" />
           </>
         )}
@@ -364,23 +383,17 @@ export default function ProjectorPage() {
           {/* Subject badge */}
           <motion.div initial={{ opacity: 0, scale: 0.5, y: -40 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', damping: 10, stiffness: 80 }}
             className="mb-4">
-            <div className={`flex items-center gap-4 border px-8 py-4 rounded-2xl backdrop-blur-md shadow-lg ${
-              isDark
-                ? `bg-${subjectColor}-500/10 border-${subjectColor}-500/25`
-                : `bg-${subjectColor}-50 border-${subjectColor}-200`
-            }`}>
+            <div className={`flex items-center gap-4 border px-8 py-4 rounded-2xl backdrop-blur-md shadow-lg ${sc.badgeBg}`}>
               <span className="relative flex h-4 w-4">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${subjectColor}-400 opacity-75`} />
-                <span className={`relative inline-flex h-4 w-4 rounded-full bg-${subjectColor}-500`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${sc.dotPing} opacity-75`} />
+                <span className={`relative inline-flex h-4 w-4 rounded-full ${sc.dot}`} />
               </span>
-              <span className={`text-lg font-black uppercase tracking-[0.2em] ${
-                isDark ? `text-${subjectColor}-300` : `text-${subjectColor}-700`
-              }`}>
+              <span className={`text-lg font-black uppercase tracking-[0.2em] ${sc.badgeText}`}>
                 {subjectLabel} — Join Now!
               </span>
               <span className="relative flex h-4 w-4">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${subjectColor}-400 opacity-75`} />
-                <span className={`relative inline-flex h-4 w-4 rounded-full bg-${subjectColor}-500`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${sc.dotPing} opacity-75`} />
+                <span className={`relative inline-flex h-4 w-4 rounded-full ${sc.dot}`} />
               </span>
             </div>
           </motion.div>
@@ -411,7 +424,7 @@ export default function ProjectorPage() {
 
           {/* Scan instruction */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mt-6">
-            <div className={`flex items-center gap-3 mb-1.5 ${isDark ? `text-${subjectColor}-400` : `text-${subjectColor}-600`}`}>
+            <div className={`flex items-center gap-3 mb-1.5 ${sc.accent}`}>
               <QrCode className="w-5 h-5" />
               <p className="text-xl font-black tracking-tight">Scan to Enter the Arena</p>
               <QrCode className="w-5 h-5" />
@@ -476,7 +489,7 @@ export default function ProjectorPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
 
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
-          <p className={`text-sm font-black uppercase tracking-[0.3em] mb-2 ${isDark ? `text-${subjectColor}-400` : `text-${subjectColor}-600`}`}>
+          <p className={`text-sm font-black uppercase tracking-[0.3em] mb-2 ${sc.accent}`}>
             {subjectLabel}
           </p>
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
@@ -564,9 +577,7 @@ export default function ProjectorPage() {
             {subjectLabel}
           </h1>
           {activeLevel != null && (
-            <span className={`text-sm font-black px-2.5 py-1 rounded-lg border ${
-              isDark ? `bg-${subjectColor}-500/10 border-${subjectColor}-500/25 text-${subjectColor}-400` : `bg-${subjectColor}-50 border-${subjectColor}-200 text-${subjectColor}-600`
-            }`}>
+            <span className={`text-sm font-black px-2.5 py-1 rounded-lg border ${sc.levelBadge}`}>
               Level {activeLevel}
             </span>
           )}
@@ -714,7 +725,7 @@ export default function ProjectorPage() {
       {/* Footer */}
       <footer className={`mt-4 px-5 py-3.5 border rounded-2xl flex items-center justify-between text-xs font-black uppercase tracking-widest relative z-10 ${cardBg} ${textDim}`}>
         <span className="flex items-center gap-2">
-          <Trophy className={`w-4 h-4 ${isDark ? `text-${subjectColor}-400` : `text-${subjectColor}-600`}`} />
+          <Trophy className={`w-4 h-4 ${sc.accent}`} />
           {levelSessions.filter(s => s.status === 'completed').length} / {levelSessions.length} Completed
         </span>
         <span>Level {activeLevel} • {subjectLabel}</span>

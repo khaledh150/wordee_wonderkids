@@ -34,6 +34,21 @@ export default function AdminDashboard() {
   const phase = phaseOverride || autoPhase
 
   async function handleOpenLobby() {
+    const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+    const { data: otherState } = await supabase
+      .from('competition_state')
+      .select('is_unlocked, started_at')
+      .eq('id', otherSubject)
+      .single()
+    if (otherState?.is_unlocked) {
+      const otherLabel = otherSubject === 'math' ? 'Mathematics' : 'English Spelling'
+      setDialog({
+        message: `Cannot open lobby — the ${otherLabel} ${otherState.started_at ? 'competition is still running' : 'lobby is still open'}. End it first before opening a new lobby.`,
+        onConfirm: () => setDialog(null),
+        onCancel: () => setDialog(null),
+      })
+      return
+    }
     setDialog({
       message: 'Open the lobby? Students will be able to join via QR code.',
       onConfirm: async () => {
