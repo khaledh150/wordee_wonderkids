@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Home } from 'lucide-react'
+import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2 } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
@@ -246,13 +246,6 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                     <><Download className="w-4 h-4" /> View math certificate</>
                   )}
                 </motion.button>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Home className="w-3.5 h-3.5" />
-                  Exit to Arena
-                </button>
                 <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal mt-1 text-center landscape:text-left">
                   Your final math score has been captured by the competition registry.
                 </p>
@@ -335,11 +328,8 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         </div>
       </div>
 
-      <div className="px-2 sm:px-3 lg:px-4 shrink-0 mt-2 relative z-10">
-        <span className="text-xs sm:text-sm lg:text-base font-bold text-teal-400">Q{currentIndex + 1}/{total}</span>
-      </div>
-
       <div className="flex-1 overflow-auto min-h-0 relative z-10">
+        <span className="absolute top-1 left-2 sm:left-3 lg:left-4 text-xs sm:text-sm lg:text-base font-bold text-teal-400 z-20">Q{currentIndex + 1}/{total}</span>
         <div className="flex items-center justify-center min-h-full px-3 sm:px-4 lg:px-6 py-1">
           <AnimatePresence mode="wait">
             <MathQuestionArea

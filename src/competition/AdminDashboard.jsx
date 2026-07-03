@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase, SUBJECTS } from './supabaseClient'
 import useAdminData from './admin/useAdminData'
@@ -10,6 +10,8 @@ import ResultsPhase from './admin/ResultsPhase'
 import RosterUpload from './admin/RosterUpload'
 import ConfirmDialog from './admin/ConfirmDialog'
 import { generateCode } from './admin/shared'
+
+const HistoryPhase = lazy(() => import('./admin/HistoryPhase'))
 
 export default function AdminDashboard() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wordee_admin_theme') || 'dark')
@@ -27,7 +29,7 @@ export default function AdminDashboard() {
     ])
   }, [theme])
 
-  const { state, sessions, elapsed, phase: autoPhase, loadSessions, updateState } = useAdminData({ subject })
+  const { state, sessions, elapsed, phase: autoPhase, loadState, loadSessions, updateState } = useAdminData({ subject })
   const [phaseOverride, setPhaseOverride] = useState(null)
   const phase = phaseOverride || autoPhase
 
@@ -65,6 +67,64 @@ export default function AdminDashboard() {
       await supabase.from('competition_sessions').insert(inserts)
       await loadSessions()
     }
+  }
+
+  async function handleNewSession(copyRoster) {
+    const newId = 'session_' + Math.floor(Date.now() / 1000)
+    const oldId = state.competition_id
+
+    await supabase.from('competition_history').insert({
+      competition_id: newId,
+      round_label: state.round_label || null,
+    })
+
+    await supabase.from('competition_state').update({
+      competition_id: newId,
+      is_unlocked: false,
+      started_at: null,
+      extra_seconds: 0,
+      announcement: null,
+      updated_at: new Date().toISOString(),
+    }).in('id', ['english', 'math'])
+
+    if (copyRoster) {
+      const { data: oldSessions } = await supabase
+        .from('competition_sessions')
+        .select('*')
+        .eq('competition_id', oldId)
+      if (oldSessions?.length) {
+        const existingCodes = []
+        const inserts = oldSessions.map(s => {
+          const code = generateCode(existingCodes)
+          existingCodes.push(code)
+          return {
+            competition_id: newId,
+            participant_code: code,
+            display_id: s.display_id,
+            name: s.name,
+            school: s.school,
+            country: s.country,
+            age: s.age,
+            subject: s.subject,
+            level: s.level,
+            status: 'registered',
+            provisional_score: 0,
+            validated_score: null,
+            questions_answered: 0,
+            time_spent_seconds: 0,
+            ready: false,
+            answers_snapshot: null,
+            started_at: null,
+            completed_at: null,
+          }
+        })
+        await supabase.from('competition_sessions').insert(inserts)
+      }
+    }
+
+    setPhaseOverride(null)
+    await loadState()
+    await loadSessions()
   }
 
   async function handleLogout() {
@@ -145,8 +205,32 @@ export default function AdminDashboard() {
                 isDark={isDark}
                 updateState={updateState}
                 loadSessions={loadSessions}
-                onSwitchSubject={(sub) => { setPhaseOverride(null); setSubject(sub) }}
+                onSwitchSubject={async (sub) => {
+                  const label = sub === 'math' ? 'Mathematics' : 'English Spelling'
+                  if (!window.confirm(`Open the ${label} lobby? Students who completed the current subject will be prompted to join.`)) return
+                  const prevSubject = sub === 'math' ? 'english' : 'math'
+                  const now = new Date().toISOString()
+                  await Promise.all([
+                    supabase.from('competition_state').update({
+                      is_unlocked: false, started_at: null, updated_at: now,
+                    }).eq('id', prevSubject),
+                    supabase.from('competition_state').update({
+                      is_unlocked: true, started_at: null,
+                      extra_seconds: 0, announcement: null, updated_at: now,
+                    }).eq('id', sub),
+                  ])
+                  setPhaseOverride(null)
+                  setSubject(sub)
+                }}
+                onNewSession={handleNewSession}
               />
+            </motion.div>
+          )}
+          {phase === 'history' && (
+            <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <Suspense fallback={<div className="flex justify-center py-12"><div className={`animate-spin w-8 h-8 border-4 border-t-transparent rounded-full ${isDark ? 'border-blue-500' : 'border-blue-600'}`} /></div>}>
+                <HistoryPhase isDark={isDark} onBack={() => setPhaseOverride(null)} />
+              </Suspense>
             </motion.div>
           )}
         </AnimatePresence>

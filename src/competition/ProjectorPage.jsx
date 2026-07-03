@@ -294,17 +294,17 @@ export default function ProjectorPage() {
 
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', damping: 12, delay: 0.2 }}>
             <h1 className={`text-6xl sm:text-7xl lg:text-8xl font-black uppercase tracking-tight leading-[0.9] ${
-              isDark ? 'bg-gradient-to-b from-white via-blue-100 to-blue-300/60 bg-clip-text text-transparent' : 'text-slate-800'
+              isDark ? 'bg-gradient-to-b from-white via-blue-100 to-blue-300/60 bg-clip-text text-transparent' : 'bg-gradient-to-b from-slate-800 via-indigo-800 to-indigo-600 bg-clip-text text-transparent'
             }`}>
               International
             </h1>
             <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-[0.12em] mt-4 ${
-              isDark ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'text-indigo-600'
+              isDark ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent' : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent'
             }`}>
               English Spelling &amp; Math
             </h2>
             <h2 className={`text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-[0.08em] mt-1 ${
-              isDark ? 'bg-gradient-to-r from-indigo-300 to-amber-300 bg-clip-text text-transparent' : 'text-slate-700'
+              isDark ? 'bg-gradient-to-r from-indigo-300 to-amber-300 bg-clip-text text-transparent' : 'bg-gradient-to-r from-indigo-700 via-purple-600 to-amber-600 bg-clip-text text-transparent'
             }`}>
               Championship
             </h2>
@@ -387,7 +387,7 @@ export default function ProjectorPage() {
 
           {/* Title */}
           <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className={`text-4xl sm:text-5xl font-black uppercase tracking-tight mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            className={`text-4xl sm:text-5xl font-black uppercase tracking-tight mb-1 ${isDark ? 'text-white' : 'bg-gradient-to-r from-indigo-700 via-purple-600 to-indigo-700 bg-clip-text text-transparent'}`}>
             International Championship
           </motion.h1>
 
@@ -428,9 +428,9 @@ export default function ProjectorPage() {
                   Participants Ready: {readyStudents.length} / {subjectSessions.length}
                 </span>
               </div>
-              <div className="flex flex-wrap justify-center gap-2.5 max-w-4xl mx-auto px-4 max-h-[140px] overflow-hidden">
+              <div className="flex flex-wrap justify-center gap-2.5 max-w-4xl mx-auto px-4 max-h-[200px] overflow-y-auto projector-scroll">
                 <AnimatePresence>
-                  {subjectSessions.map((s, i) => (
+                  {[...subjectSessions].sort((a, b) => (b.ready ? 1 : 0) - (a.ready ? 1 : 0)).map((s, i) => (
                     <motion.div key={s.participant_id || s.id} layout
                       initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
                       transition={{ delay: 0.05 * i }}
@@ -683,10 +683,10 @@ export default function ProjectorPage() {
                     }`}>Done</span>
                   ) : s.status === 'active' ? (
                     <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg inline-flex items-center gap-1 ${
-                      isDark ? 'text-blue-400 bg-blue-500/10 border-blue-500/25' : 'text-blue-600 bg-blue-50 border-blue-200'
+                      isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
                     }`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
-                      Live
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Playing
                     </span>
                   ) : s.status === 'waiting' ? (
                     <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${

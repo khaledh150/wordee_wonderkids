@@ -11,9 +11,9 @@ function getEnglishTotal(level) {
   return getVocabForLevel(level).length
 }
 
-export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject }) {
+export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onNewSession, readOnly }) {
   const [levelFilter, setLevelFilter] = useState(null)
-  const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmNew, setConfirmNew] = useState(null)
   const [batchProgress, setBatchProgress] = useState(null)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
   const [otherSubjectDone, setOtherSubjectDone] = useState(false)
@@ -111,26 +111,13 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     setBatchProgress(null)
   }
 
-  async function handleReset() {
-    if (!confirmReset) {
-      setConfirmReset(true)
+  async function handleNewSession(copyRoster) {
+    if (confirmNew !== copyRoster) {
+      setConfirmNew(copyRoster)
       return
     }
-    await supabase.from('competition_sessions').update({
-      status: 'registered',
-      provisional_score: 0,
-      validated_score: null,
-      questions_answered: 0,
-      time_spent_seconds: 0,
-      ready: false,
-      answers_snapshot: null,
-      started_at: null,
-      completed_at: null,
-      updated_at: new Date().toISOString(),
-    }).eq('competition_id', state.competition_id).eq('subject', subject)
-    await updateState({ is_unlocked: false, started_at: null, extra_seconds: 0 })
-    setConfirmReset(false)
-    await loadSessions()
+    setConfirmNew(null)
+    await onNewSession(copyRoster)
   }
 
   const summaryCards = [
@@ -291,41 +278,56 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
         </table>
       </div>
 
-      <div className="flex flex-col items-center gap-4 pt-4 print:hidden">
-        {onSwitchSubject && subject === SUBJECTS.ENGLISH && !otherSubjectDone && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => onSwitchSubject(otherSubject)}
-            className="w-full max-w-md px-8 py-4 rounded-xl font-black text-base uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
-          >
-            Proceed to {otherLabel}
-            <ArrowRight className="w-5 h-5" />
-          </motion.button>
-        )}
-
-        <div className="flex items-center gap-3">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleReset}
-            className={`px-8 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white transition-all cursor-pointer ${
-              confirmReset ? 'bg-red-600 animate-pulse' : 'bg-rose-600 hover:bg-rose-700'
-            }`}
-          >
-            {confirmReset ? 'TAP TO CONFIRM RESET' : 'Reset This Subject'}
-          </motion.button>
-          {confirmReset && (
-            <button
-              onClick={() => setConfirmReset(false)}
-              className={`text-xs font-bold underline cursor-pointer ${textMuted}`}
+      {!readOnly && (
+        <div className="flex flex-col items-center gap-4 pt-4 print:hidden">
+          {onSwitchSubject && subject === SUBJECTS.ENGLISH && !otherSubjectDone && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onSwitchSubject(otherSubject)}
+              className="w-full max-w-md px-8 py-4 rounded-xl font-black text-base uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
             >
-              Cancel
-            </button>
+              Proceed to {otherLabel}
+              <ArrowRight className="w-5 h-5" />
+            </motion.button>
+          )}
+
+          {onNewSession && (
+            <>
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleNewSession(true)}
+                  className={`px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white transition-all cursor-pointer ${
+                    confirmNew === true ? 'bg-red-600 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'
+                  }`}
+                >
+                  {confirmNew === true ? 'TAP TO CONFIRM' : 'New Session (Keep Roster)'}
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleNewSession(false)}
+                  className={`px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white transition-all cursor-pointer ${
+                    confirmNew === false ? 'bg-red-600 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'
+                  }`}
+                >
+                  {confirmNew === false ? 'TAP TO CONFIRM' : 'New Session (Fresh)'}
+                </motion.button>
+                {confirmNew != null && (
+                  <button
+                    onClick={() => setConfirmNew(null)}
+                    className={`text-xs font-bold underline cursor-pointer ${textMuted}`}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+              <p className={`text-xs ${textMuted}`}>
+                Previous results are preserved in session history.
+              </p>
+            </>
           )}
         </div>
-        <p className={`text-xs ${textMuted}`}>
-          ⚠ Reset clears all {subject === 'math' ? 'math' : 'English'} scores permanently. Download certificates first!
-        </p>
-      </div>
+      )}
 
       <div className="hidden print:block bg-white text-black">
         {[...new Set(officialSorted.map(s => s.level))].sort((a, b) => a - b).map(lvl => {

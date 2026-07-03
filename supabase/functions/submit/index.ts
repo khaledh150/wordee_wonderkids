@@ -91,8 +91,7 @@ Deno.serve(async (req: Request) => {
     const { data: state } = await supabase
       .from("competition_state")
       .select("duration_seconds, extra_seconds")
-      .eq("competition_id", competition_id)
-      .limit(1)
+      .eq("id", session.subject)
       .single();
 
     const duration = state?.duration_seconds ?? 300;

@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: sessions, error: lookupErr } = await supabase
       .from("competition_sessions")
-      .select("subject, name")
+      .select("subject, name, status")
       .eq("participant_code", participant_code)
       .eq("competition_id", competition_id);
 
@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check which subjects are unlocked
-    const allSubjects = sessions.map((s) => s.subject);
+    const allSubjects = [...new Set(sessions.map((s) => s.subject))];
     const { data: states } = await supabase
       .from("competition_state")
       .select("id, is_unlocked")
@@ -89,7 +89,14 @@ Deno.serve(async (req: Request) => {
     const unlockedSet = new Set(
       (states ?? []).filter((s) => s.is_unlocked).map((s) => s.id)
     );
-    const availableSubjects = allSubjects.filter((s) => unlockedSet.has(s));
+
+    // Return unlocked subjects where student hasn't completed yet
+    const completedSubjects = new Set(
+      sessions.filter((s) => s.status === "completed").map((s) => s.subject)
+    );
+    const availableSubjects = allSubjects.filter(
+      (s) => unlockedSet.has(s) && !completedSubjects.has(s)
+    );
 
     if (availableSubjects.length === 0) {
       return json({ error: "No competition is currently open for you" }, 403, req);

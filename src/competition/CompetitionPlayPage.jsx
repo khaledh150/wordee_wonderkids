@@ -8,6 +8,7 @@ import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
 import wonderkidsLogo from '../assets/wonderkids_logo.webp'
+import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
@@ -99,8 +100,12 @@ export default function CompetitionPlayPage() {
 
   const [countdownActive, setCountdownActive] = useState(false)
   const [countdownNum, setCountdownNum] = useState(3)
+  const [competitionId, setCompetitionId] = useState(null)
 
-  const competitionId = 'default'
+  useEffect(() => {
+    supabase.from('competition_state').select('competition_id').limit(1).single()
+      .then(({ data }) => { if (data) setCompetitionId(data.competition_id) })
+  }, [])
 
   const engine = useCompetitionEngine({
     competitionId,
@@ -176,12 +181,12 @@ export default function CompetitionPlayPage() {
         const subjects = data.subjects || []
         const otherSubjects = subjects.filter(s => s !== selectedSubject)
         if (otherSubjects.length > 0 && !cancelled) {
-          setAvailableSubjects(subjects)
-          setStep('subject')
+          const nextSubject = otherSubjects[0]
           setQuestions(null)
-          setSelectedSubject(null)
           setPreloadDone(false)
           setPreloadProgress({ loaded: 0, total: 0 })
+          try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
+          handleSubjectSelect(nextSubject, verifiedCode)
         }
       } catch {}
     }
@@ -313,6 +318,14 @@ export default function CompetitionPlayPage() {
 
   const isMath = selectedSubject === 'math'
   const subjectLabel = isMath ? 'math' : 'spelling'
+
+  if (!competitionId) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center font-bold gap-2.5 ${isDark ? 'bg-[#060814] text-indigo-400' : 'bg-[#FFF5F0] text-indigo-400'}`}>
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+      </div>
+    )
+  }
 
   // ===== CODE ENTRY (first screen — gate) =====
   if (step === 'code') {

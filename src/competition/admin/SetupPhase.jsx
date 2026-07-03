@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download } from 'lucide-react'
+import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { generateCode } from './shared'
 
@@ -11,6 +11,8 @@ const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 export default function SetupPhase({ state, sessions, subject, isDark, updateState, loadSessions, onOpenLobby, onShowUpload }) {
   const [showAddRow, setShowAddRow] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
+  const [editingCode, setEditingCode] = useState(null)
+  const [editForm, setEditForm] = useState({})
   const [roundLabel, setRoundLabel] = useState(state?.round_label || '')
   const [adding, setAdding] = useState(false)
   const [exportSchool, setExportSchool] = useState('all')
@@ -92,6 +94,26 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
     for (const id of ids) {
       await supabase.from('competition_sessions').delete().eq('id', id)
     }
+    await loadSessions()
+  }
+
+  function startEdit(student) {
+    setEditingCode(student.code)
+    setEditForm({ name: student.name, school: student.school || '', country: student.country || '' })
+  }
+
+  async function saveEdit(student) {
+    const updates = {
+      name: editForm.name.trim(),
+      school: editForm.school.trim() || null,
+      country: editForm.country.trim().toLowerCase() || null,
+      updated_at: new Date().toISOString(),
+    }
+    const ids = [student.english?.id, student.math?.id].filter(Boolean)
+    for (const id of ids) {
+      await supabase.from('competition_sessions').update(updates).eq('id', id)
+    }
+    setEditingCode(null)
     await loadSessions()
   }
 
@@ -268,12 +290,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['Name', 'School', 'Age', 'Code', 'Eng', 'Math', ''].map((h, i) => (
+                    {['Name', 'School', 'Country', 'Age', 'Code', 'Eng', 'Math', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`text-left py-2.5 px-3 text-xs font-bold uppercase tracking-wider ${
                           isDark ? 'text-slate-500' : 'text-slate-400'
-                        } ${i === 6 ? 'w-10' : ''}`}
+                        } ${i === 7 ? 'w-16' : ''}`}
                       >
                         {h}
                       </th>
@@ -281,7 +303,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                   </tr>
                 </thead>
                 <tbody>
-                  {grouped.map((student) => (
+                  {grouped.map((student) => {
+                    const isEditing = editingCode === student.code
+                    return (
                     <tr
                       key={student.code}
                       className={`border-b transition-colors ${
@@ -290,11 +314,40 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                           : 'border-slate-50 hover:bg-slate-50/50'
                       }`}
                     >
-                      <td className={`py-2.5 px-3 font-medium ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                        {student.name}
+                      <td className="py-2.5 px-3">
+                        {isEditing ? (
+                          <input
+                            value={editForm.name}
+                            onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))}
+                            className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</span>
+                        )}
                       </td>
-                      <td className={`py-2.5 px-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {student.school || '—'}
+                      <td className="py-2.5 px-3">
+                        {isEditing ? (
+                          <input
+                            value={editForm.school}
+                            onChange={(e) => setEditForm(p => ({ ...p, school: e.target.value }))}
+                            className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                          />
+                        ) : (
+                          <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{student.school || '—'}</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {isEditing ? (
+                          <input
+                            value={editForm.country}
+                            onChange={(e) => setEditForm(p => ({ ...p, country: e.target.value }))}
+                            maxLength={2}
+                            className={`w-12 px-1.5 py-1 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
+                          />
+                        ) : (
+                          <span className={`text-xs uppercase font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.country || '—'}</span>
+                        )}
                       </td>
                       <td className="py-2.5 px-3">
                         <input
@@ -337,16 +390,48 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                         </select>
                       </td>
                       <td className="py-2.5 px-3">
-                        <button
-                          onClick={() => handleDelete(student)}
-                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
-                          title="Delete student"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={() => saveEdit(student)}
+                                disabled={!editForm.name.trim()}
+                                className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-30"
+                                title="Save"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingCode(null)}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-400 hover:bg-slate-100'}`}
+                                title="Cancel"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => startEdit(student)}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-blue-400 hover:bg-blue-500/10' : 'text-blue-500 hover:bg-blue-50'}`}
+                                title="Edit student"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(student)}
+                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
+                                title="Delete student"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
 
                   {/* Add Student Row */}
                   <tr className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
@@ -368,6 +453,15 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                     </td>
                     <td className="py-2.5 px-3">
                       <input
+                        value={newStudent.country}
+                        onChange={(e) => setNewStudent(p => ({ ...p, country: e.target.value }))}
+                        placeholder="th"
+                        maxLength={2}
+                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
+                      />
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <input
                         type="number"
                         min="4"
                         max="18"
@@ -378,13 +472,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
                       />
                     </td>
                     <td className="py-2.5 px-3">
-                      <input
-                        value={newStudent.country}
-                        onChange={(e) => setNewStudent(p => ({ ...p, country: e.target.value }))}
-                        placeholder="th"
-                        maxLength={2}
-                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
-                      />
+                      <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>auto</span>
                     </td>
                     <td className="py-2.5 px-3">
                       <select

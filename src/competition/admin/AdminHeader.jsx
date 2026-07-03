@@ -1,4 +1,4 @@
-import { Shield, LogOut, Sun, Moon } from 'lucide-react'
+import { Shield, LogOut, Sun, Moon, History } from 'lucide-react'
 
 const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results' }
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results']
@@ -56,6 +56,17 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, setThe
               </button>
             </div>
           ))}
+          <button
+            onClick={() => onPhaseClick?.('history')}
+            className={`ml-2 p-1.5 rounded-lg transition-colors cursor-pointer ${
+              phase === 'history'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                : isDark ? 'text-slate-500 hover:text-slate-300 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
+            title="Session History"
+          >
+            <History className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

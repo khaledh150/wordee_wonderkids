@@ -1,17 +1,47 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp } from 'lucide-react'
 import { fmt } from './shared'
+import { supabase } from '../supabaseClient'
 
 export default function LivePhase({ state, sessions, elapsed, subject, isDark, updateState, loadSessions }) {
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
+  const autoTransitionRef = useRef(false)
 
   const totalDuration = (state.duration_seconds || 0) + (state.extra_seconds || 0)
   const remaining = elapsed != null ? totalDuration - elapsed : totalDuration
+
+  const activeCount = sessions.filter(s => s.status === 'active').length
+  const participantSessions = sessions.filter(s => s.status !== 'waiting' || s.ready)
+  const allDone = participantSessions.length > 0 && participantSessions.every(s => s.status === 'completed')
+
   const formattedRemaining = remaining <= 0
-    ? "TIME'S UP"
+    ? activeCount > 0 ? `TIME'S UP · ${activeCount} submitting` : "TIME'S UP"
     : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`
+
+  useEffect(() => { autoTransitionRef.current = false }, [subject])
+
+  useEffect(() => {
+    if (!allDone || autoTransitionRef.current) return
+    autoTransitionRef.current = true
+    const timeout = setTimeout(async () => {
+      try {
+        const token = (await supabase.auth.getSession()).data.session?.access_token
+        if (token) {
+          const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+          await fetch(`${FUNC_BASE}/finalize-stragglers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ competition_id: state.competition_id, subject }),
+          }).catch(() => {})
+        }
+      } catch {}
+      await updateState({ is_unlocked: false, started_at: null })
+      await loadSessions()
+    }, 3000)
+    return () => clearTimeout(timeout)
+  }, [allDone])
 
   const timerColor = remaining <= 0
     ? 'text-rose-500'
@@ -21,7 +51,6 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
         ? 'text-amber-400'
         : isDark ? 'text-white' : 'text-slate-800'
 
-  const activeCount = sessions.filter(s => s.status === 'active').length
   const completedCount = sessions.filter(s => s.status === 'completed').length
   const totalCount = sessions.length
   const remainingCount = totalCount - completedCount - activeCount
@@ -36,7 +65,11 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
   }, [sessions])
 
   const scoreboard = useMemo(() => {
+    const statusOrder = { active: 0, completed: 1, waiting: 2 }
     return [...sessions].sort((a, b) => {
+      const oa = statusOrder[a.status] ?? 3
+      const ob = statusOrder[b.status] ?? 3
+      if (oa !== ob) return oa - ob
       const scoreA = a.validated_score ?? a.provisional_score ?? 0
       const scoreB = b.validated_score ?? b.provisional_score ?? 0
       if (scoreB !== scoreA) return scoreB - scoreA
@@ -56,10 +89,21 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
     { label: 'Avg Score', value: avgScore, color: 'text-purple-400', bg: isDark ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200' },
   ]
 
-  const handleEmergencyStop = () => {
-    if (window.confirm('Stop the competition? Students currently playing can still submit, but no new students can start. You will see the results screen.')) {
-      updateState({ is_unlocked: false, started_at: null })
-    }
+  const handleEmergencyStop = async () => {
+    if (!window.confirm('End the competition immediately? Students still playing will be scored on their current answers.')) return
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      if (token) {
+        const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+        await fetch(`${FUNC_BASE}/finalize-stragglers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ competition_id: state.competition_id, subject }),
+        }).catch(() => {})
+      }
+    } catch {}
+    await updateState({ is_unlocked: false, started_at: null })
+    await loadSessions()
   }
 
   return (
@@ -94,7 +138,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
               className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <AlertOctagon className="w-4 h-4" />
-              STOP
+              END NOW
             </button>
           </div>
         </div>

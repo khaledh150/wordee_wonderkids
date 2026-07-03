@@ -217,7 +217,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     setCorrectCount(0)
     saveLocal(competitionId, { participantCode, phase: 'waiting', answers: [], correctCount: 0, session: sess })
     return result
-  }, [competitionId, questions])
+  }, [competitionId, subject, questions])
 
   // ── Start Race ──
   const startRace = useCallback(async () => {
@@ -254,7 +254,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setPhase('active')
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
     }
-  }, [session, competitionId])
+  }, [session, competitionId, subject])
 
   // ── Timer ──
   useEffect(() => {
