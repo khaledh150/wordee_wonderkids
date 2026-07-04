@@ -8946,7 +8946,7 @@ export const questionBank = {
     {
       "id": 13,
       "question": "2/3 + 1/3 × 3 = ?",
-      "answer": 1.67,
+      "answer": 1.6667,
       "answerDisplay": "1.6667",
       "distractors": [
         2.17,
@@ -9045,12 +9045,12 @@ export const questionBank = {
     {
       "id": 22,
       "question": "5/8 + 3/8 × 2 = ?",
-      "answer": 1.38,
+      "answer": 1.375,
       "answerDisplay": "1.375",
       "distractors": [
-        1.88,
-        0.88,
-        2.38
+        1.875,
+        0.875,
+        2.375
       ]
     },
     {
@@ -9122,7 +9122,7 @@ export const questionBank = {
     {
       "id": 29,
       "question": "5/6 ÷ 1/2 × 2 = ?",
-      "answer": 3.33,
+      "answer": 3.3333,
       "answerDisplay": "3.3333",
       "distractors": [
         3.83,
@@ -9166,7 +9166,7 @@ export const questionBank = {
     {
       "id": 33,
       "question": "4/7 + 3/7 × 2 = ?",
-      "answer": 1.43,
+      "answer": 1.4286,
       "answerDisplay": "1.4286",
       "distractors": [
         1.93,
@@ -9210,7 +9210,7 @@ export const questionBank = {
     {
       "id": 37,
       "question": "6/9 + 3/9 × 3 = ?",
-      "answer": 1.67,
+      "answer": 1.6667,
       "answerDisplay": "1.6667",
       "distractors": [
         2.17,
@@ -9320,7 +9320,7 @@ export const questionBank = {
     {
       "id": 47,
       "question": "1/6 + 5/6 × 2 = ?",
-      "answer": 1.83,
+      "answer": 1.8333,
       "answerDisplay": "1.8333",
       "distractors": [
         2.33,
@@ -9342,7 +9342,7 @@ export const questionBank = {
     {
       "id": 49,
       "question": "2/3 × 6 ÷ 3 = ?",
-      "answer": 1.33,
+      "answer": 1.3333,
       "answerDisplay": "1.3333",
       "distractors": [
         1.83,
@@ -9375,7 +9375,7 @@ export const questionBank = {
     {
       "id": 52,
       "question": "4/9 + 5/9 × 2 = ?",
-      "answer": 1.56,
+      "answer": 1.5556,
       "answerDisplay": "1.5556",
       "distractors": [
         2.06,
@@ -9408,7 +9408,7 @@ export const questionBank = {
     {
       "id": 55,
       "question": "16 ÷ 4 × 2/3 = ?",
-      "answer": 2.67,
+      "answer": 2.6667,
       "answerDisplay": "2.6667",
       "distractors": [
         3.17,
@@ -9562,7 +9562,7 @@ export const questionBank = {
     {
       "id": 69,
       "question": "5/9 × 9 ÷ 3 = ?",
-      "answer": 1.67,
+      "answer": 1.6667,
       "answerDisplay": "1.6667",
       "distractors": [
         2.17,
@@ -9595,7 +9595,7 @@ export const questionBank = {
     {
       "id": 72,
       "question": "1/3 + 2/3 × 3 = ?",
-      "answer": 2.33,
+      "answer": 2.3333,
       "answerDisplay": "2.3333",
       "distractors": [
         2.83,
@@ -9650,7 +9650,7 @@ export const questionBank = {
     {
       "id": 77,
       "question": "2/7 + 5/7 × 2 = ?",
-      "answer": 1.71,
+      "answer": 1.7143,
       "answerDisplay": "1.7143",
       "distractors": [
         2.21,
@@ -9705,7 +9705,7 @@ export const questionBank = {
     {
       "id": 82,
       "question": "5/6 + 1/6 × 6 = ?",
-      "answer": 1.83,
+      "answer": 1.8333,
       "answerDisplay": "1.8333",
       "distractors": [
         2.33,
@@ -9826,7 +9826,7 @@ export const questionBank = {
     {
       "id": 93,
       "question": "12 ÷ 3 × 2/7 = ?",
-      "answer": 1.14,
+      "answer": 1.1429,
       "answerDisplay": "1.1429",
       "distractors": [
         1.64,
@@ -9870,7 +9870,7 @@ export const questionBank = {
     {
       "id": 97,
       "question": "2/9 + 7/9 × 3 = ?",
-      "answer": 2.56,
+      "answer": 2.5556,
       "answerDisplay": "2.5556",
       "distractors": [
         3.06,
@@ -9925,12 +9925,12 @@ export const questionBank = {
     {
       "id": 102,
       "question": "5/8 × 6 ÷ 2 = ?",
-      "answer": 1.88,
-      "answerDisplay": "1.88",
+      "answer": 1.875,
+      "answerDisplay": "1.875",
       "distractors": [
-        2.38,
-        1.38,
-        2.88
+        2.375,
+        1.375,
+        2.875
       ]
     },
     {
@@ -9969,8 +9969,8 @@ export const questionBank = {
     {
       "id": 106,
       "question": "4/5 + 3/8 = ?",
-      "answer": 1.18,
-      "answerDisplay": "1.18",
+      "answer": 1.175,
+      "answerDisplay": "1.175",
       "distractors": [
         1.68,
         0.68,
@@ -9980,8 +9980,8 @@ export const questionBank = {
     {
       "id": 107,
       "question": "1/5 + 2/3 = ?",
-      "answer": 0.87,
-      "answerDisplay": "0.87",
+      "answer": 0.8667,
+      "answerDisplay": "0.8667",
       "distractors": [
         1.37,
         0.37,
@@ -9991,8 +9991,8 @@ export const questionBank = {
     {
       "id": 108,
       "question": "1/3 + 1/5 = ?",
-      "answer": 0.53,
-      "answerDisplay": "0.53",
+      "answer": 0.5333,
+      "answerDisplay": "0.5333",
       "distractors": [
         1.03,
         0.03,
@@ -10002,8 +10002,8 @@ export const questionBank = {
     {
       "id": 109,
       "question": "1/2 + 5/6 = ?",
-      "answer": 1.33,
-      "answerDisplay": "1.33",
+      "answer": 1.3333,
+      "answerDisplay": "1.3333",
       "distractors": [
         1.83,
         0.83,
@@ -10013,8 +10013,8 @@ export const questionBank = {
     {
       "id": 110,
       "question": "5/8 + 5/6 = ?",
-      "answer": 1.46,
-      "answerDisplay": "1.46",
+      "answer": 1.4583,
+      "answerDisplay": "1.4583",
       "distractors": [
         1.96,
         0.96,
@@ -10024,12 +10024,12 @@ export const questionBank = {
     {
       "id": 111,
       "question": "3/8 × 5 ÷ 1 = ?",
-      "answer": 1.88,
-      "answerDisplay": "1.88",
+      "answer": 1.875,
+      "answerDisplay": "1.875",
       "distractors": [
-        2.38,
-        1.38,
-        2.88
+        2.375,
+        1.375,
+        2.875
       ]
     },
     {
@@ -10068,19 +10068,19 @@ export const questionBank = {
     {
       "id": 115,
       "question": "1/4 + 3/8 = ?",
-      "answer": 0.63,
-      "answerDisplay": "0.63",
+      "answer": 0.625,
+      "answerDisplay": "0.625",
       "distractors": [
-        1.13,
-        0.13,
-        1.63
+        1.125,
+        0.125,
+        1.625
       ]
     },
     {
       "id": 116,
       "question": "1/3 × 4 ÷ 1 = ?",
-      "answer": 1.33,
-      "answerDisplay": "1.33",
+      "answer": 1.3333,
+      "answerDisplay": "1.3333",
       "distractors": [
         1.83,
         0.83,
@@ -10090,8 +10090,8 @@ export const questionBank = {
     {
       "id": 117,
       "question": "1/3 × 3 ÷ 3 = ?",
-      "answer": 0.33,
-      "answerDisplay": "0.33",
+      "answer": 0.3333,
+      "answerDisplay": "0.3333",
       "distractors": [
         0.83,
         -0.17,
@@ -10101,8 +10101,8 @@ export const questionBank = {
     {
       "id": 118,
       "question": "4/5 × 2 ÷ 3 = ?",
-      "answer": 0.53,
-      "answerDisplay": "0.53",
+      "answer": 0.5333,
+      "answerDisplay": "0.5333",
       "distractors": [
         1.03,
         0.03,
@@ -10134,19 +10134,19 @@ export const questionBank = {
     {
       "id": 121,
       "question": "4/5 + 5/6 = ?",
-      "answer": 1.63,
-      "answerDisplay": "1.63",
+      "answer": 1.6333,
+      "answerDisplay": "1.6333",
       "distractors": [
-        2.13,
-        1.13,
-        2.63
+        2.125,
+        1.125,
+        2.625
       ]
     },
     {
       "id": 122,
       "question": "5/8 + 1/3 = ?",
-      "answer": 0.96,
-      "answerDisplay": "0.96",
+      "answer": 0.9583,
+      "answerDisplay": "0.9583",
       "distractors": [
         1.46,
         0.46,
@@ -10244,8 +10244,8 @@ export const questionBank = {
     {
       "id": 131,
       "question": "3/8 + 2/3 = ?",
-      "answer": 1.04,
-      "answerDisplay": "1.04",
+      "answer": 1.0417,
+      "answerDisplay": "1.0417",
       "distractors": [
         1.54,
         0.54,
@@ -10266,8 +10266,8 @@ export const questionBank = {
     {
       "id": 133,
       "question": "3/4 + 5/6 = ?",
-      "answer": 1.58,
-      "answerDisplay": "1.58",
+      "answer": 1.5833,
+      "answerDisplay": "1.5833",
       "distractors": [
         2.08,
         1.08,
@@ -10277,8 +10277,8 @@ export const questionBank = {
     {
       "id": 134,
       "question": "1/3 × 6 ÷ 3 = ?",
-      "answer": 0.67,
-      "answerDisplay": "0.67",
+      "answer": 0.6667,
+      "answerDisplay": "0.6667",
       "distractors": [
         1.17,
         0.17,
@@ -10365,8 +10365,8 @@ export const questionBank = {
     {
       "id": 142,
       "question": "5/6 × 2 ÷ 2 = ?",
-      "answer": 0.83,
-      "answerDisplay": "0.83",
+      "answer": 0.8333,
+      "answerDisplay": "0.8333",
       "distractors": [
         1.33,
         0.33,
@@ -10376,8 +10376,8 @@ export const questionBank = {
     {
       "id": 143,
       "question": "1/2 × 4 ÷ 3 = ?",
-      "answer": 0.67,
-      "answerDisplay": "0.67",
+      "answer": 0.6667,
+      "answerDisplay": "0.6667",
       "distractors": [
         1.17,
         0.17,
@@ -10398,12 +10398,12 @@ export const questionBank = {
     {
       "id": 145,
       "question": "3/8 × 6 ÷ 2 = ?",
-      "answer": 1.13,
-      "answerDisplay": "1.13",
+      "answer": 1.125,
+      "answerDisplay": "1.125",
       "distractors": [
-        1.63,
-        0.63,
-        2.13
+        1.625,
+        0.625,
+        2.125
       ]
     },
     {
@@ -10453,12 +10453,12 @@ export const questionBank = {
     {
       "id": 150,
       "question": "5/8 × 7 ÷ 1 = ?",
-      "answer": 4.38,
-      "answerDisplay": "4.38",
+      "answer": 4.375,
+      "answerDisplay": "4.375",
       "distractors": [
-        4.88,
-        3.88,
-        5.38
+        4.875,
+        3.875,
+        5.375
       ]
     },
     {
@@ -10508,8 +10508,8 @@ export const questionBank = {
     {
       "id": 155,
       "question": "4/5 + 2/3 = ?",
-      "answer": 1.47,
-      "answerDisplay": "1.47",
+      "answer": 1.4667,
+      "answerDisplay": "1.4667",
       "distractors": [
         1.97,
         0.97,
@@ -10530,19 +10530,19 @@ export const questionBank = {
     {
       "id": 157,
       "question": "5/8 + 1/2 = ?",
-      "answer": 1.13,
-      "answerDisplay": "1.13",
+      "answer": 1.125,
+      "answerDisplay": "1.125",
       "distractors": [
-        1.63,
-        0.63,
-        2.13
+        1.625,
+        0.625,
+        2.125
       ]
     },
     {
       "id": 158,
       "question": "1/3 × 2 ÷ 3 = ?",
-      "answer": 0.22,
-      "answerDisplay": "0.22",
+      "answer": 0.2222,
+      "answerDisplay": "0.2222",
       "distractors": [
         0.72,
         -0.28,
@@ -10618,45 +10618,45 @@ export const questionBank = {
     {
       "id": 165,
       "question": "1/4 × 5 ÷ 2 = ?",
-      "answer": 0.63,
-      "answerDisplay": "0.63",
+      "answer": 0.625,
+      "answerDisplay": "0.625",
       "distractors": [
-        1.13,
-        0.13,
-        1.63
+        1.125,
+        0.125,
+        1.625
       ]
     },
     {
       "id": 166,
       "question": "3/8 × 3 ÷ 3 = ?",
-      "answer": 0.38,
-      "answerDisplay": "0.38",
+      "answer": 0.375,
+      "answerDisplay": "0.375",
       "distractors": [
-        0.88,
-        -0.12,
-        1.38
+        0.875,
+        -0.125,
+        1.375
       ]
     },
     {
       "id": 167,
       "question": "5/8 + 3/4 = ?",
-      "answer": 1.38,
-      "answerDisplay": "1.38",
+      "answer": 1.375,
+      "answerDisplay": "1.375",
       "distractors": [
-        1.88,
-        0.88,
-        2.38
+        1.875,
+        0.875,
+        2.375
       ]
     },
     {
       "id": 168,
       "question": "5/8 × 5 ÷ 1 = ?",
-      "answer": 3.13,
-      "answerDisplay": "3.13",
+      "answer": 3.125,
+      "answerDisplay": "3.125",
       "distractors": [
-        3.63,
-        2.63,
-        4.13
+        3.625,
+        2.625,
+        4.125
       ]
     },
     {
@@ -10673,12 +10673,12 @@ export const questionBank = {
     {
       "id": 170,
       "question": "3/4 + 3/8 = ?",
-      "answer": 1.13,
-      "answerDisplay": "1.13",
+      "answer": 1.125,
+      "answerDisplay": "1.125",
       "distractors": [
-        1.63,
-        0.63,
-        2.13
+        1.625,
+        0.625,
+        2.125
       ]
     },
     {
@@ -10728,8 +10728,8 @@ export const questionBank = {
     {
       "id": 175,
       "question": "5/6 + 3/4 = ?",
-      "answer": 1.58,
-      "answerDisplay": "1.58",
+      "answer": 1.5833,
+      "answerDisplay": "1.5833",
       "distractors": [
         2.08,
         1.08,
@@ -10772,19 +10772,19 @@ export const questionBank = {
     {
       "id": 179,
       "question": "4/5 + 1/3 = ?",
-      "answer": 1.13,
-      "answerDisplay": "1.13",
+      "answer": 1.1333,
+      "answerDisplay": "1.1333",
       "distractors": [
-        1.63,
-        0.63,
-        2.13
+        1.625,
+        0.625,
+        2.125
       ]
     },
     {
       "id": 180,
       "question": "3/5 + 1/3 = ?",
-      "answer": 0.93,
-      "answerDisplay": "0.93",
+      "answer": 0.9333,
+      "answerDisplay": "0.9333",
       "distractors": [
         1.43,
         0.43,
@@ -10827,8 +10827,8 @@ export const questionBank = {
     {
       "id": 184,
       "question": "2/3 + 4/5 = ?",
-      "answer": 1.47,
-      "answerDisplay": "1.47",
+      "answer": 1.4667,
+      "answerDisplay": "1.4667",
       "distractors": [
         1.97,
         0.97,
@@ -10904,8 +10904,8 @@ export const questionBank = {
     {
       "id": 191,
       "question": "2/5 × 2 ÷ 3 = ?",
-      "answer": 0.27,
-      "answerDisplay": "0.27",
+      "answer": 0.2667,
+      "answerDisplay": "0.2667",
       "distractors": [
         0.77,
         -0.23,
@@ -10915,8 +10915,8 @@ export const questionBank = {
     {
       "id": 192,
       "question": "2/3 + 3/8 = ?",
-      "answer": 1.04,
-      "answerDisplay": "1.04",
+      "answer": 1.0417,
+      "answerDisplay": "1.0417",
       "distractors": [
         1.54,
         0.54,
@@ -10970,12 +10970,12 @@ export const questionBank = {
     {
       "id": 197,
       "question": "1/2 + 3/8 = ?",
-      "answer": 0.88,
-      "answerDisplay": "0.88",
+      "answer": 0.875,
+      "answerDisplay": "0.875",
       "distractors": [
-        1.38,
-        0.38,
-        1.88
+        1.375,
+        0.375,
+        1.875
       ]
     },
     {
@@ -11003,8 +11003,8 @@ export const questionBank = {
     {
       "id": 200,
       "question": "2/5 + 5/6 = ?",
-      "answer": 1.23,
-      "answerDisplay": "1.23",
+      "answer": 1.2333,
+      "answerDisplay": "1.2333",
       "distractors": [
         1.73,
         0.73,
@@ -11071,7 +11071,7 @@ export const questionBank = {
     {
       "id": 6,
       "question": "5/6 × 12 ÷ 3 = ?",
-      "answer": 3.33,
+      "answer": 3.3333,
       "answerDisplay": "3.3333",
       "distractors": [
         3.83,
@@ -11225,7 +11225,7 @@ export const questionBank = {
     {
       "id": 20,
       "question": "7/9 × 18 ÷ 3 = ?",
-      "answer": 4.67,
+      "answer": 4.6667,
       "answerDisplay": "4.6667",
       "distractors": [
         5.17,
@@ -11665,7 +11665,7 @@ export const questionBank = {
     {
       "id": 60,
       "question": "8/9 × 27 ÷ 9 = ?",
-      "answer": 2.67,
+      "answer": 2.6667,
       "answerDisplay": "2.6667",
       "distractors": [
         3.17,
@@ -11731,7 +11731,7 @@ export const questionBank = {
     {
       "id": 66,
       "question": "7/12 × 24 ÷ 6 = ?",
-      "answer": 2.33,
+      "answer": 2.3333,
       "answerDisplay": "2.3333",
       "distractors": [
         2.83,
@@ -11907,7 +11907,7 @@ export const questionBank = {
     {
       "id": 82,
       "question": "7/9 × 36 ÷ 6 = ?",
-      "answer": 4.67,
+      "answer": 4.6667,
       "answerDisplay": "4.6667",
       "distractors": [
         5.17,
@@ -12369,12 +12369,12 @@ export const questionBank = {
     {
       "id": 124,
       "question": "3.5 + 3.5 ÷ 4 = ?",
-      "answer": 4.38,
-      "answerDisplay": "4.38",
+      "answer": 4.375,
+      "answerDisplay": "4.375",
       "distractors": [
-        4.88,
-        3.88,
-        5.38
+        4.875,
+        3.875,
+        5.375
       ]
     },
     {
@@ -12603,9 +12603,9 @@ export const questionBank = {
       "answer": 2.88,
       "answerDisplay": "2.88",
       "distractors": [
-        3.38,
-        2.38,
-        3.88
+        3.375,
+        2.375,
+        3.875
       ]
     },
     {
@@ -12622,12 +12622,12 @@ export const questionBank = {
     {
       "id": 147,
       "question": "0.5 × 5 ÷ 4 = ?",
-      "answer": 0.63,
-      "answerDisplay": "0.63",
+      "answer": 0.625,
+      "answerDisplay": "0.625",
       "distractors": [
-        1.13,
-        0.13,
-        1.63
+        1.125,
+        0.125,
+        1.625
       ]
     },
     {
@@ -12655,8 +12655,8 @@ export const questionBank = {
     {
       "id": 150,
       "question": "8.4 + 2.5 ÷ 4 = ?",
-      "answer": 9.03,
-      "answerDisplay": "9.03",
+      "answer": 9.025,
+      "answerDisplay": "9.025",
       "distractors": [
         9.53,
         8.53,
@@ -12699,8 +12699,8 @@ export const questionBank = {
     {
       "id": 154,
       "question": "6.4 + 3.5 ÷ 4 = ?",
-      "answer": 7.28,
-      "answerDisplay": "7.28",
+      "answer": 7.275,
+      "answerDisplay": "7.275",
       "distractors": [
         7.78,
         6.78,
@@ -12886,12 +12886,12 @@ export const questionBank = {
     {
       "id": 171,
       "question": "1.5 × 5 ÷ 4 = ?",
-      "answer": 1.88,
-      "answerDisplay": "1.88",
+      "answer": 1.875,
+      "answerDisplay": "1.875",
       "distractors": [
-        2.38,
-        1.38,
-        2.88
+        2.375,
+        1.375,
+        2.875
       ]
     },
     {
@@ -12944,9 +12944,9 @@ export const questionBank = {
       "answer": 5.88,
       "answerDisplay": "5.88",
       "distractors": [
-        6.38,
-        5.38,
-        6.88
+        6.375,
+        5.375,
+        6.875
       ]
     },
     {
@@ -12963,8 +12963,8 @@ export const questionBank = {
     {
       "id": 178,
       "question": "5.4 + 1.5 ÷ 4 = ?",
-      "answer": 5.78,
-      "answerDisplay": "5.78",
+      "answer": 5.775,
+      "answerDisplay": "5.775",
       "distractors": [
         6.28,
         5.28,
@@ -13029,8 +13029,8 @@ export const questionBank = {
     {
       "id": 184,
       "question": "6.6 + 0.5 ÷ 4 = ?",
-      "answer": 6.73,
-      "answerDisplay": "6.73",
+      "answer": 6.725,
+      "answerDisplay": "6.725",
       "distractors": [
         7.23,
         6.23,
@@ -15618,12 +15618,12 @@ export const questionBank = {
     {
       "id": 18,
       "question": "3/8 + 1/4 = ?",
-      "answer": 0.63,
+      "answer": 0.625,
       "answerDisplay": "5/8",
       "distractors": [
-        1.13,
-        0.13,
-        1.63
+        1.125,
+        0.125,
+        1.625
       ]
     },
     {
@@ -15792,7 +15792,7 @@ export const questionBank = {
     {
       "id": 33,
       "question": "5/9 + 2/3 = ?",
-      "answer": 1.22,
+      "answer": 1.2222,
       "answerDisplay": "1.2222",
       "distractors": [
         1.72,
@@ -15850,7 +15850,7 @@ export const questionBank = {
     {
       "id": 38,
       "question": "11/12 - 1/4 = ?",
-      "answer": 0.67,
+      "answer": 0.6667,
       "answerDisplay": "2/3",
       "distractors": [
         1.17,
@@ -15966,12 +15966,12 @@ export const questionBank = {
     {
       "id": 48,
       "question": "7/8 + 1/2 = ?",
-      "answer": 1.38,
+      "answer": 1.375,
       "answerDisplay": "1.375",
       "distractors": [
-        1.88,
-        0.88,
-        2.38
+        1.875,
+        0.875,
+        2.375
       ]
     },
     {
@@ -16024,7 +16024,7 @@ export const questionBank = {
     {
       "id": 53,
       "question": "4/9 - 1/3 = ?",
-      "answer": 0.11,
+      "answer": 0.1111,
       "answerDisplay": "1/9",
       "distractors": [
         0.61,
@@ -16140,7 +16140,7 @@ export const questionBank = {
     {
       "id": 63,
       "question": "5/6 + 2/9 = ?",
-      "answer": 1.06,
+      "answer": 1.0556,
       "answerDisplay": "1.0556",
       "distractors": [
         1.56,
@@ -16198,7 +16198,7 @@ export const questionBank = {
     {
       "id": 68,
       "question": "13/15 - 2/5 = ?",
-      "answer": 0.47,
+      "answer": 0.4667,
       "answerDisplay": "7/15",
       "distractors": [
         0.97,
@@ -16314,12 +16314,12 @@ export const questionBank = {
     {
       "id": 78,
       "question": "3/4 + 5/8 = ?",
-      "answer": 1.38,
+      "answer": 1.375,
       "answerDisplay": "1.375",
       "distractors": [
-        1.88,
-        0.88,
-        2.38
+        1.875,
+        0.875,
+        2.375
       ]
     },
     {
@@ -16546,7 +16546,7 @@ export const questionBank = {
     {
       "id": 98,
       "question": "7/9 - 1/6 = ?",
-      "answer": 0.61,
+      "answer": 0.6111,
       "answerDisplay": "11/18",
       "distractors": [
         1.11,
@@ -16627,8 +16627,8 @@ export const questionBank = {
     {
       "id": 105,
       "question": "2/5 + 3/7 = ?",
-      "answer": 0.83,
-      "answerDisplay": "0.83",
+      "answer": 0.8286,
+      "answerDisplay": "0.8286",
       "distractors": [
         1.33,
         0.33,
@@ -16660,8 +16660,8 @@ export const questionBank = {
     {
       "id": 108,
       "question": "1/4 + 11/12 = ?",
-      "answer": 1.17,
-      "answerDisplay": "1.17",
+      "answer": 1.1667,
+      "answerDisplay": "1.1667",
       "distractors": [
         1.67,
         0.67,
@@ -16729,8 +16729,8 @@ export const questionBank = {
     {
       "id": 114,
       "question": "5/9 + 1/4 = ?",
-      "answer": 0.81,
-      "answerDisplay": "0.81",
+      "answer": 0.8056,
+      "answerDisplay": "0.8056",
       "distractors": [
         1.31,
         0.31,
@@ -16799,8 +16799,8 @@ export const questionBank = {
     {
       "id": 120,
       "question": "4/9 + 5/7 = ?",
-      "answer": 1.16,
-      "answerDisplay": "1.16",
+      "answer": 1.1587,
+      "answerDisplay": "1.1587",
       "distractors": [
         1.66,
         0.66,
@@ -16821,8 +16821,8 @@ export const questionBank = {
     {
       "id": 122,
       "question": "1/3 + 3/7 = ?",
-      "answer": 0.76,
-      "answerDisplay": "0.76",
+      "answer": 0.7619,
+      "answerDisplay": "0.7619",
       "distractors": [
         1.26,
         0.26,
@@ -16843,8 +16843,8 @@ export const questionBank = {
     {
       "id": 124,
       "question": "4/9 + 11/12 = ?",
-      "answer": 1.36,
-      "answerDisplay": "1.36",
+      "answer": 1.3611,
+      "answerDisplay": "1.3611",
       "distractors": [
         1.86,
         0.86,
@@ -16923,8 +16923,8 @@ export const questionBank = {
     {
       "id": 131,
       "question": "7/8 + 5/9 = ?",
-      "answer": 1.43,
-      "answerDisplay": "1.43",
+      "answer": 1.4306,
+      "answerDisplay": "1.4306",
       "distractors": [
         1.93,
         0.93,
@@ -16967,8 +16967,8 @@ export const questionBank = {
     {
       "id": 135,
       "question": "3/8 + 5/6 = ?",
-      "answer": 1.21,
-      "answerDisplay": "1.21",
+      "answer": 1.2083,
+      "answerDisplay": "1.2083",
       "distractors": [
         1.71,
         0.71,
@@ -17034,8 +17034,8 @@ export const questionBank = {
     {
       "id": 141,
       "question": "5/9 - 1/3 = ?",
-      "answer": 0.22,
-      "answerDisplay": "0.22",
+      "answer": 0.2222,
+      "answerDisplay": "0.2222",
       "distractors": [
         0.72,
         -0.28,
@@ -17045,8 +17045,8 @@ export const questionBank = {
     {
       "id": 142,
       "question": "5/6 + 3/7 = ?",
-      "answer": 1.26,
-      "answerDisplay": "1.26",
+      "answer": 1.2619,
+      "answerDisplay": "1.2619",
       "distractors": [
         1.76,
         0.76,
@@ -17080,8 +17080,8 @@ export const questionBank = {
     {
       "id": 145,
       "question": "3/7 + 3/7 = ?",
-      "answer": 0.86,
-      "answerDisplay": "0.86",
+      "answer": 0.8571,
+      "answerDisplay": "0.8571",
       "distractors": [
         1.36,
         0.36,
@@ -17149,8 +17149,8 @@ export const questionBank = {
     {
       "id": 151,
       "question": "2/5 + 7/12 = ?",
-      "answer": 0.98,
-      "answerDisplay": "0.98",
+      "answer": 0.9833,
+      "answerDisplay": "0.9833",
       "distractors": [
         1.48,
         0.48,
@@ -17171,8 +17171,8 @@ export const questionBank = {
     {
       "id": 153,
       "question": "5/6 + 5/7 = ?",
-      "answer": 1.55,
-      "answerDisplay": "1.55",
+      "answer": 1.5476,
+      "answerDisplay": "1.5476",
       "distractors": [
         2.05,
         1.05,
@@ -17276,8 +17276,8 @@ export const questionBank = {
     {
       "id": 162,
       "question": "8/15 + 1/4 = ?",
-      "answer": 0.78,
-      "answerDisplay": "0.78",
+      "answer": 0.7833,
+      "answerDisplay": "0.7833",
       "distractors": [
         1.28,
         0.28,
@@ -17299,8 +17299,8 @@ export const questionBank = {
     {
       "id": 164,
       "question": "11/12 + 7/8 = ?",
-      "answer": 1.79,
-      "answerDisplay": "1.79",
+      "answer": 1.7917,
+      "answerDisplay": "1.7917",
       "distractors": [
         2.29,
         1.29,
@@ -17343,8 +17343,8 @@ export const questionBank = {
     {
       "id": 168,
       "question": "5/9 - 8/15 = ?",
-      "answer": 0.02,
-      "answerDisplay": "0.02",
+      "answer": 0.0222,
+      "answerDisplay": "0.0222",
       "distractors": [
         0.52,
         -0.48,
@@ -17377,8 +17377,8 @@ export const questionBank = {
     {
       "id": 171,
       "question": "7/12 + 3/7 = ?",
-      "answer": 1.01,
-      "answerDisplay": "1.01",
+      "answer": 1.0119,
+      "answerDisplay": "1.0119",
       "distractors": [
         1.51,
         0.51,
@@ -17456,8 +17456,8 @@ export const questionBank = {
     {
       "id": 178,
       "question": "7/8 + 2/5 = ?",
-      "answer": 1.27,
-      "answerDisplay": "1.27",
+      "answer": 1.275,
+      "answerDisplay": "1.275",
       "distractors": [
         1.77,
         0.77,
@@ -17515,8 +17515,8 @@ export const questionBank = {
     {
       "id": 183,
       "question": "5/9 + 3/8 = ?",
-      "answer": 0.93,
-      "answerDisplay": "0.93",
+      "answer": 0.9306,
+      "answerDisplay": "0.9306",
       "distractors": [
         1.43,
         0.43,
@@ -17538,8 +17538,8 @@ export const questionBank = {
     {
       "id": 185,
       "question": "5/6 - 2/5 = ?",
-      "answer": 0.43,
-      "answerDisplay": "0.43",
+      "answer": 0.4333,
+      "answerDisplay": "0.4333",
       "distractors": [
         0.93,
         -0.07,
@@ -17549,8 +17549,8 @@ export const questionBank = {
     {
       "id": 186,
       "question": "11/12 - 4/9 = ?",
-      "answer": 0.47,
-      "answerDisplay": "0.47",
+      "answer": 0.4722,
+      "answerDisplay": "0.4722",
       "distractors": [
         0.97,
         -0.03,
@@ -17709,8 +17709,8 @@ export const questionBank = {
     {
       "id": 200,
       "question": "3/8 + 3/7 = ?",
-      "answer": 0.8,
-      "answerDisplay": "0.8",
+      "answer": 0.8036,
+      "answerDisplay": "0.8036",
       "distractors": [
         1.3,
         0.3,

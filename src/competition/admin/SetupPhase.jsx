@@ -89,6 +89,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
   }
 
   async function handleDelete(student) {
+    if (!window.confirm(`Delete "${student.name}"? This will remove all their session data permanently.`)) return
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     if (ids.length === 0) return
     for (const id of ids) {

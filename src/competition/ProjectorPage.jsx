@@ -7,6 +7,7 @@ import { fireConfetti } from '../utils/confetti'
 import logo from '../assets/wonderkids_logo.webp'
 
 const FLAG_CDN = 'https://flagcdn.com/w40'
+const PROJECTOR_FONT = "'Playfair Display', Georgia, 'Times New Roman', serif"
 
 function FlagIcon({ country }) {
   const [failed, setFailed] = useState(false)
@@ -104,7 +105,7 @@ export default function ProjectorPage() {
     if (!competitionId) return
     const { data } = await supabase
       .from('competition_sessions')
-      .select('*')
+      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at')
       .eq('competition_id', competitionId)
     if (data) setSessions(data)
   }, [competitionId])
@@ -160,8 +161,10 @@ export default function ProjectorPage() {
   const scored = levelSessions.filter(s => s.status === 'active' || s.status === 'completed')
   const unscored = levelSessions.filter(s => s.status !== 'active' && s.status !== 'completed')
   const sortedScored = [...scored].sort((a, b) => {
-    if (b.provisional_score !== a.provisional_score) return b.provisional_score - a.provisional_score
-    return a.time_spent_seconds - b.time_spent_seconds
+    const scoreA = a.validated_score ?? a.provisional_score ?? 0
+    const scoreB = b.validated_score ?? b.provisional_score ?? 0
+    if (scoreB !== scoreA) return scoreB - scoreA
+    return (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0)
   })
   const statusPriority = { waiting: 0, registered: 1 }
   const sortedUnscored = [...unscored].sort((a, b) => (statusPriority[a.status] ?? 2) - (statusPriority[b.status] ?? 2))
@@ -226,7 +229,7 @@ export default function ProjectorPage() {
   // ── LOGIN ──
   if (!authed) {
     return (
-      <div className={`min-h-screen flex items-center justify-center relative overflow-hidden p-4 transition-colors ${isDark ? 'bg-[#060814] text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex items-center justify-center relative overflow-hidden p-4 transition-colors ${isDark ? 'bg-[#060814] text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
         <div className={`absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full blur-[150px] pointer-events-none ${isDark ? 'bg-blue-600/10' : 'bg-blue-500/5'}`} />
         <div className={`absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full blur-[150px] pointer-events-none ${isDark ? 'bg-indigo-600/10' : 'bg-indigo-500/5'}`} />
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
@@ -271,7 +274,7 @@ export default function ProjectorPage() {
   // ── LOADING ──
   if (!state) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center font-bold text-xl gap-3 ${bg} ${textMuted}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center font-bold text-xl gap-3 ${bg} ${textMuted}`}>
         <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
         <span>Initializing broadcast...</span>
       </div>
@@ -286,7 +289,7 @@ export default function ProjectorPage() {
   // ── PRE-LOBBY SPLASH ──
   if (isPreLobby) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors ${bg} ${text}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors ${bg} ${text}`}>
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.3, 1], x: [0, 80, 0], y: [0, -60, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
@@ -364,7 +367,7 @@ export default function ProjectorPage() {
     const readyStudents = subjectSessions.filter(s => s.ready)
 
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, -40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -485,7 +488,7 @@ export default function ProjectorPage() {
     const podiumOrder = [1, 0, 2]
 
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
 
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
@@ -549,7 +552,7 @@ export default function ProjectorPage() {
 
   // ── LIVE LEADERBOARD ──
   return (
-    <div className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
+    <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
       {isDark ? (
         <>
           <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -630,7 +633,7 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3.5rem_3.5rem_1.5fr_1fr_5rem_5rem_5rem] gap-3 px-5 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3.5rem_3.5rem_1.5fr_1fr_5rem_5rem_5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span>Rank</span>
         <span></span>
         <span>Participant</span>
@@ -685,29 +688,40 @@ export default function ProjectorPage() {
                 <span><FlagIcon country={s.country} /></span>
                 <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
-                <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.provisional_score}</span>
-                <span className={`text-right font-mono text-sm ${textMuted}`}>{formatTime(s.time_spent_seconds)}</span>
+                <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
+                <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(s.time_spent_seconds) : '—'}</span>
                 <span className="text-right">
-                  {s.status === 'completed' ? (
-                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                      isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                    }`}>Done</span>
-                  ) : s.status === 'active' ? (
-                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg inline-flex items-center gap-1 ${
-                      isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                    }`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Playing
-                    </span>
-                  ) : s.status === 'waiting' ? (
-                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                      isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/25' : 'text-amber-600 bg-amber-50 border-amber-200'
-                    }`}>Lobby</span>
-                  ) : (
-                    <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                      isDark ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-100 border-slate-200'
-                    }`}>Offline</span>
-                  )}
+                  {(() => {
+                    const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 45000
+                    if (s.status === 'completed') return (
+                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                        isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                      }`}>Done</span>
+                    )
+                    if (s.status === 'active' && isOnline) return (
+                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg inline-flex items-center gap-1 ${
+                        isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                      }`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Playing
+                      </span>
+                    )
+                    if (s.status === 'active' && !isOnline) return (
+                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                        isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/25' : 'text-rose-600 bg-rose-50 border-rose-200'
+                      }`}>Disconnected</span>
+                    )
+                    if (s.status === 'waiting' && isOnline) return (
+                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                        isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/25' : 'text-amber-600 bg-amber-50 border-amber-200'
+                      }`}>Lobby</span>
+                    )
+                    return (
+                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
+                        isDark ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-100 border-slate-200'
+                      }`}>Offline</span>
+                    )
+                  })()}
                 </span>
               </motion.div>
             )

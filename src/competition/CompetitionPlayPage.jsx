@@ -190,7 +190,7 @@ export default function CompetitionPlayPage() {
         }
       } catch {}
     }
-    const id = setInterval(check, 5000)
+    const id = setInterval(check, 30000)
     return () => { cancelled = true; clearInterval(id) }
   }, [phase, verifiedCode, selectedSubject, competitionId])
 
@@ -658,19 +658,19 @@ export default function CompetitionPlayPage() {
                         disabled={starting}
                         whileHover={starting ? {} : { scale: 1.08 }}
                         whileTap={starting ? {} : { scale: 0.92 }}
-                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(239,68,68,0.5)] cursor-pointer relative flex items-center justify-center border-4 ${starting ? 'bg-gradient-to-br from-red-400 to-red-600 border-red-300' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-400'}`}
+                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(34,197,94,0.5)] cursor-pointer relative flex items-center justify-center border-4 ${starting ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-300' : 'bg-gradient-to-br from-green-500 to-green-700 border-green-400'}`}
                       >
                         {!starting && (
                           <>
                             <motion.div
                               animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
                               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                              className="absolute inset-0 rounded-full bg-red-500/40"
+                              className="absolute inset-0 rounded-full bg-green-500/40"
                             />
                             <motion.div
                               animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
                               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                              className="absolute inset-0 rounded-full bg-red-500/20"
+                              className="absolute inset-0 rounded-full bg-green-500/20"
                             />
                           </>
                         )}
@@ -689,7 +689,7 @@ export default function CompetitionPlayPage() {
                           )}
                         </motion.div>
                       </motion.button>
-                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-red-400' : 'text-red-500'}`}>
+                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-green-400' : 'text-green-500'}`}>
                         {starting ? 'Entering arena...' : 'Tap to begin!'}
                       </p>
                     </>

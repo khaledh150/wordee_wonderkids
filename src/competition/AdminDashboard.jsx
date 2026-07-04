@@ -63,7 +63,9 @@ export default function AdminDashboard() {
   async function handleRosterImport(rows) {
     if (!state) return
     const existingCodes = sessions.map(s => s.participant_code)
+    const existingKeys = new Set(sessions.map(s => `${s.name}|${s.subject}|${s.level}`))
     const inserts = []
+    let skipped = 0
     for (const row of rows) {
       const code = generateCode(existingCodes)
       existingCodes.push(code)
@@ -76,9 +78,16 @@ export default function AdminDashboard() {
         country: row.country || null,
         age: row.age || null,
       }
-      if (row.english_level > 0) inserts.push({ ...base, subject: 'english', level: row.english_level })
-      if (row.math_level > 0) inserts.push({ ...base, subject: 'math', level: row.math_level })
+      if (row.english_level > 0) {
+        const key = `${row.name}|english|${row.english_level}`
+        if (existingKeys.has(key)) { skipped++; } else { existingKeys.add(key); inserts.push({ ...base, subject: 'english', level: row.english_level }) }
+      }
+      if (row.math_level > 0) {
+        const key = `${row.name}|math|${row.math_level}`
+        if (existingKeys.has(key)) { skipped++; } else { existingKeys.add(key); inserts.push({ ...base, subject: 'math', level: row.math_level }) }
+      }
     }
+    if (skipped > 0) console.warn(`Roster: skipped ${skipped} duplicate entries`)
     if (inserts.length > 0) {
       await supabase.from('competition_sessions').insert(inserts)
       await loadSessions()
@@ -86,7 +95,8 @@ export default function AdminDashboard() {
   }
 
   async function handleNewSession(copyRoster) {
-    const newId = 'session_' + Math.floor(Date.now() / 1000)
+    const rnd = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(16).padStart(2, '0')).join('')
+    const newId = 'comp_' + rnd
     const oldId = state.competition_id
 
     await supabase.from('competition_history').insert({
@@ -98,6 +108,7 @@ export default function AdminDashboard() {
       competition_id: newId,
       is_unlocked: false,
       started_at: null,
+      duration_seconds: 300,
       extra_seconds: 0,
       announcement: null,
       updated_at: new Date().toISOString(),
@@ -208,6 +219,7 @@ export default function AdminDashboard() {
                 elapsed={elapsed}
                 subject={subject}
                 isDark={isDark}
+                autoPhase={autoPhase}
                 updateState={updateState}
                 loadSessions={loadSessions}
               />
@@ -254,14 +266,16 @@ export default function AdminDashboard() {
         </AnimatePresence>
       </main>
 
-      <RosterUpload
-        open={showUpload}
-        onClose={() => setShowUpload(false)}
-        onImport={handleRosterImport}
-        competitionId={state.competition_id}
-        subject={subject}
-        isDark={isDark}
-      />
+      {(autoPhase === 'setup' || autoPhase === 'lobby') && (
+        <RosterUpload
+          open={showUpload}
+          onClose={() => setShowUpload(false)}
+          onImport={handleRosterImport}
+          competitionId={state.competition_id}
+          subject={subject}
+          isDark={isDark}
+        />
+      )}
 
       <ConfirmDialog dialog={dialog} isDark={isDark} />
     </div>

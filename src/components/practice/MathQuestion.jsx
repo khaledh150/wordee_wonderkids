@@ -21,14 +21,14 @@ export default function MathQuestion({ current, onCorrect, onWrong, answered }) 
   const labels = ['A', 'B', 'C', 'D']
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-md">
-      <div className="bg-white rounded-2xl p-3 sm:p-5 shadow-lg text-center w-full">
+    <div className="flex flex-col items-center gap-3 sm:gap-4 w-full max-w-lg">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg text-center w-full">
         <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 leading-snug break-words">
           {renderQuestion(current.question)}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 w-full">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
         {current.choices.map((choice, i) => {
           const isCorrect = answered && choice === current.correctAnswer
           const isWrong = wrongPick === choice
@@ -39,14 +39,14 @@ export default function MathQuestion({ current, onCorrect, onWrong, answered }) 
               disabled={answered}
               animate={isWrong ? { x: [0, -6, 6, -6, 0] } : {}}
               transition={{ duration: 0.25 }}
-              className={`relative p-3 sm:p-4 rounded-xl font-bold text-lg sm:text-xl transition-all cursor-pointer active:scale-95
+              className={`relative p-5 sm:p-6 rounded-2xl font-bold text-xl sm:text-2xl transition-all cursor-pointer active:scale-95 min-h-[4rem] sm:min-h-[4.5rem]
                 ${isCorrect ? 'bg-emerald-500 text-white shadow-lg scale-105' : ''}
                 ${isWrong ? 'bg-red-500 text-white' : ''}
                 ${!isCorrect && !isWrong ? 'bg-white text-slate-800 shadow-md hover:bg-slate-50' : ''}
                 ${answered && !isCorrect ? 'opacity-50' : ''}
               `}
             >
-              <span className={`absolute top-1 left-2 text-[10px] font-bold ${isCorrect || isWrong ? 'text-white/60' : 'text-slate-400'}`}>
+              <span className={`absolute top-1.5 left-2.5 text-[11px] font-bold ${isCorrect || isWrong ? 'text-white/60' : 'text-slate-400'}`}>
                 {labels[i]}
               </span>
               {choice}

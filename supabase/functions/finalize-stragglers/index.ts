@@ -159,7 +159,8 @@ Deno.serve(async (req: Request) => {
           completed_at: now.toISOString(),
           updated_at: now.toISOString(),
         })
-        .eq("participant_id", session.participant_id);
+        .eq("participant_id", session.participant_id)
+        .eq("status", "active");
 
       if (submissionRows.length > 0) {
         await supabase.from("submissions").insert(submissionRows);

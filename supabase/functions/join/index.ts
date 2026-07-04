@@ -204,12 +204,10 @@ Deno.serve(async (req: Request) => {
       }, 200, req);
     }
 
-    // Competition IS started — activate the student
+    // Competition IS started — activate the student with full duration
     const startedAt = now.toISOString();
-    // Calculate remaining time from when the competition was started by admin
-    const compStartedAt = new Date(state.started_at);
-    const compElapsed = (now.getTime() - compStartedAt.getTime()) / 1000;
-    const remaining = Math.max(0, Math.round(totalSeconds - compElapsed));
+    // Each student gets full time from when THEY start, not from admin start
+    const remaining = totalSeconds;
 
     if (remaining <= 0) {
       return json({ error: "Competition has ended" }, 410, req);
@@ -220,6 +218,7 @@ Deno.serve(async (req: Request) => {
       .update({
         status: "active",
         started_at: startedAt,
+        last_seen_at: startedAt,
         updated_at: startedAt,
       })
       .eq("participant_id", session.participant_id)

@@ -118,7 +118,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         text: 'text-amber-500',
         bg: 'from-amber-400 to-yellow-500',
         shadow: 'shadow-amber-500/20',
-        gradient: 'from-amber-50 via-white to-orange-50',
+        gradient: isDark ? 'from-amber-950/40 via-[#0e1224] to-orange-950/40' : 'from-amber-50 via-white to-orange-50',
         title: '🥇 Perfect Score!',
         desc: 'Math Legend Status'
       },
@@ -126,7 +126,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         text: 'text-emerald-500',
         bg: 'from-emerald-400 to-green-500',
         shadow: 'shadow-emerald-500/20',
-        gradient: 'from-emerald-50 via-white to-indigo-50',
+        gradient: isDark ? 'from-emerald-950/40 via-[#0e1224] to-indigo-950/40' : 'from-emerald-50 via-white to-indigo-50',
         title: '⭐ Outstanding!',
         desc: 'Math Extraordinaire'
       },
@@ -134,7 +134,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         text: 'text-indigo-500',
         bg: 'from-indigo-400 to-purple-500',
         shadow: 'shadow-indigo-500/20',
-        gradient: 'from-indigo-50 via-white to-purple-50',
+        gradient: isDark ? 'from-indigo-950/40 via-[#0e1224] to-purple-950/40' : 'from-indigo-50 via-white to-purple-50',
         title: '🥈 Brilliant!',
         desc: 'Splendid Performance'
       },
@@ -142,7 +142,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         text: 'text-rose-500',
         bg: 'from-rose-400 to-orange-500',
         shadow: 'shadow-rose-500/20',
-        gradient: 'from-rose-50 via-white to-orange-50',
+        gradient: isDark ? 'from-rose-950/40 via-[#0e1224] to-orange-950/40' : 'from-rose-50 via-white to-orange-50',
         title: '🥉 Great Effort!',
         desc: 'Keep Growing'
       }
@@ -158,14 +158,14 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <div className="absolute top-1/10 left-1/10 w-48 h-48 rounded-full bg-teal-200/20 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-1/10 right-1/10 w-72 h-72 rounded-full bg-amber-200/20 blur-3xl pointer-events-none" />
+        <div className={`absolute top-1/10 left-1/10 w-48 h-48 rounded-full blur-2xl pointer-events-none ${isDark ? 'bg-teal-500/10' : 'bg-teal-200/20'}`} />
+        <div className={`absolute bottom-1/10 right-1/10 w-72 h-72 rounded-full blur-3xl pointer-events-none ${isDark ? 'bg-amber-500/10' : 'bg-amber-200/20'}`} />
 
         <motion.div
           initial={{ scale: 0.93, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 20 }}
-          className="w-full max-w-md landscape:max-w-2xl bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-5 sm:p-8 text-center relative z-10"
+          className={`w-full max-w-md landscape:max-w-2xl backdrop-blur-xl border rounded-3xl p-5 sm:p-8 text-center relative z-10 ${isDark ? 'bg-[#0e1224]/70 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]' : 'bg-white/70 border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.06)]'}`}
         >
           <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 sm:gap-6 items-center landscape:items-stretch text-center landscape:text-left">
             <div className="flex flex-col items-center justify-center text-center">
@@ -189,7 +189,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
 
               <div className="relative w-36 h-36 mt-3 flex items-center justify-center">
                 <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 144 144">
-                  <circle cx="72" cy="72" r="62" stroke="rgba(241, 245, 249, 0.9)" strokeWidth="10" fill="transparent" />
+                  <circle cx="72" cy="72" r="62" stroke={isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.9)'} strokeWidth="10" fill="transparent" />
                   <motion.circle
                     cx="72" cy="72" r="62"
                     stroke="url(#mathRadialGradient)"
@@ -208,27 +208,27 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                   </defs>
                 </svg>
                 <div className="absolute text-center">
-                  <span className="text-3xl font-black text-slate-800 font-mono tracking-tight">{scoreVal}</span>
+                  <span className={`text-3xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{scoreVal}</span>
                   <span className="text-slate-400 text-[10px] sm:text-xs font-bold block mt-0.5 leading-none">out of {total}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col justify-center border-t border-slate-100 pt-4 landscape:border-t-0 landscape:border-l landscape:border-slate-200/50 landscape:pl-5 sm:landscape:pl-6 landscape:pt-0 gap-4">
+            <div className={`flex flex-col justify-center border-t pt-4 landscape:border-t-0 landscape:border-l landscape:pl-5 sm:landscape:pl-6 landscape:pt-0 gap-4 ${isDark ? 'border-white/10 landscape:border-white/10' : 'border-slate-100 landscape:border-slate-200/50'}`}>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 border border-slate-200/50 rounded-xl p-2.5 sm:p-3 shadow-inner text-center">
+                <div className={`rounded-xl p-2.5 sm:p-3 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
                   <div className="flex items-center justify-center gap-1.5 text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                     Accuracy
                   </div>
-                  <p className="text-lg sm:text-xl font-black text-slate-800 font-mono mt-1">{pct}%</p>
+                  <p className={`text-lg sm:text-xl font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{pct}%</p>
                 </div>
-                <div className="bg-slate-50 border border-slate-200/50 rounded-xl p-2.5 sm:p-3 shadow-inner text-center">
+                <div className={`rounded-xl p-2.5 sm:p-3 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
                   <div className="flex items-center justify-center gap-1.5 text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider">
                     <Timer className="w-3.5 h-3.5 text-teal-500" />
                     Time Spent
                   </div>
-                  <p className="text-lg sm:text-xl font-black text-slate-800 font-mono mt-1">{formattedTime}</p>
+                  <p className={`text-lg sm:text-xl font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{formattedTime}</p>
                 </div>
               </div>
 
@@ -237,11 +237,13 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                   onClick={handleDownloadCertificate}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
-                  disabled={downloadingCert}
+                  disabled={downloadingCert || !validatedScore}
                   className="w-full py-3.5 bg-gradient-to-r from-teal-600 via-cyan-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white font-black rounded-xl text-sm shadow-[0_4px_12px_rgba(20,184,166,0.2)] disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {downloadingCert ? (
                     <><RefreshCw className="w-4 h-4 animate-spin" /> Compiling...</>
+                  ) : !validatedScore ? (
+                    <><Download className="w-4 h-4" /> No score to download</>
                   ) : (
                     <><Download className="w-4 h-4" /> View math certificate</>
                   )}
@@ -322,9 +324,10 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
           />
         </div>
         <PracticeTimerDisplay timeLeft={timeLeft} />
-        <div className="flex gap-1 sm:gap-1.5 shrink-0">
+        <div className="flex gap-1 sm:gap-1.5 shrink-0 items-center">
           <FullscreenBtn />
-          {isSyncing && <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse self-center" title="Syncing..." />}
+          <span className={`w-2.5 h-2.5 rounded-full self-center ${isOffline ? 'bg-red-500' : isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-500'}`}
+            title={isOffline ? 'Offline' : isSyncing ? 'Syncing...' : 'Connected'} />
         </div>
       </div>
 

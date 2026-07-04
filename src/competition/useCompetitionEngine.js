@@ -3,9 +3,9 @@ import { supabase } from './supabaseClient'
 import { seededShuffle } from './seededShuffle'
 
 const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
-const SYNC_INTERVAL = 30_000
+const SYNC_INTERVAL = 15_000
 const JITTER_MAX = 5_000
-const POLL_INTERVAL = 5_000
+const POLL_INTERVAL = 15_000
 const HEARTBEAT_INTERVAL = 15_000
 const ACTIVE_POLL_INTERVAL = 30_000
 
@@ -102,24 +102,9 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   sessionRef.current = session
   timeLeftRef.current = timeLeft
 
-  // Reset engine state when subject changes
+  // Keep subjectRef in sync (no reset — joinCompetition handles state)
   useEffect(() => {
-    if (subjectRef.current === subject) return
     subjectRef.current = subject
-    setPhase('idle')
-    setSession(null)
-    setTimeLeft(null)
-    setAnswers([])
-    setCorrectCount(0)
-    setValidatedScore(null)
-    setRank(null)
-    setSubmitError(false)
-    setOrderedQuestions([])
-    submittingRef.current = false
-    lastSyncedLenRef.current = 0
-    clearInterval(timerRef.current)
-    clearTimeout(syncRef.current)
-    clearTimeout(autoSubmitRef.current)
   }, [subject])
 
   // ── Poll competition_state ──
@@ -199,6 +184,21 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   // ── Join ──
   const joinCompetition = useCallback(async (participantCode, subjectOverride) => {
     const joinSubject = subjectOverride || subject
+    if (subjectOverride) {
+      clearInterval(timerRef.current)
+      clearTimeout(syncRef.current)
+      clearTimeout(autoSubmitRef.current)
+      submittingRef.current = false
+      lastSyncedLenRef.current = 0
+      setTimeLeft(null)
+      setAnswers([])
+      setCorrectCount(0)
+      setValidatedScore(null)
+      setRank(null)
+      setSubmitError(false)
+      setOrderedQuestions([])
+      subjectRef.current = subjectOverride
+    }
     const result = await callFunction('join', {
       participant_code: participantCode,
       competition_id: competitionId,
@@ -297,7 +297,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
         if (next <= 0) {
           clearInterval(timerRef.current)
-          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
+          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 12000)
           return 0
         }
         return next
@@ -306,6 +306,24 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
     return () => clearInterval(timerRef.current)
   }, [phase])
+
+  // Re-sync timer when tab becomes visible (fixes background tab throttling)
+  useEffect(() => {
+    if (phase !== 'active' || !competitionState || !sessionRef.current?.started_at) return
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      const total = (competitionState.duration_seconds || 300) + (competitionState.extra_seconds || 0)
+      const elapsed = (Date.now() - new Date(sessionRef.current.started_at).getTime()) / 1000
+      const corrected = Math.max(0, Math.round(total - elapsed))
+      setTimeLeft(corrected)
+      if (corrected <= 0 && !submittingRef.current) {
+        clearInterval(timerRef.current)
+        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 12000)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [phase, competitionState])
 
   // Admin time extension
   useEffect(() => {

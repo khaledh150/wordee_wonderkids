@@ -1,6 +1,28 @@
 import { jsPDF } from 'jspdf'
+import QRCode from 'qrcode'
 
 const FLAG_CDN = 'https://flagcdn.com/w80'
+const THAI_RE = /[฀-๿]/
+const VERIFY_BASE = typeof window !== 'undefined' ? window.location.origin : 'https://wordee-wonderkids.vercel.app'
+
+let thaifontsLoaded = false
+async function ensureThaiFonts(doc) {
+  if (thaifontsLoaded) return true
+  try {
+    const [regular, bold] = await Promise.all([
+      fetch('/fonts/Sarabun-Regular.ttf').then(r => r.arrayBuffer()),
+      fetch('/fonts/Sarabun-Bold.ttf').then(r => r.arrayBuffer()),
+    ])
+    doc.addFileToVFS('Sarabun-Regular.ttf', btoa(String.fromCharCode(...new Uint8Array(regular))))
+    doc.addFileToVFS('Sarabun-Bold.ttf', btoa(String.fromCharCode(...new Uint8Array(bold))))
+    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal')
+    doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold')
+    thaifontsLoaded = true
+    return true
+  } catch {
+    return false
+  }
+}
 
 async function loadImageAsDataUrl(url) {
   try {
@@ -44,6 +66,10 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
   const w = 297
   const h = 210
   const cx = w / 2
+
+  const hasThai = [name, school, eventName].some(s => s && THAI_RE.test(s))
+  const thaiFontsOk = hasThai ? await ensureThaiFonts(doc) : false
+  const textFont = thaiFontsOk ? 'Sarabun' : 'helvetica'
 
   // ── Background gradient (warm cream) ──
   doc.setFillColor(255, 252, 247)
@@ -111,21 +137,21 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
   doc.triangle(cx - 2.5, dY, cx, dY + 2, cx + 2.5, dY, 'F')
 
   // ── Event name ──
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(textFont, 'bold')
   doc.setFontSize(16)
   doc.setTextColor(68, 55, 130)
   const displayEvent = eventName || 'International English Spelling & Math Championship'
   doc.text(displayEvent, cx, topY + 14, { align: 'center', maxWidth: w - 60 })
 
   // ── "Presented to" ──
-  doc.setFont('helvetica', 'italic')
+  doc.setFont(textFont === 'Sarabun' ? 'Sarabun' : 'helvetica', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(140, 130, 170)
   doc.text('This certificate is proudly presented to', cx, topY + 26, { align: 'center' })
 
   // ── Student name ──
   const studentName = name || 'Student'
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(textFont, 'bold')
   doc.setFontSize(30)
   doc.setTextColor(35, 25, 70)
   doc.text(studentName, cx, topY + 42, { align: 'center' })
@@ -142,7 +168,7 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
   // ── School ──
   let infoY = topY + 55
   if (school) {
-    doc.setFont('helvetica', 'normal')
+    doc.setFont(textFont, 'normal')
     doc.setFontSize(12)
     doc.setTextColor(120, 110, 150)
     doc.text(school, cx, infoY, { align: 'center' })
@@ -206,6 +232,20 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
     }
   }
 
+  // ── Verification QR Code ──
+  const qrSize = 22
+  const qrX = w - 38
+  const qrY = h - 42
+  try {
+    const verifyUrl = `${VERIFY_BASE}/verify?c=${encodeURIComponent(competitionId || '')}&n=${encodeURIComponent(name || '')}&s=${score}&l=${level}`
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 200, margin: 1, color: { dark: '#443782', light: '#ffffff' } })
+    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(5)
+    doc.setTextColor(180, 175, 200)
+    doc.text('Scan to verify', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' })
+  } catch {}
+
   // ── Footer ──
   const footerY = h - 28
   doc.setDrawColor(200, 195, 220)
@@ -220,7 +260,7 @@ export async function generateCertificate({ name, rank, score, totalQuestions, l
   doc.text(displayDate, 40, footerY, { align: 'center' })
 
   if (competitionId && competitionId !== 'default') {
-    doc.text(competitionId, w - 40, footerY, { align: 'center' })
+    doc.text(competitionId, cx, footerY, { align: 'center' })
   }
 
   // Powered by Wonderkids
@@ -238,7 +278,10 @@ export async function downloadCertificate(data) {
 }
 
 export async function downloadBatchCertificates(students, eventName, competitionId, onProgress) {
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
   const total = students.length
+
   for (let i = 0; i < total; i++) {
     const s = students[i]
     const doc = await generateCertificate({
@@ -252,12 +295,21 @@ export async function downloadBatchCertificates(students, eventName, competition
       eventName,
       competitionId,
     })
-    doc.save(`certificate-${(s.name || 'student').replace(/\s+/g, '-').toLowerCase()}.pdf`)
+    const pdfBlob = doc.output('blob')
+    const filename = `certificate-${(s.name || 'student').replace(/\s+/g, '-').replace(/[^\w-]/g, '').toLowerCase()}.pdf`
+    zip.file(filename, pdfBlob)
 
     if (onProgress) onProgress(i + 1, total)
 
     if ((i + 1) % 5 === 0) {
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise(r => setTimeout(r, 10))
     }
   }
+
+  const blob = await zip.generateAsync({ type: 'blob' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `certificates-${competitionId}.zip`
+  a.click()
+  URL.revokeObjectURL(a.href)
 }

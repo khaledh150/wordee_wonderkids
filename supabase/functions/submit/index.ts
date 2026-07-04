@@ -104,8 +104,8 @@ Deno.serve(async (req: Request) => {
     const serverElapsed = (now.getTime() - startedAt.getTime()) / 1000;
     const clampedTime = Math.min(Math.round(serverElapsed), allowedWindow);
 
-    // Reject submissions that arrive way too late (>60s past deadline)
-    if (serverElapsed > allowedWindow + 60) {
+    // Reject submissions that arrive way too late (>15s past deadline)
+    if (serverElapsed > allowedWindow + 15) {
       return json({ error: "Submission window has closed" }, 410, req);
     }
 

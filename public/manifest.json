@@ -4,7 +4,7 @@
   "description": "Learn English Vocabulary for Kids",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "theme_color": "#FFF5F0",
   "background_color": "#FFF5F0",
   "icons": [

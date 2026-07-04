@@ -4,7 +4,7 @@ import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp } from 'lucide-r
 import { fmt } from './shared'
 import { supabase } from '../supabaseClient'
 
-export default function LivePhase({ state, sessions, elapsed, subject, isDark, updateState, loadSessions }) {
+export default function LivePhase({ state, sessions, elapsed, subject, isDark, autoPhase, updateState, loadSessions }) {
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
   const autoTransitionRef = useRef(false)
@@ -116,31 +116,33 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {[1, 2, 5].map(m => (
+          {autoPhase === 'live' && (
+            <div className="flex items-center gap-2 shrink-0">
+              {[1, 2, 5].map(m => (
+                <button
+                  key={m}
+                  onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 })}
+                  className={`px-3 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer border ${
+                    isDark
+                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
+                      : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  +{m}m
+                </button>
+              ))}
+
+              <div className="w-px h-8 bg-white/10 mx-1" />
+
               <button
-                key={m}
-                onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 })}
-                className={`px-3 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer border ${
-                  isDark
-                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
-                    : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                }`}
+                onClick={handleEmergencyStop}
+                className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                +{m}m
+                <AlertOctagon className="w-4 h-4" />
+                END NOW
               </button>
-            ))}
-
-            <div className="w-px h-8 bg-white/10 mx-1" />
-
-            <button
-              onClick={handleEmergencyStop}
-              className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <AlertOctagon className="w-4 h-4" />
-              END NOW
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -214,7 +216,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
                     {fmt(s.time_spent_seconds)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <StatusBadge status={s.status} />
+                    <StatusBadge status={s.status} lastSeenAt={s.last_seen_at} />
                   </td>
                 </tr>
               ))}
@@ -303,16 +305,23 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, u
   )
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, lastSeenAt }) {
+  const isOnline = lastSeenAt && (Date.now() - new Date(lastSeenAt).getTime()) < 45000
+  let displayStatus = status
+  if (status === 'waiting' && !isOnline) displayStatus = 'offline'
+  if (status === 'active' && !isOnline) displayStatus = 'disconnected'
+
   const styles = {
     completed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     active: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    waiting: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
+    waiting: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    offline: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
+    disconnected: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
   }
-  const labels = { completed: 'Done', active: 'Playing', waiting: 'Waiting' }
+  const labels = { completed: 'Done', active: 'Playing', waiting: 'Lobby', offline: 'Offline', disconnected: 'Disconnected' }
   return (
-    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${styles[status] || styles.waiting}`}>
-      {labels[status] || 'Waiting'}
+    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${styles[displayStatus] || styles.offline}`}>
+      {labels[displayStatus] || 'Offline'}
     </span>
   )
 }
