@@ -4,7 +4,7 @@ import { ArrowLeft, Monitor } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { isOnline } from './shared'
 
-export default function LobbyPhase({ state, sessions, subject, isDark, updateState, loadSessions, onBackToSetup }) {
+export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onBackToSetup }) {
   const [confirmStart, setConfirmStart] = useState(false)
 
   const playUrl = `${window.location.origin}/play`
@@ -104,7 +104,7 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
                     : textMuted
                 return (
                   <motion.div
-                    key={s.id}
+                    key={s.participant_id}
                     layout
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -124,53 +124,63 @@ export default function LobbyPhase({ state, sessions, subject, isDark, updateSta
       )}
 
       <div className="flex flex-col items-center gap-3">
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleStart}
-          className={`w-full max-w-md rounded-xl py-4 text-lg font-bold text-white transition-colors cursor-pointer ${
-            confirmStart
-              ? 'bg-amber-500 animate-pulse'
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
-        >
-          {confirmStart ? 'TAP TO CONFIRM' : `START ${subject === 'math' ? 'MATHEMATICS' : 'ENGLISH SPELLING'} COMPETITION`}
-        </motion.button>
-
-        <AnimatePresence>
-          {confirmStart && (
+        {autoPhase === 'live' ? (
+          <div className={`w-full max-w-md rounded-xl py-4 text-lg font-bold text-center ${
+            isDark ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-amber-50 border border-amber-200 text-amber-700'
+          }`}>
+            Competition is Live
+          </div>
+        ) : (
+          <>
             <motion.button
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              onClick={() => { setConfirmStart(false); setStartError('') }}
-              className={`text-sm cursor-pointer ${textMuted} hover:underline`}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleStart}
+              className={`w-full max-w-md rounded-xl py-4 text-lg font-bold text-white transition-colors cursor-pointer ${
+                confirmStart
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              Cancel
+              {confirmStart ? 'TAP TO CONFIRM' : `START ${subject === 'math' ? 'MATHEMATICS' : 'ENGLISH SPELLING'} COMPETITION`}
             </motion.button>
-          )}
-        </AnimatePresence>
 
-        {startError && (
-          <p className={`text-xs font-bold px-4 py-2 rounded-lg border ${
-            isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-200'
-          }`}>{startError}</p>
-        )}
+            <AnimatePresence>
+              {confirmStart && (
+                <motion.button
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  onClick={() => { setConfirmStart(false); setStartError('') }}
+                  className={`text-sm cursor-pointer ${textMuted} hover:underline`}
+                >
+                  Cancel
+                </motion.button>
+              )}
+            </AnimatePresence>
 
-        <button
-          onClick={handleBack}
-          className={`flex items-center gap-1 text-sm mt-2 cursor-pointer ${
-            confirmBack
-              ? 'text-amber-500 font-bold animate-pulse'
-              : `${textMuted} hover:underline`
-          }`}
-        >
-          <ArrowLeft size={14} />
-          {confirmBack ? 'Tap again to confirm' : 'Back to Setup'}
-        </button>
-        {confirmBack && (
-          <button onClick={() => setConfirmBack(false)} className={`text-xs cursor-pointer ${textMuted} hover:underline`}>
-            Cancel
-          </button>
+            {startError && (
+              <p className={`text-xs font-bold px-4 py-2 rounded-lg border ${
+                isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-200'
+              }`}>{startError}</p>
+            )}
+
+            <button
+              onClick={handleBack}
+              className={`flex items-center gap-1 text-sm mt-2 cursor-pointer ${
+                confirmBack
+                  ? 'text-amber-500 font-bold animate-pulse'
+                  : `${textMuted} hover:underline`
+              }`}
+            >
+              <ArrowLeft size={14} />
+              {confirmBack ? 'Tap again to confirm' : 'Back to Setup'}
+            </button>
+            {confirmBack && (
+              <button onClick={() => setConfirmBack(false)} className={`text-xs cursor-pointer ${textMuted} hover:underline`}>
+                Cancel
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

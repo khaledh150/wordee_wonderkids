@@ -176,6 +176,7 @@ export default function AdminDashboard() {
                 sessions={sessions}
                 subject={subject}
                 isDark={isDark}
+                autoPhase={autoPhase}
                 updateState={updateState}
                 loadSessions={loadSessions}
                 onOpenLobby={handleOpenLobby}
@@ -191,6 +192,7 @@ export default function AdminDashboard() {
                 sessions={sessions}
                 subject={subject}
                 isDark={isDark}
+                autoPhase={autoPhase}
                 updateState={updateState}
                 loadSessions={loadSessions}
                 onBackToSetup={async () => { await updateState({ is_unlocked: false }) }}

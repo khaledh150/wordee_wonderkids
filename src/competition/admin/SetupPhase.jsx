@@ -8,7 +8,7 @@ const DURATION_OPTIONS = [3, 5, 8, 10, 15]
 const ENGLISH_LEVELS = [0, 1, 2, 3, 4]
 const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
-export default function SetupPhase({ state, sessions, subject, isDark, updateState, loadSessions, onOpenLobby, onShowUpload }) {
+export default function SetupPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onOpenLobby, onShowUpload }) {
   const [showAddRow, setShowAddRow] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
   const [editingCode, setEditingCode] = useState(null)
@@ -135,10 +135,14 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
       }
 
       if (Number(newStudent.englishLevel) > 0) {
-        rows.push({ ...base, subject: 'english', level: Number(newStudent.englishLevel) })
+        const row = { ...base, subject: 'english', level: Number(newStudent.englishLevel) }
+        if (subject === 'english' && (autoPhase === 'lobby' || autoPhase === 'live')) row.status = 'waiting'
+        rows.push(row)
       }
       if (Number(newStudent.mathLevel) > 0) {
-        rows.push({ ...base, subject: 'math', level: Number(newStudent.mathLevel) })
+        const row = { ...base, subject: 'math', level: Number(newStudent.mathLevel) }
+        if (subject === 'math' && (autoPhase === 'lobby' || autoPhase === 'live')) row.status = 'waiting'
+        rows.push(row)
       }
 
       if (rows.length === 0) {
@@ -584,24 +588,34 @@ export default function SetupPhase({ state, sessions, subject, isDark, updateSta
           </div>
 
           {/* Open Lobby Button */}
-          <button
-            onClick={onOpenLobby}
-            disabled={studentCount === 0}
-            className={`w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-black uppercase tracking-wider transition-all cursor-pointer
-              ${studentCount > 0
-                ? 'bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white shadow-lg shadow-emerald-900/30'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-              }
-              disabled:pointer-events-none
-            `}
-          >
-            Open Lobby
-            <ArrowRight className="w-5 h-5" />
-          </button>
-          {studentCount === 0 && (
-            <p className={`text-xs text-center mt-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-              Add students to enable lobby
-            </p>
+          {autoPhase === 'lobby' || autoPhase === 'live' ? (
+            <div className={`w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-black uppercase tracking-wider ${
+              isDark ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-amber-50 border border-amber-200 text-amber-700'
+            }`}>
+              {autoPhase === 'lobby' ? 'Lobby is Open' : 'Competition is Live'}
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={onOpenLobby}
+                disabled={studentCount === 0}
+                className={`w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-black uppercase tracking-wider transition-all cursor-pointer
+                  ${studentCount > 0
+                    ? 'bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white shadow-lg shadow-emerald-900/30'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                  }
+                  disabled:pointer-events-none
+                `}
+              >
+                Open Lobby
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              {studentCount === 0 && (
+                <p className={`text-xs text-center mt-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Add students to enable lobby
+                </p>
+              )}
+            </>
           )}
         </motion.div>
       </div>
