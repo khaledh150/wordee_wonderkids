@@ -95,11 +95,32 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline) }
   }, [])
 
+  const subjectRef = useRef(subject)
   answersRef.current = answers
   correctCountRef.current = correctCount
   phaseRef.current = phase
   sessionRef.current = session
   timeLeftRef.current = timeLeft
+
+  // Reset engine state when subject changes
+  useEffect(() => {
+    if (subjectRef.current === subject) return
+    subjectRef.current = subject
+    setPhase('idle')
+    setSession(null)
+    setTimeLeft(null)
+    setAnswers([])
+    setCorrectCount(0)
+    setValidatedScore(null)
+    setRank(null)
+    setSubmitError(false)
+    setOrderedQuestions([])
+    submittingRef.current = false
+    lastSyncedLenRef.current = 0
+    clearInterval(timerRef.current)
+    clearTimeout(syncRef.current)
+    clearTimeout(autoSubmitRef.current)
+  }, [subject])
 
   // ── Poll competition_state ──
   const pollState = useCallback(async () => {
@@ -121,7 +142,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       await callFunction('heartbeat', {
         participant_code: sessionRef.current.participant_code,
         competition_id: competitionId,
-        subject,
+        subject: subjectRef.current,
         ready: ready || undefined,
       })
     } catch {}
@@ -176,11 +197,12 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   }, [competitionId, questions])
 
   // ── Join ──
-  const joinCompetition = useCallback(async (participantCode) => {
+  const joinCompetition = useCallback(async (participantCode, subjectOverride) => {
+    const joinSubject = subjectOverride || subject
     const result = await callFunction('join', {
       participant_code: participantCode,
       competition_id: competitionId,
-      subject,
+      subject: joinSubject,
     })
 
     const sess = { ...result, participant_code: participantCode }
@@ -225,7 +247,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     const result = await callFunction('join', {
       participant_code: session.participant_code,
       competition_id: competitionId,
-      subject,
+      subject: subjectRef.current,
     })
 
     if (result.completed) {
@@ -308,7 +330,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         await callFunction('sync', {
           participant_code: session.participant_code,
           competition_id: competitionId,
-          subject,
+          subject: subjectRef.current,
           provisional_score: correctCountRef.current,
           questions_answered: answersRef.current.length,
           answers: answersRef.current,
@@ -344,7 +366,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         const result = await callFunction('submit', {
           participant_code: sess.participant_code,
           competition_id: competitionId,
-          subject,
+          subject: subjectRef.current,
           answers: answersRef.current,
         })
         setValidatedScore(result.validated_score)

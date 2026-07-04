@@ -236,7 +236,7 @@ export default function CompetitionPlayPage() {
     setLoading(true)
     try {
       enterFullscreen()
-      const result = await joinCompetition(useCode)
+      const result = await joinCompetition(useCode, subject)
       const q = await getQuestionsForSession(subject, result.level, result.participant_id)
       setQuestions(q)
       if (result.completed) setStep('active')
