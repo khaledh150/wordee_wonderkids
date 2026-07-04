@@ -311,7 +311,7 @@ export default function CompetitionPlayPage() {
           scale: [1, 0.8, 1.1, 1],
         }}
         transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-40 -right-40 w-112 h-112 rounded-full bg-gradient-to-tr from-amber-200/30 to-rose-300/30 blur-3xl"
+        className="absolute -bottom-40 -right-40 w-112 h-112 rounded-full bg-gradient-to-tr from-cyan-200/30 to-indigo-300/30 blur-3xl"
       />
     </div>
   )

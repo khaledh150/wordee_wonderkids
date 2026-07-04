@@ -3,8 +3,8 @@ import { supabase } from './supabaseClient'
 import { seededShuffle } from './seededShuffle'
 
 const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
-const SYNC_INTERVAL = 15_000
-const JITTER_MAX = 5_000
+const SYNC_INTERVAL = 8_000
+const JITTER_MAX = 2_000
 const POLL_INTERVAL = 15_000
 const HEARTBEAT_INTERVAL = 15_000
 const ACTIVE_POLL_INTERVAL = 30_000
@@ -297,7 +297,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
         if (next <= 0) {
           clearInterval(timerRef.current)
-          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 12000)
+          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
           return 0
         }
         return next
@@ -318,7 +318,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setTimeLeft(corrected)
       if (corrected <= 0 && !submittingRef.current) {
         clearInterval(timerRef.current)
-        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 12000)
+        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

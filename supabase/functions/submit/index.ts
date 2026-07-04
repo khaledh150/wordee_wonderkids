@@ -110,7 +110,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Load answer keys (service role only — never sent to client)
-    const { data: keys, error: keysErr } = await supabase
+    // Try competition-specific keys first, fall back to 'default'
+    let { data: keys, error: keysErr } = await supabase
       .from("answer_keys")
       .select("question_id, correct_answer")
       .eq("subject", session.subject)
@@ -119,6 +120,19 @@ Deno.serve(async (req: Request) => {
 
     if (keysErr) {
       return json({ error: "Failed to load answer keys" }, 500, req);
+    }
+
+    if (!keys || keys.length === 0) {
+      const fallback = await supabase
+        .from("answer_keys")
+        .select("question_id, correct_answer")
+        .eq("subject", session.subject)
+        .eq("level", session.level)
+        .eq("competition_id", "default");
+      if (fallback.error) {
+        return json({ error: "Failed to load answer keys" }, 500, req);
+      }
+      keys = fallback.data;
     }
 
     // Build answer key map and compute validated score

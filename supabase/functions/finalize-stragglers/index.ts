@@ -95,6 +95,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Load all answer keys for this subject (and optionally level)
+    // Try competition-specific keys first, fall back to 'default'
     let keysQuery = supabase
       .from("answer_keys")
       .select("question_id, correct_answer, level")
@@ -105,7 +106,18 @@ Deno.serve(async (req: Request) => {
       keysQuery = keysQuery.eq("level", level);
     }
 
-    const { data: allKeys } = await keysQuery;
+    let { data: allKeys } = await keysQuery;
+
+    if (!allKeys || allKeys.length === 0) {
+      let fbQuery = supabase
+        .from("answer_keys")
+        .select("question_id, correct_answer, level")
+        .eq("subject", subject)
+        .eq("competition_id", "default");
+      if (level != null) fbQuery = fbQuery.eq("level", level);
+      const fb = await fbQuery;
+      if (!fb.error) allKeys = fb.data;
+    }
 
     // Group keys by level
     const keysByLevel = new Map<number, Map<string, string>>();

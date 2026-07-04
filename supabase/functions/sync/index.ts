@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     if (session.answers_snapshot != null && session.updated_at) {
       const lastUpdate = new Date(session.updated_at).getTime();
       const now = Date.now();
-      if (now - lastUpdate < 12_000) {
+      if (now - lastUpdate < 5_000) {
         // Still update last_seen_at even when throttled
         await supabase
           .from("competition_sessions")

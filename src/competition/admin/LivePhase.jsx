@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp } from 'lucide-react'
+import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp, TimerReset } from 'lucide-react'
 import { fmt } from './shared'
 import { supabase } from '../supabaseClient'
 
 export default function LivePhase({ state, sessions, elapsed, subject, isDark, autoPhase, updateState, loadSessions }) {
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
+  const [timeExtOpen, setTimeExtOpen] = useState(false)
   const autoTransitionRef = useRef(false)
 
   const totalDuration = (state.duration_seconds || 0) + (state.extra_seconds || 0)
@@ -117,31 +118,13 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
           </div>
 
           {autoPhase === 'live' && (
-            <div className="flex items-center gap-2 shrink-0">
-              {[1, 2, 5].map(m => (
-                <button
-                  key={m}
-                  onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 })}
-                  className={`px-3 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer border ${
-                    isDark
-                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
-                      : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                  }`}
-                >
-                  +{m}m
-                </button>
-              ))}
-
-              <div className="w-px h-8 bg-white/10 mx-1" />
-
-              <button
-                onClick={handleEmergencyStop}
-                className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <AlertOctagon className="w-4 h-4" />
-                END NOW
-              </button>
-            </div>
+            <button
+              onClick={handleEmergencyStop}
+              className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <AlertOctagon className="w-4 h-4" />
+              END NOW
+            </button>
           )}
         </div>
       </div>
@@ -231,6 +214,55 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
           </table>
         </div>
       </div>
+
+      {autoPhase === 'live' && (
+        <div className={`rounded-2xl border ${card}`}>
+          <button
+            onClick={() => setTimeExtOpen(o => !o)}
+            className={`w-full flex items-center justify-between px-5 py-3 text-sm font-bold cursor-pointer ${
+              isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <TimerReset className="w-4 h-4 text-amber-500" />
+              Time Extension
+              {(state.extra_seconds || 0) > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                  isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'
+                }`}>+{Math.round((state.extra_seconds || 0) / 60)}m added</span>
+              )}
+            </span>
+            {timeExtOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <AnimatePresence>
+            {timeExtOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className={`px-5 pb-4 pt-1 flex gap-2 border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+                  {[1, 2, 5].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 })}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer border ${
+                        isDark
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
+                          : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                      }`}
+                    >
+                      +{m} min
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       <div className={`rounded-2xl border ${card}`}>
         <button

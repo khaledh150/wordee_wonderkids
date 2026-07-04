@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
         const answersSnapshot = session.answers_snapshot as Array<{ question_id: string; submitted_answer: string }> | null;
 
         if (answersSnapshot && answersSnapshot.length > 0) {
-          const { data: keys, error: keysErr } = await supabase
+          let { data: keys, error: keysErr } = await supabase
             .from("answer_keys")
             .select("question_id, correct_answer")
             .eq("subject", session.subject)
@@ -113,6 +113,16 @@ Deno.serve(async (req: Request) => {
 
           if (keysErr) {
             return json({ error: "Failed to load answer keys" }, 500, req);
+          }
+
+          if (!keys || keys.length === 0) {
+            const fb = await supabase
+              .from("answer_keys")
+              .select("question_id, correct_answer")
+              .eq("subject", session.subject)
+              .eq("level", session.level)
+              .eq("competition_id", "default");
+            if (!fb.error) keys = fb.data;
           }
 
           const keyMap = new Map((keys ?? []).map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
