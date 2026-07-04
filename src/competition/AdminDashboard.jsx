@@ -53,6 +53,7 @@ export default function AdminDashboard() {
       message: 'Open the lobby? Students will be able to join via QR code.',
       onConfirm: async () => {
         await updateState({ is_unlocked: true, started_at: null })
+        setPhaseOverride(null)
         setDialog(null)
       },
       onCancel: () => setDialog(null),
@@ -158,7 +159,7 @@ export default function AdminDashboard() {
     <div className={`min-h-screen transition-colors ${isDark ? 'bg-[#060814] text-white' : 'bg-slate-50 text-slate-900'}`}>
       <AdminHeader
         subject={subject}
-        setSubject={setSubject}
+        setSubject={(s) => { setSubject(s); setPhaseOverride(null) }}
         phase={phase}
         isDark={isDark}
         setTheme={setTheme}
