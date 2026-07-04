@@ -18,8 +18,8 @@ export default function LevelSelect({ onSelect }) {
     >
       <FullscreenBtn className="absolute top-3 right-3 z-10" />
 
-      <img src={logo} alt="Wordee" className="w-20 h-20 sm:w-28 sm:h-28 lg:w-36 lg:h-36 xl:w-44 xl:h-44 object-contain mb-0.5" />
-      <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-purple-700 mb-0.5">Wordee</h1>
+      <img src={logo} alt="English Spelling" className="w-20 h-20 sm:w-28 sm:h-28 lg:w-36 lg:h-36 xl:w-44 xl:h-44 object-contain mb-0.5" />
+      <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-purple-700 mb-0.5">English Spelling</h1>
       <p className="text-[11px] sm:text-xs lg:text-sm xl:text-base text-purple-400 mb-2 lg:mb-3">Choose your level</p>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 xl:gap-5 w-full max-w-2xl xl:max-w-4xl">

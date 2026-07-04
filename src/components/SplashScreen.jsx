@@ -17,7 +17,7 @@ export default function SplashScreen({ onDone }) {
     >
       <motion.img
         src={logo}
-        alt="Wordee"
+        alt="English Spelling"
         className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 object-contain drop-shadow-xl"
         initial={{ scale: 0.3, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -29,7 +29,7 @@ export default function SplashScreen({ onDone }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        Wordee
+        English Spelling
       </motion.h1>
       <motion.p
         className="text-base sm:text-lg text-purple-400 mt-1 font-semibold"
