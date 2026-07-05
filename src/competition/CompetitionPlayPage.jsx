@@ -132,6 +132,17 @@ export default function CompetitionPlayPage() {
     }
   }, [competitionId])
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (step === 'active' || step === 'waiting') {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [step])
+
   const engine = useCompetitionEngine({
     competitionId,
     subject: selectedSubject || 'english',
