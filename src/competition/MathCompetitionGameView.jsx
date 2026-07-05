@@ -30,6 +30,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
     finish,
     isSyncing,
     isOffline,
+    isSubmitting,
     phase,
     validatedScore,
     rank,
@@ -181,6 +182,9 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                 {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-float" />}
               </motion.div>
 
+              {session?.name && (
+                <p className={`text-sm sm:text-base font-black mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
+              )}
               <h2 className="text-[10px] font-black text-teal-500 uppercase tracking-widest leading-none">Competition Complete</h2>
               <h1 className={`text-xl sm:text-2xl font-black mt-1.5 tracking-tight leading-tight ${tierColors.text}`}>
                 {tierColors.title}
@@ -344,6 +348,36 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Submitting overlay */}
+      <AnimatePresence>
+        {isSubmitting && !isTimeUp && phase !== 'completed' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={`fixed inset-0 z-50 backdrop-blur-md flex flex-col items-center justify-center ${
+              isDark ? 'bg-[#060814]/90 text-white' : 'bg-white/90 text-slate-900'
+            }`}
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                isDark ? 'bg-teal-500/20 border-2 border-teal-500/40' : 'bg-teal-50 border-2 border-teal-200'
+              }`}
+            >
+              <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+            </motion.div>
+            <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              Submitting Score...
+            </h2>
+            <p className={`text-xs font-bold mt-2 ${isDark ? 'text-teal-300' : 'text-teal-600'}`}>
+              Hang tight, recording your answers
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isTimeUp && phase !== 'completed' && (

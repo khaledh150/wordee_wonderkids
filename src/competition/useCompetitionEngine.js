@@ -40,6 +40,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [validatedScore, setValidatedScore] = useState(null)
   const [rank, setRank] = useState(null)
   const [submitError, setSubmitError] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const [competitionState, setCompetitionState] = useState(null)
@@ -372,9 +373,10 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const doSubmit = useCallback(async () => {
     if (submittingRef.current) return
     submittingRef.current = true
+    setIsSubmitting(true)
 
     const sess = sessionRef.current
-    if (!sess) { submittingRef.current = false; return }
+    if (!sess) { submittingRef.current = false; setIsSubmitting(false); return }
 
     saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'submitting', answers: answersRef.current })
 
@@ -442,7 +444,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
   return {
     phase, session, timeLeft, currentScore: correctCount,
-    questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline,
+    questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline, isSubmitting,
     announcement, competitionState, orderedQuestions, hapticPulse,
     submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
   }

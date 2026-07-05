@@ -130,8 +130,10 @@ export default function CompetitionPlayPage() {
       getQuestionsForSession(selectedSubject, session.level, session.participant_id).then(setQuestions)
     }
     if (phase === 'completed' && session) {
+      if (step === 'code' && !verifiedCode) return
       setStep('active')
     } else if (phase === 'waiting' && session) {
+      if (step === 'code' && !verifiedCode) return
       setStep('waiting')
     } else if (phase === 'active' && session) {
       if (step === 'waiting') {
@@ -176,7 +178,8 @@ export default function CompetitionPlayPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ participant_code: verifiedCode, competition_id: competitionId }),
         })
-        if (!res.ok || cancelled) return
+        if (cancelled) return
+        if (!res.ok) return
         const data = await res.json()
         const subjects = data.subjects || []
         const otherSubjects = subjects.filter(s => s !== selectedSubject)
@@ -190,7 +193,8 @@ export default function CompetitionPlayPage() {
         }
       } catch {}
     }
-    const id = setInterval(check, 30000)
+    check()
+    const id = setInterval(check, 8000)
     return () => { cancelled = true; clearInterval(id) }
   }, [phase, verifiedCode, selectedSubject, competitionId])
 
