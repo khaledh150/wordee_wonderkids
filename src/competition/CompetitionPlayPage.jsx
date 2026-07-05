@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
@@ -86,6 +86,17 @@ async function preloadWithConcurrency(urls, onProgress) {
 }
 
 
+function loadPlayState(competitionId) {
+  if (!competitionId) return null
+  try {
+    const raw = localStorage.getItem(`wordee_comp_${competitionId}`)
+    if (!raw) return null
+    const saved = JSON.parse(raw)
+    if (saved.participantCode && saved.session) return saved
+  } catch {}
+  return null
+}
+
 export default function CompetitionPlayPage() {
   const [step, setStep] = useState('code') // code | subject | waiting | active
   const [selectedSubject, setSelectedSubject] = useState(null) // 'english' | 'math'
@@ -101,11 +112,25 @@ export default function CompetitionPlayPage() {
   const [countdownActive, setCountdownActive] = useState(false)
   const [countdownNum, setCountdownNum] = useState(3)
   const [competitionId, setCompetitionId] = useState(null)
+  const restoredRef = useRef(false)
 
   useEffect(() => {
     supabase.from('competition_state').select('competition_id').limit(1).single()
       .then(({ data }) => { if (data) setCompetitionId(data.competition_id) })
   }, [])
+
+  useEffect(() => {
+    if (!competitionId || restoredRef.current) return
+    restoredRef.current = true
+    const saved = loadPlayState(competitionId)
+    if (saved?.participantCode && saved?.session?.subject) {
+      setVerifiedCode(saved.participantCode)
+      setSelectedSubject(saved.session.subject)
+      if (saved.phase === 'active' || saved.phase === 'submitting') {
+        restoredRef.current = 'auto-resume'
+      }
+    }
+  }, [competitionId])
 
   const engine = useCompetitionEngine({
     competitionId,
@@ -134,9 +159,14 @@ export default function CompetitionPlayPage() {
       setStep('active')
     } else if (phase === 'waiting' && session) {
       if (step === 'code' && !verifiedCode) return
+      if (restoredRef.current === 'auto-resume') {
+        restoredRef.current = 'done'
+        startRace()
+        return
+      }
       setStep('waiting')
     } else if (phase === 'active' && session) {
-      if (step === 'waiting') {
+      if (step === 'waiting' && restoredRef.current !== 'done') {
         setCountdownActive(true)
       } else {
         setStep('active')
