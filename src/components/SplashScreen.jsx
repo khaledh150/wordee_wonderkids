@@ -18,13 +18,13 @@ export default function SplashScreen({ onDone }) {
       <motion.img
         src={logo}
         alt="English Spelling"
-        className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 object-contain drop-shadow-xl"
+        className="w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 object-contain drop-shadow-xl"
         initial={{ scale: 0.3, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
       />
       <motion.h1
-        className="text-2xl sm:text-4xl md:text-5xl font-extrabold mt-2 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent"
+        className="text-3xl sm:text-5xl md:text-6xl font-extrabold mt-3 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -32,7 +32,7 @@ export default function SplashScreen({ onDone }) {
         English Spelling
       </motion.h1>
       <motion.p
-        className="text-base sm:text-lg text-purple-400 mt-1 font-semibold"
+        className="text-lg sm:text-xl text-purple-400 mt-1 font-semibold"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.8 }}
@@ -55,7 +55,7 @@ export default function SplashScreen({ onDone }) {
         ))}
       </motion.div>
       <motion.button
-        className="mt-4 px-6 py-2.5 bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold rounded-full text-base shadow-lg active:scale-95 transition-transform"
+        className="mt-5 px-8 py-3 bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold rounded-full text-lg shadow-lg active:scale-95 transition-transform"
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1.5 }}

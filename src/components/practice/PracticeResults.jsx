@@ -67,24 +67,26 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
         </div>
       </div>
 
-      <button
-        onClick={onHome}
-        aria-label="Back to home"
-        className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:bottom-8 lg:left-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 xl:px-8 py-2.5 sm:py-3 lg:py-3.5 xl:py-4 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform text-sm sm:text-base lg:text-lg xl:text-xl z-20"
-      >
-        <Home className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7" />
-        Home
-      </button>
-      {onTryAgain && (
+      <div className="flex items-center justify-center gap-3 mt-3 sm:mt-4 w-full max-w-sm lg:max-w-md xl:max-w-lg">
         <button
-          onClick={onTryAgain}
-          aria-label="Try again"
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 xl:px-8 py-2.5 sm:py-3 lg:py-3.5 xl:py-4 bg-white border-2 border-purple-300 text-purple-600 font-bold rounded-full shadow-md active:scale-95 transition-transform text-sm sm:text-base lg:text-lg xl:text-xl z-20"
+          onClick={onHome}
+          aria-label="Back to home"
+          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-3 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform text-sm sm:text-base"
         >
-          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6" />
-          Try Again
+          <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+          Home
         </button>
-      )}
+        {onTryAgain && (
+          <button
+            onClick={onTryAgain}
+            aria-label="Try again"
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-3 bg-white border-2 border-purple-300 text-purple-600 font-bold rounded-full shadow-md active:scale-95 transition-transform text-sm sm:text-base"
+          >
+            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+            Try Again
+          </button>
+        )}
+      </div>
     </motion.div>
   )
 }

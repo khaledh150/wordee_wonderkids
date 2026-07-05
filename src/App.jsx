@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import SplashScreen from './components/SplashScreen'
+import HomeScreen from './components/HomeScreen'
 import LevelSelect from './components/LevelSelect'
 import ModeSelect from './components/ModeSelect'
 import LoadingScreen from './components/LoadingScreen'
@@ -89,6 +90,21 @@ function App() {
     if (screen !== 'splash') writeHash(screen, selectedLevel)
   }, [screen, selectedLevel])
 
+  useEffect(() => {
+    const onPopState = () => {
+      const hash = window.location.hash.replace('#', '')
+      const params = new URLSearchParams(hash)
+      const s = params.get('s')
+      if (s && s !== screen) {
+        setScreen(s)
+        const l = params.get('l')
+        if (l) setSelectedLevel(Number(l))
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [screen])
+
   const navigate = useCallback((to, opts = {}) => {
     stopAll()
     clearIdleTimer()
@@ -102,11 +118,12 @@ function App() {
     }
   }, [])
 
-  const goHome = useCallback(() => navigate('levels'), [navigate])
+  const goHome = useCallback(() => navigate('home'), [navigate])
   const goBack = useCallback(() => {
     if (screen === 'learn' || screen === 'practice' || screen === 'test') navigate('mode', { level: selectedLevel })
     else if (screen === 'mode') navigate('levels')
-    else navigate('levels')
+    else if (screen === 'levels') navigate('home')
+    else navigate('home')
   }, [screen, selectedLevel, navigate])
 
   if (loading) return <LoadingScreen />
@@ -116,12 +133,20 @@ function App() {
     <div className="w-full h-screen-safe overflow-hidden relative">
       <AnimatePresence mode="wait">
         {screen === 'splash' && (
-          <SplashScreen key="splash" onDone={() => navigate('levels')} />
+          <SplashScreen key="splash" onDone={() => navigate('home')} />
+        )}
+        {screen === 'home' && (
+          <HomeScreen
+            key="home"
+            onPractice={() => navigate('levels')}
+            onCompetition={() => { window.location.href = '/play' }}
+          />
         )}
         {screen === 'levels' && (
           <LevelSelect
             key="levels"
             onSelect={(lvl) => navigate('mode', { level: lvl })}
+            onBack={() => navigate('home')}
           />
         )}
         {screen === 'mode' && (

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import { LEVELS } from '../data/vocabulary'
 import logo from '../assets/logo.webp'
 import { APP_VERSION } from '../App'
@@ -8,7 +9,7 @@ import { enterFullscreen } from '../utils/useFullscreen'
 const levelColors = ['bg-pink-400', 'bg-teal-400', 'bg-violet-400', 'bg-orange-400']
 const levelShadows = ['shadow-pink-300', 'shadow-teal-300', 'shadow-violet-300', 'shadow-orange-300']
 
-export default function LevelSelect({ onSelect }) {
+export default function LevelSelect({ onSelect, onBack }) {
   return (
     <motion.div
       className="w-full h-screen-safe flex flex-col items-center justify-center p-3 bg-gradient-to-br from-pink-50 via-white to-purple-50 overflow-auto relative"
@@ -17,6 +18,14 @@ export default function LevelSelect({ onSelect }) {
       exit={{ opacity: 0, y: -20 }}
     >
       <FullscreenBtn className="absolute top-3 right-3 z-10" />
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-3 left-3 z-10 flex items-center gap-1 px-3 py-2 rounded-xl text-purple-500 font-bold text-sm active:scale-95 transition-transform hover:bg-purple-50"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      )}
 
       <img src={logo} alt="English Spelling" className="w-20 h-20 sm:w-28 sm:h-28 lg:w-36 lg:h-36 xl:w-44 xl:h-44 object-contain mb-0.5" />
       <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-purple-700 mb-0.5">English Spelling</h1>
