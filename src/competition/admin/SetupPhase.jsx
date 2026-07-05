@@ -29,7 +29,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       if (s.subject === 'math') entry.math = s
       if (s.age && !entry.age) entry.age = s.age
     }
-    return [...map.values()]
+    return [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
   }, [sessions])
 
   const studentCount = grouped.length
@@ -294,18 +294,18 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-fixed">
                 <colgroup>
-                  <col className="w-[22%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[24%]" />
                   <col className="w-[18%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[7%]" />
                   <col className="w-[12%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[9%]" />
+                  <col className="w-[12%]" />
                   <col className="w-[14%]" />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['Name', 'School', 'Ctry', 'Age', 'Code', 'Eng', 'Math', ''].map((h, i) => (
+                    {['#', 'Name', 'School', 'Ctry', 'Age', 'Code', subject === 'math' ? 'Math' : 'Eng', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`text-left py-2.5 px-2 text-[10px] font-bold uppercase tracking-wider ${
@@ -318,7 +318,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   </tr>
                 </thead>
                 <tbody>
-                  {grouped.map((student) => {
+                  {grouped.map((student, rowIdx) => {
                     const isEditing = editingCode === student.code
                     return (
                     <tr
@@ -329,6 +329,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           : 'border-slate-50 hover:bg-slate-50/50'
                       }`}
                     >
+                      <td className={`py-2 px-2 text-xs font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {rowIdx + 1}
+                      </td>
                       <td className="py-2 px-2">
                         {isEditing ? (
                           <input
@@ -382,24 +385,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                       </td>
                       <td className="py-2 px-2">
                         <select
-                          value={student.english?.level || 0}
-                          onChange={(e) => handleLevelChange(student, 'english', e.target.value)}
+                          value={(subject === 'math' ? student.math?.level : student.english?.level) || 0}
+                          onChange={(e) => handleLevelChange(student, subject, e.target.value)}
                           className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                         >
                           <option value={0}>—</option>
-                          {ENGLISH_LEVELS.slice(1).map(l => (
-                            <option key={l} value={l}>{l}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="py-2 px-2">
-                        <select
-                          value={student.math?.level || 0}
-                          onChange={(e) => handleLevelChange(student, 'math', e.target.value)}
-                          className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
-                        >
-                          <option value={0}>—</option>
-                          {MATH_LEVELS.slice(1).map(l => (
+                          {(subject === 'math' ? MATH_LEVELS : ENGLISH_LEVELS).slice(1).map(l => (
                             <option key={l} value={l}>{l}</option>
                           ))}
                         </select>
@@ -450,6 +441,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
 
                   {/* Add Student Row */}
                   <tr className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                    <td className="py-2 px-2"></td>
                     <td className="py-2 px-2">
                       <input
                         value={newStudent.name}
@@ -491,22 +483,14 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                     </td>
                     <td className="py-2 px-2">
                       <select
-                        value={newStudent.englishLevel}
-                        onChange={(e) => setNewStudent(p => ({ ...p, englishLevel: Number(e.target.value) }))}
+                        value={subject === 'math' ? newStudent.mathLevel : newStudent.englishLevel}
+                        onChange={(e) => setNewStudent(p => ({
+                          ...p,
+                          ...(subject === 'math' ? { mathLevel: Number(e.target.value) } : { englishLevel: Number(e.target.value) })
+                        }))}
                         className={`px-2 py-1.5 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                       >
-                        {ENGLISH_LEVELS.map(l => (
-                          <option key={l} value={l}>{l === 0 ? '—' : l}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-2">
-                      <select
-                        value={newStudent.mathLevel}
-                        onChange={(e) => setNewStudent(p => ({ ...p, mathLevel: Number(e.target.value) }))}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
-                      >
-                        {MATH_LEVELS.map(l => (
+                        {(subject === 'math' ? MATH_LEVELS : ENGLISH_LEVELS).map(l => (
                           <option key={l} value={l}>{l === 0 ? '—' : l}</option>
                         ))}
                       </select>
@@ -514,7 +498,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                     <td className="py-2 px-2">
                       <button
                         onClick={handleAddStudent}
-                        disabled={!newStudent.name.trim() || adding || (Number(newStudent.englishLevel) === 0 && Number(newStudent.mathLevel) === 0)}
+                        disabled={!newStudent.name.trim() || adding || (subject === 'math' ? Number(newStudent.mathLevel) === 0 : Number(newStudent.englishLevel) === 0)}
                         className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:pointer-events-none text-white transition-colors cursor-pointer"
                         title="Add student"
                       >

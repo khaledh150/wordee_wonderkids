@@ -133,10 +133,11 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
       const BRONZE_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE8D0' } }
       const GREEN_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }
 
-      const subjects = [
+      const allSubjectDefs = [
         { key: 'english', label: 'English Spelling', maxLevel: 4, color: { argb: 'FFCC0000' } },
         { key: 'math', label: 'Mathematics', maxLevel: 8, color: { argb: 'FF3333CC' } },
       ]
+      const subjects = allSubjectDefs.filter(s => s.key === subject)
 
       const wb = new ExcelJS.Workbook()
       wb.creator = 'Wonderkids Championship'
