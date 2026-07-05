@@ -55,8 +55,11 @@ export default function ProjectorPage() {
     if (mathLive) return 'math'
     if (engState?.is_unlocked) return 'english'
     if (mathState?.is_unlocked) return 'math'
+    const mathSessions = sessions.filter(s => s.subject === 'math')
+    const hasMathActivity = mathSessions.some(s => s.status === 'completed' || s.status === 'active')
+    if (hasMathActivity) return 'math'
     return 'english'
-  }, [engState, mathState])
+  }, [engState, mathState, sessions])
 
   const activeState = activeSubject === 'math' ? mathState : engState
 
@@ -150,11 +153,20 @@ export default function ProjectorPage() {
   }, [activeState?.started_at, activeState?.is_unlocked, subjectSessions])
 
   const levels = [...new Set(subjectSessions.map(s => s.level))].sort((a, b) => a - b)
-  const activeLevel = activeState?.active_level || displayLevel || (levels[0] ?? null)
+  const activeLevel = displayLevel || (levels.length > 0 ? levels.reduce((best, l) => {
+    const count = subjectSessions.filter(s => s.level === l).length
+    return count > subjectSessions.filter(s => s.level === best).length ? l : best
+  }, levels[0]) : null)
 
   useEffect(() => {
-    if (!displayLevel && levels.length > 0) setDisplayLevel(levels[0])
-  }, [levels.length])
+    if (levels.length > 0) {
+      const bestLevel = levels.reduce((best, l) => {
+        const count = subjectSessions.filter(s => s.level === l).length
+        return count > subjectSessions.filter(s => s.level === best).length ? l : best
+      }, levels[0])
+      setDisplayLevel(bestLevel)
+    }
+  }, [activeSubject])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)
 

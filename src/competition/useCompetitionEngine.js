@@ -341,10 +341,9 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
     const doSync = async () => {
       if (phaseRef.current !== 'active') return
-      // Only sync if there are new answers
-      if (answersRef.current.length === lastSyncedLenRef.current) return
+      const hasNewAnswers = answersRef.current.length !== lastSyncedLenRef.current
 
-      setIsSyncing(true)
+      setIsSyncing(hasNewAnswers)
       try {
         await callFunction('sync', {
           participant_code: session.participant_code,
@@ -360,7 +359,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         syncFailCountRef.current++
         if (syncFailCountRef.current >= 2) setIsOffline(true)
       }
-      setIsSyncing(false)
+      if (hasNewAnswers) setIsSyncing(false)
     }
 
     let cancelled = false
