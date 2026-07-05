@@ -97,8 +97,7 @@ export default function HistoryPhase({ isDark, onBack }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className={`text-xl font-black ${text}`}>Session History</h2>
+      <div className="flex items-center gap-4">
         <button
           onClick={onBack}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
@@ -107,6 +106,7 @@ export default function HistoryPhase({ isDark, onBack }) {
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
+        <h2 className={`text-xl font-black ${text}`}>Session History</h2>
       </div>
 
       {history.length === 0 ? (

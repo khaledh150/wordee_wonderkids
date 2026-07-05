@@ -484,9 +484,7 @@ export default function ProjectorPage() {
 
   // ── PODIUM ──
   if (showPodium && podiumSorted.length > 0) {
-    const duration = activeState?.duration_seconds ?? 300
-    const extra = activeState?.extra_seconds ?? 0
-    const maxTime = duration + extra
+    const maxTime = activeState?.duration_seconds ?? 300
 
     const podiumColors = isDark
       ? [
@@ -510,17 +508,17 @@ export default function ProjectorPage() {
         {/* Level switcher + back button */}
         <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
           {levels.length > 0 && (
-            <div className={`flex gap-1 border rounded-2xl p-1.5 backdrop-blur-md shadow-lg ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
+            <div className={`flex gap-0.5 rounded-xl p-1 ${isDark ? 'bg-white/5' : 'bg-slate-200/80'}`}>
               {levels.map(l => (
                 <button key={l} onClick={() => { setDisplayLevel(l); setShowPodium(true) }}
-                  className={`px-4 py-2 rounded-xl font-black text-sm tracking-wider transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all cursor-pointer ${
                     activeLevel === l
                       ? isMathSubject
-                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
-                        : 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'bg-blue-600 text-white shadow-md'
+                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
                   }`}>
-                  Level {l}
+                  L{l}
                 </button>
               ))}
             </div>
@@ -635,31 +633,22 @@ export default function ProjectorPage() {
 
         <div className="flex items-center gap-3">
           {levels.length > 0 && (
-            <div className={`flex gap-1 border rounded-2xl p-1.5 backdrop-blur-md shadow-lg ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
+            <div className={`flex gap-0.5 rounded-xl p-1 ${isDark ? 'bg-white/5' : 'bg-slate-200/80'}`}>
               {levels.map(l => {
                 const lvlSessions = subjectSessions.filter(s => s.level === l)
                 const doneCount = lvlSessions.filter(s => s.status === 'completed').length
-                const activeCount = lvlSessions.filter(s => s.status === 'active').length
-                const hasActivity = activeCount > 0 || doneCount > 0
                 return (
                   <button key={l} onClick={() => setDisplayLevel(l)}
-                    className={`px-4 py-2 rounded-xl font-black text-sm tracking-wider transition-all cursor-pointer flex items-center gap-2.5 ${
+                    className={`px-3.5 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all cursor-pointer ${
                       activeLevel === l
                         ? isMathSubject
-                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
-                          : 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-blue-600 text-white shadow-md'
+                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
                     }`}>
-                    <span>Level {l}</span>
-                    {hasActivity && (
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-lg ${
-                        activeLevel === l
-                          ? 'bg-white/20'
-                          : doneCount === lvlSessions.length
-                            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'
-                            : isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {activeCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse mr-1 align-middle" />}
+                    L{l}
+                    {doneCount > 0 && (
+                      <span className={`ml-1.5 text-[10px] font-mono ${activeLevel === l ? 'text-white/70' : textDim}`}>
                         {doneCount}/{lvlSessions.length}
                       </span>
                     )}
@@ -681,8 +670,8 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3.5rem_3.5rem_1.5fr_1fr_5rem_5rem_5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
-        <span>Rank</span>
+      <div className={`grid grid-cols-[3rem_2.5rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+        <span className="text-center">Rank</span>
         <span></span>
         <span>Participant</span>
         <span>School</span>
@@ -729,15 +718,15 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3.5rem_3.5rem_1.5fr_1fr_5rem_5rem_5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
-                <span className={`text-2xl font-black font-mono ${rankColors}`}>
+                className={`grid grid-cols-[3rem_2.5rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
                 <span><FlagIcon country={s.country} /></span>
                 <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
-                <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, (activeState?.duration_seconds ?? 300) + (activeState?.extra_seconds ?? 0))) : '—'}</span>
+                <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>
                 <span className="text-right">
                   {(() => {
                     const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 45000
