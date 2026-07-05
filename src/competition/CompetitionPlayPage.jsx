@@ -430,7 +430,7 @@ export default function CompetitionPlayPage() {
 
             <button
               type="submit"
-              disabled={loading || code.trim().length < 4}
+              disabled={loading || code.trim().length < 1}
               className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_4px_12px_rgba(79,70,229,0.2)] text-white font-black rounded-xl text-base sm:text-lg disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98] transition-all cursor-pointer landscape:py-2.5 landscape:text-sm"
             >
               {loading ? (
