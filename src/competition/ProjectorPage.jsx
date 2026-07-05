@@ -6,22 +6,7 @@ import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
 import logo from '../assets/wonderkids_logo.webp'
 
-const FLAG_CDN = 'https://flagcdn.com/w40'
 const PROJECTOR_FONT = "'Playfair Display', Georgia, 'Times New Roman', serif"
-
-function FlagIcon({ country }) {
-  const [failed, setFailed] = useState(false)
-  if (!country) return null
-  if (failed) return <span className="text-sm" title={country}>🌍</span>
-  return (
-    <img
-      src={`${FLAG_CDN}/${country.toLowerCase()}.png`}
-      alt={country}
-      className="w-8 h-5.5 object-cover rounded-sm inline-block shadow-sm"
-      onError={() => setFailed(true)}
-    />
-  )
-}
 
 function formatTime(seconds) {
   if (seconds == null) return '-'
@@ -469,7 +454,6 @@ export default function ProjectorPage() {
                       }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.ready ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
                       {s.name}
-                      <FlagIcon country={s.country} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -550,8 +534,7 @@ export default function ProjectorPage() {
                 initial={{ opacity: 0, y: 150 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 18, stiffness: 80, delay: 0.5 + displayIdx * 0.5 }}>
                 <div className="mb-4">
-                  <FlagIcon country={student.country} />
-                  <p className={`text-2xl sm:text-3xl font-black mt-2 leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
+                  <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
                   {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
                   <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
                   <p className={`text-sm font-mono font-bold mt-1 ${textDim}`}>{formatTime(cappedTime)}</p>
@@ -577,7 +560,6 @@ export default function ProjectorPage() {
                   return (
                     <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>
                       <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
-                      <td className="py-3 px-2 w-12 text-center"><FlagIcon country={s.country} /></td>
                       <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</td>
                       <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
                       <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
@@ -670,9 +652,8 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3rem_2.5rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span className="text-center">Rank</span>
-        <span></span>
         <span>Participant</span>
         <span>School</span>
         <span className="text-right">Score</span>
@@ -718,11 +699,10 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3rem_2.5rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                className={`grid grid-cols-[3rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
-                <span><FlagIcon country={s.country} /></span>
                 <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>

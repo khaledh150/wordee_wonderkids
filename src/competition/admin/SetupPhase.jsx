@@ -295,17 +295,16 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
               <table className="w-full text-sm table-fixed">
                 <colgroup>
                   <col className="w-[5%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[12%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[10%]" />
                   <col className="w-[12%]" />
                   <col className="w-[14%]" />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['#', 'Name', 'School', 'Ctry', 'Age', 'Code', subject === 'math' ? 'Math' : 'Eng', ''].map((h, i) => (
+                    {['#', 'Name', 'School', 'Age', 'Code', subject === 'math' ? 'Math' : 'Eng', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`text-left py-2.5 px-2 text-[10px] font-bold uppercase tracking-wider ${
@@ -356,18 +355,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         )}
                       </td>
                       <td className="py-2 px-2">
-                        {isEditing ? (
-                          <input
-                            value={editForm.country}
-                            onChange={(e) => setEditForm(p => ({ ...p, country: e.target.value }))}
-                            maxLength={2}
-                            className={`w-12 px-1.5 py-1 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
-                          />
-                        ) : (
-                          <span className={`text-xs uppercase font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.country || '—'}</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-2">
                         <input
                           type="number"
                           min="4"
@@ -378,7 +365,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           className={`w-14 px-1.5 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
                         />
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-2 text-center">
                         <span className={`font-mono text-xs font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
                           {student.code}
                         </span>
@@ -456,15 +443,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         onChange={(e) => setNewStudent(p => ({ ...p, school: e.target.value }))}
                         placeholder="School"
                         className={`w-full px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        value={newStudent.country}
-                        onChange={(e) => setNewStudent(p => ({ ...p, country: e.target.value }))}
-                        placeholder="th"
-                        maxLength={2}
-                        className={`w-12 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}`}
                       />
                     </td>
                     <td className="py-2 px-2">
