@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Download, FileText, ArrowRight, Table } from 'lucide-react'
+import { Download, FileText, ArrowRight, Table, Trophy } from 'lucide-react'
 import { supabase, SUBJECTS } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import { fmt } from './shared'
@@ -11,7 +11,7 @@ function getEnglishTotal(level) {
   return getVocabForLevel(level).length
 }
 
-export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onNewSession, readOnly }) {
+export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onNewSession, onShowPodium, readOnly }) {
   const [levelFilter, setLevelFilter] = useState(null)
   const [confirmNew, setConfirmNew] = useState(null)
   const [batchProgress, setBatchProgress] = useState(null)
@@ -474,6 +474,17 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
 
       {!readOnly && (
         <div className="flex flex-col items-center gap-4 pt-4 print:hidden">
+          {onShowPodium && participantCount > 0 && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={onShowPodium}
+              className="w-full max-w-md px-8 py-4 rounded-xl font-black text-base uppercase tracking-wider text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+            >
+              <Trophy className="w-5 h-5" />
+              Show Podium
+            </motion.button>
+          )}
+
           {onSwitchSubject && subject === SUBJECTS.ENGLISH && !otherSubjectDone && participantCount > 0 && (
             <motion.button
               whileTap={{ scale: 0.97 }}

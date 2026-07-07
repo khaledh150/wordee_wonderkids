@@ -7,6 +7,7 @@ import { playSFX } from '../utils/audioPlayer'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
+import StudentAvatar from './admin/StudentAvatar'
 import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
@@ -598,9 +599,7 @@ export default function CompetitionPlayPage() {
               <div className="flex flex-col justify-between gap-3">
                 <div className={`bg-gradient-to-br ${isDark ? (isMath ? 'from-teal-950/50 to-cyan-950/50 border-teal-800/30' : 'from-indigo-950/50 to-purple-950/50 border-indigo-800/30') : (isMath ? 'from-teal-50 to-cyan-50 border-teal-100/50' : 'from-indigo-50 to-purple-50 border-indigo-100/50')} rounded-2xl border p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${isMath ? 'from-teal-500 to-cyan-600' : 'from-indigo-500 to-purple-600'} text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shrink-0`}>
-                      {session.name.substring(0, 2).toUpperCase()}
-                    </div>
+                    <StudentAvatar photoUrl={session.photo_url} name={session.name} size="md" className="shadow-md shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className={`text-base sm:text-lg font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>

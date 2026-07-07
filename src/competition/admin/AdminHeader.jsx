@@ -1,7 +1,7 @@
 import { Shield, LogOut, Sun, Moon, History } from 'lucide-react'
 
-const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results' }
-const PHASE_ORDER = ['setup', 'lobby', 'live', 'results']
+const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results', podium: 'Podium' }
+const PHASE_ORDER = ['setup', 'lobby', 'live', 'results', 'podium']
 
 export default function AdminHeader({ subject, setSubject, phase, isDark, setTheme, onLogout, onPhaseClick }) {
   return (

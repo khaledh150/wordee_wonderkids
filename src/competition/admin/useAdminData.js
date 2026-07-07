@@ -22,7 +22,7 @@ export default function useAdminData({ subject }) {
     if (!state) return
     let q = supabase
       .from('competition_sessions')
-      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at')
+      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
       .eq('competition_id', state.competition_id)
       .eq('subject', subject)
     if (levelFilter) q = q.eq('level', levelFilter)

@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     if (typeof participant_code !== "string" || typeof competition_id !== "string") {
       return json({ error: "Invalid input" }, 400, req);
     }
-    if (participant_code.length < 4 || participant_code.length > 10) {
+    if (participant_code.length < 1 || participant_code.length > 10) {
       return json({ error: "Invalid code format" }, 400, req);
     }
     if (competition_id.length > 50) {

@@ -7,6 +7,7 @@ import SetupPhase from './admin/SetupPhase'
 import LobbyPhase from './admin/LobbyPhase'
 import LivePhase from './admin/LivePhase'
 import ResultsPhase from './admin/ResultsPhase'
+import PodiumPhase from './admin/PodiumPhase'
 import RosterUpload from './admin/RosterUpload'
 import ConfirmDialog from './admin/ConfirmDialog'
 import { generateCode } from './admin/shared'
@@ -235,6 +236,7 @@ export default function AdminDashboard() {
                 isDark={isDark}
                 updateState={updateState}
                 loadSessions={loadSessions}
+                onShowPodium={() => setPhaseOverride('podium')}
                 onSwitchSubject={async (sub) => {
                   const label = sub === 'math' ? 'Mathematics' : 'English Spelling'
                   if (!window.confirm(`Open the ${label} lobby? Students who completed the current subject will be prompted to join.`)) return
@@ -256,6 +258,18 @@ export default function AdminDashboard() {
               />
             </motion.div>
           )}
+          {phase === 'podium' && (
+            <motion.div key="podium" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <PodiumPhase
+                state={state}
+                sessions={sessions}
+                subject={subject}
+                isDark={isDark}
+                updateState={updateState}
+              />
+            </motion.div>
+          )}
+
           {phase === 'history' && (
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               <Suspense fallback={<div className="flex justify-center py-12"><div className={`animate-spin w-8 h-8 border-4 border-t-transparent rounded-full ${isDark ? 'border-blue-500' : 'border-blue-600'}`} /></div>}>

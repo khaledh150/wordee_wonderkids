@@ -4,6 +4,8 @@ import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Ca
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
+import { playCelebrationSequence, playLevelTransition } from '../utils/celebrationSounds'
+import StudentAvatar from './admin/StudentAvatar'
 import logo from '../assets/wonderkids_logo.webp'
 
 const PROJECTOR_FONT = "'Playfair Display', Georgia, 'Times New Roman', serif"
@@ -27,8 +29,8 @@ export default function ProjectorPage() {
   const [sessions, setSessions] = useState([])
   const [displayLevel, setDisplayLevel] = useState(null)
   const [elapsed, setElapsed] = useState(null)
-  const [showPodium, setShowPodium] = useState(false)
   const realtimeDebounceRef = useRef(null)
+  const prevPodiumRef = useRef({ visible: false, level: null, initialized: false })
 
   const state = engState || mathState
   const competitionId = state?.competition_id
@@ -93,7 +95,7 @@ export default function ProjectorPage() {
     if (!competitionId) return
     const { data } = await supabase
       .from('competition_sessions')
-      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at')
+      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
       .eq('competition_id', competitionId)
     if (data) setSessions(data)
   }, [competitionId])
@@ -120,8 +122,50 @@ export default function ProjectorPage() {
         realtimeDebounceRef.current = setTimeout(loadSessions, 1000)
       })
       .subscribe()
-    return () => supabase.removeChannel(channel)
+    return () => {
+      clearTimeout(realtimeDebounceRef.current)
+      supabase.removeChannel(channel)
+    }
   }, [authed, competitionId, loadSessions])
+
+  // Realtime subscription on competition_state for instant podium transitions
+  useEffect(() => {
+    if (!authed) return
+    const channel = supabase.channel('projector-state')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'competition_state',
+      }, (payload) => {
+        const row = payload.new
+        if (row.id === 'english') setEngState(row)
+        if (row.id === 'math') setMathState(row)
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [authed])
+
+  // Podium sound effects — fire on visibility/level changes (skip initial load)
+  useEffect(() => {
+    const prev = prevPodiumRef.current
+    const visible = activeState?.podium_visible
+    const level = activeState?.podium_level
+    if (!prev.initialized) {
+      prevPodiumRef.current = { visible: !!visible, level, initialized: true }
+      return
+    }
+    if (visible && !prev.visible) {
+      fireConfetti()
+      playCelebrationSequence()
+      setTimeout(() => { try { fireConfetti() } catch {} }, 1500)
+      setTimeout(() => { try { fireConfetti() } catch {} }, 3000)
+    } else if (visible && prev.visible && level !== prev.level) {
+      fireConfetti()
+      playLevelTransition().catch(() => {})
+      setTimeout(() => { try { fireConfetti() } catch {} }, 800)
+    }
+    prevPodiumRef.current = { visible: !!visible, level, initialized: true }
+  }, [activeState?.podium_visible, activeState?.podium_level])
 
   useEffect(() => {
     if (!activeState?.started_at || !activeState?.is_unlocked) { setElapsed(null); return }
@@ -169,25 +213,16 @@ export default function ProjectorPage() {
 
   const allCompleted = levelSessions.length > 0 && levelSessions.every(s => s.status === 'completed')
 
-  const podiumSorted = allCompleted
-    ? [...levelSessions].sort((a, b) => {
-        if (b.validated_score !== a.validated_score) return b.validated_score - a.validated_score
-        return a.time_spent_seconds - b.time_spent_seconds
-      })
-    : []
-
-  useEffect(() => {
-    if (allCompleted && !showPodium) {
-      const timer = setTimeout(() => {
-        setShowPodium(true)
-        try { fireConfetti() } catch {}
-        setTimeout(() => { try { fireConfetti() } catch {} }, 1500)
-        setTimeout(() => { try { fireConfetti() } catch {} }, 3000)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-    if (!allCompleted && showPodium) setShowPodium(false)
-  }, [allCompleted, showPodium])
+  // DB-driven podium
+  const showPodium = !!activeState?.podium_visible
+  const podiumLevel = activeState?.podium_level ?? 1
+  const podiumLevelSessions = subjectSessions.filter(s => s.level === podiumLevel)
+  const podiumSorted = [...podiumLevelSessions]
+    .filter(s => s.validated_score != null)
+    .sort((a, b) => {
+      if (b.validated_score !== a.validated_score) return b.validated_score - a.validated_score
+      return (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0)
+    })
 
   const isDark = theme === 'dark'
 
@@ -452,6 +487,7 @@ export default function ProjectorPage() {
                           ? isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           : isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
                       }`}>
+                      <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
                       <span className={`w-1.5 h-1.5 rounded-full ${s.ready ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
                       {s.name}
                     </motion.div>
@@ -489,30 +525,11 @@ export default function ProjectorPage() {
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
 
-        {/* Level switcher + back button */}
-        <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
-          {levels.length > 0 && (
-            <div className={`flex gap-0.5 rounded-xl p-1 ${isDark ? 'bg-white/5' : 'bg-slate-200/80'}`}>
-              {levels.map(l => (
-                <button key={l} onClick={() => { setDisplayLevel(l); setShowPodium(true) }}
-                  className={`px-3.5 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all cursor-pointer ${
-                    activeLevel === l
-                      ? isMathSubject
-                        ? 'bg-emerald-600 text-white shadow-md'
-                        : 'bg-blue-600 text-white shadow-md'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
-                  }`}>
-                  L{l}
-                </button>
-              ))}
-            </div>
-          )}
-          <button onClick={() => setShowPodium(false)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer font-black text-xs uppercase tracking-wider transition-all ${isDark ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'}`}
-            title="Back to leaderboard">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Leaderboard
-          </button>
+        {/* Level badge */}
+        <div className="absolute top-6 right-6 z-20">
+          <span className={`px-4 py-2 rounded-xl font-black text-sm uppercase tracking-wider border ${sc.levelBadge}`}>
+            Level {podiumLevel}
+          </span>
         </div>
 
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
@@ -520,7 +537,7 @@ export default function ProjectorPage() {
             {subjectLabel}
           </p>
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            Level {activeLevel} Results
+            Level {podiumLevel} Results
           </h1>
         </motion.div>
 
@@ -533,7 +550,8 @@ export default function ProjectorPage() {
               <motion.div key={student.participant_id} className="flex flex-col items-center w-48 sm:w-56 text-center"
                 initial={{ opacity: 0, y: 150 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 18, stiffness: 80, delay: 0.5 + displayIdx * 0.5 }}>
-                <div className="mb-4">
+                <div className="mb-4 flex flex-col items-center">
+                  <StudentAvatar photoUrl={student.photo_url} name={student.name} size="xl" className="mb-3 ring-4 ring-white/20 shadow-xl" />
                   <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
                   {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
                   <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
@@ -560,6 +578,7 @@ export default function ProjectorPage() {
                   return (
                     <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>
                       <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
+                      <td className="py-3 px-2 w-10"><StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" /></td>
                       <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</td>
                       <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
                       <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
@@ -652,8 +671,9 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3rem_2rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span className="text-center">Rank</span>
+        <span></span>
         <span>Participant</span>
         <span>School</span>
         <span className="text-right">Score</span>
@@ -699,10 +719,11 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                className={`grid grid-cols-[3rem_2rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
+                <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
                 <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
