@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
           updated_at: now.toISOString(),
         })
         .eq("participant_id", session.participant_id)
-        .in("status", ["registered", "waiting"]);
+        .in("status", ["registered", "waiting", "lobby"]);
 
       return json({
         participant_id: session.participant_id,
@@ -232,7 +232,7 @@ Deno.serve(async (req: Request) => {
         updated_at: startedAt,
       })
       .eq("participant_id", session.participant_id)
-      .in("status", ["registered", "waiting"])
+      .in("status", ["registered", "waiting", "lobby"])
       .select("participant_id")
       .maybeSingle();
 

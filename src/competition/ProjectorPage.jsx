@@ -315,8 +315,9 @@ export default function ProjectorPage() {
 
   // ── Phase detection ──
   const hasActive = subjectSessions.some(s => s.status === 'active')
+  const anyCompleted = subjectSessions.some(s => s.status === 'completed')
   const isLobby = activeState?.is_unlocked && !hasActive && !activeState?.started_at
-  const isPreLobby = !activeState?.is_unlocked && !allCompleted
+  const isPreLobby = !activeState?.is_unlocked && !allCompleted && !anyCompleted && !showPodium
 
   // ── PRE-LOBBY SPLASH ──
   if (isPreLobby) {
@@ -389,6 +390,99 @@ export default function ProjectorPage() {
             <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.8 }}>🥉</motion.span>
           </motion.div>
         </div>
+
+      </div>
+    )
+  }
+
+  // ── PODIUM ──
+  if (showPodium && podiumSorted.length > 0) {
+    const maxTime = activeState?.duration_seconds ?? 300
+
+    const podiumColors = isDark
+      ? [
+          'from-amber-400 via-yellow-500 to-orange-500 shadow-amber-500/20 border-amber-300/30',
+          'from-sky-300 via-cyan-400 to-blue-500 shadow-sky-400/20 border-sky-300/30',
+          'from-amber-600 via-amber-700 to-orange-800 shadow-amber-700/20 border-amber-600/30'
+        ]
+      : [
+          'from-amber-300 via-yellow-400 to-yellow-500 shadow-amber-200/40 border-amber-200',
+          'from-sky-200 via-blue-300 to-cyan-300 shadow-sky-200/40 border-sky-200',
+          'from-orange-200 via-orange-300 to-amber-300 shadow-orange-200/40 border-orange-200'
+        ]
+    const podiumHeights = ['h-60 sm:h-64', 'h-48 sm:h-52', 'h-36 sm:h-40']
+    const podiumLabels = ['1ST', '2ND', '3RD']
+    const podiumOrder = [1, 0, 2]
+
+    return (
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+
+        {/* Level badge */}
+        <div className="absolute top-6 right-6 z-20">
+          <span className={`px-4 py-2 rounded-xl font-black text-sm uppercase tracking-wider border ${sc.levelBadge}`}>
+            Level {podiumLevel}
+          </span>
+        </div>
+
+        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
+          <p className={`text-sm font-black uppercase tracking-[0.3em] mb-2 ${sc.accent}`}>
+            {subjectLabel}
+          </p>
+          <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            Level {podiumLevel} Results
+          </h1>
+        </motion.div>
+
+        <div className="flex items-end justify-center gap-6 sm:gap-12 w-full max-w-5xl relative z-10">
+          {podiumOrder.map((idx, displayIdx) => {
+            const student = podiumSorted[idx]
+            if (!student) return null
+            const cappedTime = Math.min(student.time_spent_seconds || 0, maxTime)
+            return (
+              <motion.div key={student.participant_id} className="flex flex-col items-center w-48 sm:w-56 text-center"
+                initial={{ opacity: 0, y: 150 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 18, stiffness: 80, delay: 0.5 + displayIdx * 0.5 }}>
+                <div className="mb-4 flex flex-col items-center">
+                  <StudentAvatar photoUrl={student.photo_url} name={student.name} size="xl" className="mb-3 ring-4 ring-white/20 shadow-xl" />
+                  <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
+                  {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
+                  <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
+                  <p className={`text-sm font-mono font-bold mt-1 ${textDim}`}>{formatTime(cappedTime)}</p>
+                </div>
+                <div className={`w-full ${podiumHeights[idx]} bg-gradient-to-t ${podiumColors[idx]} border rounded-t-2xl shadow-xl flex items-center justify-center relative overflow-hidden`}>
+                  <div className="absolute inset-0 bg-white/5 opacity-40 mix-blend-overlay" />
+                  <span className={`text-2xl sm:text-3xl font-black uppercase tracking-wider relative z-10 ${isDark ? 'text-white/95' : 'text-slate-700'}`}>
+                    {podiumLabels[idx]}
+                  </span>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {podiumSorted.length > 3 && (
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2 }}
+            className={`mt-14 w-full max-w-3xl border rounded-3xl p-5 shadow-lg relative z-10 ${cardBg}`}>
+            <table className="w-full text-base font-semibold">
+              <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
+                {podiumSorted.slice(3).map((s, i) => {
+                  const cappedTime = Math.min(s.time_spent_seconds || 0, maxTime)
+                  return (
+                    <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>
+                      <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
+                      <td className="py-3 px-2 w-10"><StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" /></td>
+                      <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</td>
+                      <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
+                      <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
+                      <td className={`py-3 px-4 font-mono text-right font-bold ${textDim}`}>{formatTime(cappedTime)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </motion.div>
+        )}
 
       </div>
     )
@@ -497,99 +591,6 @@ export default function ProjectorPage() {
             </motion.div>
           )}
         </div>
-
-      </div>
-    )
-  }
-
-  // ── PODIUM ──
-  if (showPodium && podiumSorted.length > 0) {
-    const maxTime = activeState?.duration_seconds ?? 300
-
-    const podiumColors = isDark
-      ? [
-          'from-amber-400 via-yellow-500 to-orange-500 shadow-amber-500/20 border-amber-300/30',
-          'from-sky-300 via-cyan-400 to-blue-500 shadow-sky-400/20 border-sky-300/30',
-          'from-amber-600 via-amber-700 to-orange-800 shadow-amber-700/20 border-amber-600/30'
-        ]
-      : [
-          'from-amber-300 via-yellow-400 to-yellow-500 shadow-amber-200/40 border-amber-200',
-          'from-sky-200 via-blue-300 to-cyan-300 shadow-sky-200/40 border-sky-200',
-          'from-orange-200 via-orange-300 to-amber-300 shadow-orange-200/40 border-orange-200'
-        ]
-    const podiumHeights = ['h-60 sm:h-64', 'h-48 sm:h-52', 'h-36 sm:h-40']
-    const podiumLabels = ['1ST', '2ND', '3RD']
-    const podiumOrder = [1, 0, 2]
-
-    return (
-      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
-
-        {/* Level badge */}
-        <div className="absolute top-6 right-6 z-20">
-          <span className={`px-4 py-2 rounded-xl font-black text-sm uppercase tracking-wider border ${sc.levelBadge}`}>
-            Level {podiumLevel}
-          </span>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
-          <p className={`text-sm font-black uppercase tracking-[0.3em] mb-2 ${sc.accent}`}>
-            {subjectLabel}
-          </p>
-          <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            Level {podiumLevel} Results
-          </h1>
-        </motion.div>
-
-        <div className="flex items-end justify-center gap-6 sm:gap-12 w-full max-w-5xl relative z-10">
-          {podiumOrder.map((idx, displayIdx) => {
-            const student = podiumSorted[idx]
-            if (!student) return null
-            const cappedTime = Math.min(student.time_spent_seconds || 0, maxTime)
-            return (
-              <motion.div key={student.participant_id} className="flex flex-col items-center w-48 sm:w-56 text-center"
-                initial={{ opacity: 0, y: 150 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', damping: 18, stiffness: 80, delay: 0.5 + displayIdx * 0.5 }}>
-                <div className="mb-4 flex flex-col items-center">
-                  <StudentAvatar photoUrl={student.photo_url} name={student.name} size="xl" className="mb-3 ring-4 ring-white/20 shadow-xl" />
-                  <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
-                  {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
-                  <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
-                  <p className={`text-sm font-mono font-bold mt-1 ${textDim}`}>{formatTime(cappedTime)}</p>
-                </div>
-                <div className={`w-full ${podiumHeights[idx]} bg-gradient-to-t ${podiumColors[idx]} border rounded-t-2xl shadow-xl flex items-center justify-center relative overflow-hidden`}>
-                  <div className="absolute inset-0 bg-white/5 opacity-40 mix-blend-overlay" />
-                  <span className={`text-2xl sm:text-3xl font-black uppercase tracking-wider relative z-10 ${isDark ? 'text-white/95' : 'text-slate-700'}`}>
-                    {podiumLabels[idx]}
-                  </span>
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
-
-        {podiumSorted.length > 3 && (
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2 }}
-            className={`mt-14 w-full max-w-3xl border rounded-3xl p-5 shadow-lg relative z-10 ${cardBg}`}>
-            <table className="w-full text-base font-semibold">
-              <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                {podiumSorted.slice(3).map((s, i) => {
-                  const cappedTime = Math.min(s.time_spent_seconds || 0, maxTime)
-                  return (
-                    <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>
-                      <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
-                      <td className="py-3 px-2 w-10"><StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" /></td>
-                      <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</td>
-                      <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
-                      <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
-                      <td className={`py-3 px-4 font-mono text-right font-bold ${textDim}`}>{formatTime(cappedTime)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </motion.div>
-        )}
 
       </div>
     )

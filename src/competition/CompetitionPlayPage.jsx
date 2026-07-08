@@ -287,6 +287,7 @@ export default function CompetitionPlayPage() {
       setQuestions(q)
       if (result.completed) setStep('active')
       else if (result.resume) setStep('active')
+      else if (result.remaining > 0) setStep('active')
       else setStep('waiting')
     } catch (err) {
       setError(err.message || 'Failed to join. Please try again.')
