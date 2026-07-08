@@ -14,10 +14,9 @@ export default function HomeScreen({ onPractice, onCompetition }) {
         const { data } = await supabase
           .from('competition_state')
           .select('is_unlocked')
-          .eq('id', 'english')
-          .single()
+          .in('id', ['english', 'math'])
         if (mounted && data) {
-          setUnlocked(!!data.is_unlocked)
+          setUnlocked(data.some(s => s.is_unlocked))
         }
       } catch {}
     }

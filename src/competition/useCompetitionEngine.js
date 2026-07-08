@@ -161,8 +161,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   }, [phase, pollState])
 
   // ── Restore from localStorage ──
-  // Only restore to 'waiting' — never blindly restore to 'active'.
-  // The actual state will be validated via joinCompetition/startRace.
+  // Always restore to 'waiting' — joinCompetition will re-validate with the server.
+  // Never restore to 'completed' from localStorage alone (could be stale from a previous competition).
   useEffect(() => {
     const saved = loadLocal(competitionId)
     if (saved.participantCode && saved.session) {
@@ -170,15 +170,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setAnswers(saved.answers || [])
       setCorrectCount(saved.correctCount || 0)
       if (questions) setOrderedQuestions(seededShuffle(questions, saved.session.participant_id))
-
-      if (saved.phase === 'completed' && saved.validatedScore != null) {
-        setValidatedScore(saved.validatedScore)
-        if (saved.rank != null) setRank(saved.rank)
-        setPhase('completed')
-      } else {
-        // Always go to waiting — startRace will re-validate with server
-        setPhase('waiting')
-      }
+      setPhase('waiting')
     }
   }, [competitionId, questions])
 
