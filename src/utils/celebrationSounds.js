@@ -108,3 +108,43 @@ export async function playCelebrationSequence() {
     setTimeout(() => playApplause().catch(() => {}), 600)
   }, 1500)
 }
+
+export async function playCountdownTick() {
+  if (isVOMuted()) return
+  const T = await startContext()
+  const synth = new T.Synth({
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.005, decay: 0.15, sustain: 0.05, release: 0.2 },
+    volume: -6,
+  }).toDestination()
+  synth.triggerAttackRelease('A4', '8n')
+  setTimeout(() => synth.dispose(), 1000)
+}
+
+export async function playCountdownReady() {
+  if (isVOMuted()) return
+  const T = await startContext()
+  const synth = new T.PolySynth(T.Synth, {
+    oscillator: { type: 'sine' },
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 },
+    volume: -8,
+  }).toDestination()
+  const now = T.now()
+  synth.triggerAttackRelease('E4', '4n', now)
+  synth.triggerAttackRelease('A4', '4n', now + 0.12)
+  setTimeout(() => synth.dispose(), 2000)
+}
+
+export async function playCountdownGo() {
+  if (isVOMuted()) return
+  const T = await startContext()
+  const synth = new T.PolySynth(T.Synth, {
+    oscillator: { type: 'sawtooth' },
+    envelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.6 },
+    volume: -6,
+  }).toDestination()
+  const now = T.now()
+  synth.triggerAttackRelease(['C5', 'E5', 'G5'], '4n', now)
+  synth.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '2n', now + 0.15)
+  setTimeout(() => synth.dispose(), 3000)
+}

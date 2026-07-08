@@ -4,7 +4,7 @@ import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Ca
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
-import { playCelebrationSequence, playLevelTransition } from '../utils/celebrationSounds'
+import { playCelebrationSequence, playLevelTransition, playCountdownTick, playCountdownReady, playCountdownGo } from '../utils/celebrationSounds'
 import StudentAvatar from './admin/StudentAvatar'
 import logo from '../assets/wonderkids_logo.webp'
 
@@ -29,8 +29,11 @@ export default function ProjectorPage() {
   const [sessions, setSessions] = useState([])
   const [displayLevel, setDisplayLevel] = useState(null)
   const [elapsed, setElapsed] = useState(null)
+  const [projectorCountdown, setProjectorCountdown] = useState(null) // null | 'COMPETITION STARTING...' | 'GET READY!' | 3 | 2 | 1 | 'GO!'
+  const [showLiveBadge, setShowLiveBadge] = useState(false)
   const realtimeDebounceRef = useRef(null)
   const prevPodiumRef = useRef({ visible: false, level: null, initialized: false })
+  const prevStartedRef = useRef('__uninitialized__')
 
   const state = engState || mathState
   const competitionId = state?.competition_id
@@ -145,6 +148,55 @@ export default function ProjectorPage() {
     return () => supabase.removeChannel(channel)
   }, [authed])
 
+  // Detect competition start → trigger projector countdown
+  useEffect(() => {
+    const currentStarted = activeState?.started_at || null
+    const prev = prevStartedRef.current
+
+    // First load — just record the current state, don't trigger countdown
+    if (prev === '__uninitialized__') {
+      prevStartedRef.current = currentStarted
+      return
+    }
+
+    prevStartedRef.current = currentStarted
+    if (!currentStarted || currentStarted === prev) return
+    if (prev === null && currentStarted) {
+      // Competition just started — run the countdown sequence
+      setProjectorCountdown('COMPETITION STARTING...')
+      playCountdownReady().catch(() => {})
+
+      const timers = [
+        setTimeout(() => { setProjectorCountdown('GET READY!'); playCountdownReady().catch(() => {}) }, 2000),
+        setTimeout(() => { setProjectorCountdown(3); playCountdownTick().catch(() => {}) }, 4000),
+        setTimeout(() => { setProjectorCountdown(2); playCountdownTick().catch(() => {}) }, 5000),
+        setTimeout(() => { setProjectorCountdown(1); playCountdownTick().catch(() => {}) }, 6000),
+        setTimeout(() => {
+          setProjectorCountdown('GO!')
+          playCountdownGo().catch(() => {})
+          fireConfetti()
+          setTimeout(() => { try { fireConfetti() } catch {} }, 500)
+          setTimeout(() => { try { fireConfetti() } catch {} }, 1000)
+        }, 7000),
+        setTimeout(() => {
+          setProjectorCountdown(null)
+          setShowLiveBadge(true)
+        }, 8500),
+      ]
+      return () => timers.forEach(clearTimeout)
+    }
+  }, [activeState?.started_at])
+
+  // Show LIVE badge whenever competition is active (persists across re-renders)
+  useEffect(() => {
+    if (activeState?.started_at && activeState?.is_unlocked) {
+      const hasActive = subjectSessions.some(s => s.status === 'active')
+      if (hasActive) setShowLiveBadge(true)
+    }
+    const allDone = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting')
+    if (allDone && subjectSessions.some(s => s.status === 'completed')) setShowLiveBadge(false)
+  }, [activeState, subjectSessions])
+
   // Podium sound effects — fire on visibility/level changes (skip initial load)
   useEffect(() => {
     const prev = prevPodiumRef.current
@@ -195,6 +247,11 @@ export default function ProjectorPage() {
       }, levels[0])
       setDisplayLevel(bestLevel)
     }
+  }, [activeSubject])
+
+  // Reset countdown detection when subject changes so it fires for each subject
+  useEffect(() => {
+    prevStartedRef.current = null
   }, [activeSubject])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)
@@ -600,6 +657,125 @@ export default function ProjectorPage() {
     )
   }
 
+  // ── PROJECTOR COUNTDOWN (full-screen takeover) ──
+  if (projectorCountdown !== null) {
+    const isText = typeof projectorCountdown === 'string'
+    const isGo = projectorCountdown === 'GO!'
+    const isStarting = projectorCountdown === 'COMPETITION STARTING...'
+    const isReady = projectorCountdown === 'GET READY!'
+
+    return (
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${bg}`}>
+        {/* Animated background blobs */}
+        <motion.div
+          animate={{ scale: [1, 1.5, 1], opacity: [0.15, 0.3, 0.15] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className={`absolute w-[800px] h-[800px] rounded-full blur-[200px] pointer-events-none ${
+            isGo ? 'bg-emerald-500' : isMathSubject ? 'bg-emerald-500' : 'bg-blue-500'
+          }`}
+        />
+        <motion.div
+          animate={{ scale: [1.2, 0.8, 1.2], opacity: [0.1, 0.25, 0.1] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+          className={`absolute w-[600px] h-[600px] rounded-full blur-[180px] pointer-events-none ${
+            isGo ? 'bg-teal-500' : 'bg-purple-500'
+          }`}
+        />
+
+        {/* Radial pulse ring */}
+        <motion.div
+          animate={{ scale: [0.8, 2.5], opacity: [0.3, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+          className={`absolute w-96 h-96 rounded-full border-4 pointer-events-none ${
+            isGo ? 'border-emerald-400' : isReady ? 'border-amber-400' : isMathSubject ? 'border-emerald-400' : 'border-blue-400'
+          }`}
+        />
+        <motion.div
+          animate={{ scale: [0.5, 2], opacity: [0.2, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+          className={`absolute w-96 h-96 rounded-full border-2 pointer-events-none ${
+            isGo ? 'border-green-300' : isReady ? 'border-yellow-300' : 'border-indigo-300'
+          }`}
+        />
+
+        {/* Grid overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(rgba(128,128,128,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,.3) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
+
+        {/* Subject badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-8 z-20"
+        >
+          <div className={`flex items-center gap-3 border px-6 py-3 rounded-2xl backdrop-blur-md ${sc.badgeBg}`}>
+            {isMathSubject
+              ? <Calculator className={`w-5 h-5 ${sc.badgeText}`} />
+              : <BookOpen className={`w-5 h-5 ${sc.badgeText}`} />
+            }
+            <span className={`text-lg font-black uppercase tracking-[0.15em] ${sc.badgeText}`}>{subjectLabel}</span>
+          </div>
+        </motion.div>
+
+        {/* Main countdown display */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={projectorCountdown}
+            initial={{ scale: 0, opacity: 0, rotateX: -30 }}
+            animate={{ scale: [0, 1.2, 1], opacity: 1, rotateX: 0 }}
+            exit={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, duration: 0.8 }}
+            className="relative z-10 text-center"
+          >
+            <span className={`font-black tracking-tight drop-shadow-[0_10px_60px_rgba(99,102,241,0.5)] ${
+              isGo
+                ? 'text-[12rem] sm:text-[14rem] font-mono bg-gradient-to-b from-emerald-300 via-green-400 to-teal-500 bg-clip-text text-transparent'
+                : isStarting
+                ? 'text-5xl sm:text-6xl lg:text-7xl bg-gradient-to-r from-slate-200 via-white to-slate-200 bg-clip-text text-transparent'
+                : isReady
+                ? 'text-7xl sm:text-8xl lg:text-9xl bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent'
+                : `text-[14rem] sm:text-[18rem] font-mono bg-gradient-to-b ${
+                    isMathSubject ? 'from-emerald-300 via-teal-400 to-cyan-500' : 'from-blue-300 via-indigo-400 to-purple-500'
+                  } bg-clip-text text-transparent`
+            }`}>
+              {projectorCountdown}
+            </span>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Floating particles */}
+        {!isStarting && Array.from({ length: 12 }).map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              y: [-20, -100 - Math.random() * 200],
+              x: [0, (Math.random() - 0.5) * 300],
+              opacity: [0.6, 0],
+              scale: [0.5, 1.5],
+            }}
+            transition={{ duration: 1.5 + Math.random(), repeat: Infinity, delay: Math.random() * 1.5, ease: 'easeOut' }}
+            className={`absolute w-3 h-3 rounded-full pointer-events-none ${
+              isGo ? 'bg-emerald-400' : isReady ? 'bg-amber-400' : isMathSubject ? 'bg-emerald-400' : 'bg-blue-400'
+            }`}
+            style={{ bottom: '30%', left: `${20 + i * 5}%` }}
+          />
+        ))}
+
+        {/* Bottom label */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className={`absolute bottom-12 text-center ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+        >
+          <p className="text-lg font-black uppercase tracking-[0.3em]">
+            {isGo ? '🏆 Let the competition begin! 🏆' : 'International Championship'}
+          </p>
+        </motion.div>
+      </div>
+    )
+  }
+
   // ── LIVE LEADERBOARD ──
   return (
     <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
@@ -635,6 +811,26 @@ export default function ProjectorPage() {
             </span>
           )}
           {activeState?.round_label && <span className={`text-xs font-bold uppercase tracking-wider ${textDim}`}>{activeState.round_label}</span>}
+
+          {/* LIVE badge */}
+          <AnimatePresence>
+            {showLiveBadge && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-red-500/30 ml-2"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="w-2.5 h-2.5 rounded-full bg-white"
+                />
+                <span className="text-sm font-black uppercase tracking-widest">LIVE</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-3">

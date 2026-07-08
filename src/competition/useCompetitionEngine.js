@@ -136,12 +136,17 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     } catch {}
   }, [competitionId])
 
-  // Poll on mount — fast (2s) when waiting in lobby, normal (15s) otherwise
+  // Poll on mount — moderate (5s+jitter) when waiting in lobby, normal (15s) otherwise
   const lobbyPoll = phase === 'waiting'
   useEffect(() => {
     let cancelled = false
-    const interval = lobbyPoll ? 2_000 : POLL_INTERVAL
-    function tick() { pollState(); if (!cancelled) pollRef.current = setTimeout(tick, lobbyPoll ? interval : jitter(interval)) }
+    function tick() {
+      pollState()
+      if (!cancelled) {
+        const interval = lobbyPoll ? 5_000 + Math.random() * 2_000 : jitter(POLL_INTERVAL)
+        pollRef.current = setTimeout(tick, interval)
+      }
+    }
     tick()
     return () => { cancelled = true; clearTimeout(pollRef.current) }
   }, [pollState, lobbyPoll])
@@ -156,21 +161,45 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   }, [phase, session, sendHeartbeat])
 
   // Auto-start: when admin starts the competition, activate student automatically
+  // Retries up to 5 times with exponential backoff if startRace fails
   useEffect(() => {
     if (phase !== 'waiting' || !session || !competitionState?.started_at) return
     if (autoStartRef.current) return
     autoStartRef.current = true
     setAutoStarting(true)
-    const delay = Math.random() * 2000
-    const tid = setTimeout(async () => {
+    let cancelled = false
+    let attempt = 0
+    const initialDelay = Math.random() * 2000
+
+    async function tryStart() {
+      if (cancelled) return
       try {
-        await startRace()
+        const ok = await startRace()
+        if (!ok && !cancelled) {
+          attempt++
+          if (attempt <= 5) {
+            const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 1000
+            setTimeout(tryStart, backoff)
+          } else {
+            autoStartRef.current = false
+            setAutoStarting(false)
+          }
+        }
       } catch {
-        autoStartRef.current = false
-        setAutoStarting(false)
+        if (cancelled) return
+        attempt++
+        if (attempt <= 5) {
+          const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 1000
+          setTimeout(tryStart, backoff)
+        } else {
+          autoStartRef.current = false
+          setAutoStarting(false)
+        }
       }
-    }, delay)
-    return () => clearTimeout(tid)
+    }
+
+    const tid = setTimeout(tryStart, initialDelay)
+    return () => { cancelled = true; clearTimeout(tid) }
   }, [phase, session, competitionState?.started_at, startRace])
 
   // Keep polling during active (for time extensions only — reduced frequency)

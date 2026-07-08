@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
-import { playSFX } from '../utils/audioPlayer'
 import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
@@ -12,6 +11,42 @@ import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
+
+function playCountdownBeep(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    if (type === 'ready') {
+      osc.type = 'sine'
+      osc.frequency.value = 440
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.6)
+    } else if (type === 'tick') {
+      osc.type = 'sine'
+      osc.frequency.value = 660
+      gain.gain.setValueAtTime(0.35, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.25)
+    } else if (type === 'go') {
+      osc.type = 'square'
+      osc.frequency.setValueAtTime(523, ctx.currentTime)
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1)
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2)
+      gain.gain.setValueAtTime(0.25, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.5)
+    }
+    setTimeout(() => ctx.close(), 1500)
+  } catch {}
+}
 
 const CONCURRENCY = 5
 const CACHE_NAME = 'wordee-competition-assets-v1'
@@ -111,6 +146,8 @@ export default function CompetitionPlayPage() {
   const [questions, setQuestions] = useState(null)
 
   const [countdownNum, setCountdownNum] = useState(3)
+  const countdownDoneRef = useRef(false)
+  const [autoStartMsg, setAutoStartMsg] = useState('Entering arena...')
   const [competitionId, setCompetitionId] = useState(null)
   const restoredRef = useRef(false)
 
@@ -131,6 +168,20 @@ export default function CompetitionPlayPage() {
       }
     }
   }, [competitionId])
+
+  // Progressive auto-start messages
+  useEffect(() => {
+    if (!autoStarting) { setAutoStartMsg('Entering arena...'); return }
+    setAutoStartMsg('Entering arena...')
+    const msgs = [
+      [4000, 'Connecting to server...'],
+      [8000, 'Almost there...'],
+      [15000, 'Hang tight, loading...'],
+      [25000, 'Still connecting...'],
+    ]
+    const timers = msgs.map(([delay, msg]) => setTimeout(() => setAutoStartMsg(msg), delay))
+    return () => timers.forEach(clearTimeout)
+  }, [autoStarting])
 
   useEffect(() => {
     const handler = (e) => {
@@ -185,25 +236,44 @@ export default function CompetitionPlayPage() {
     }
   }, [phase, session])
 
+  // Countdown animation — runs the sequence then marks done
   useEffect(() => {
-    if (step !== 'countdown') return
+    if (step !== 'countdown') { countdownDoneRef.current = false; return }
+    countdownDoneRef.current = false
     setCountdownNum('GET READY!')
-    playSFX('correct.wav')
+    playCountdownBeep('ready')
     const sequence = [3, 2, 1, 'GO!', null]
     let idx = 0
     const interval = setInterval(() => {
       const val = sequence[idx]
       if (val === null) {
         clearInterval(interval)
-        setStep('active')
+        countdownDoneRef.current = true
       } else {
         setCountdownNum(val)
-        playSFX('correct.wav')
+        playCountdownBeep(val === 'GO!' ? 'go' : 'tick')
         idx++
       }
     }, 1000)
     return () => clearInterval(interval)
   }, [step])
+
+  // Transition to active only when BOTH countdown is done AND engine is ready
+  useEffect(() => {
+    if (step !== 'countdown') return
+    if (phase !== 'active') return
+    if (!countdownDoneRef.current) return
+    setStep('active')
+  })
+
+  // Fallback: if countdown finishes but engine isn't active yet, poll until it is
+  useEffect(() => {
+    if (step !== 'countdown') return
+    const id = setInterval(() => {
+      if (countdownDoneRef.current && phase === 'active') setStep('active')
+    }, 100)
+    return () => clearInterval(id)
+  }, [step, phase])
 
   // Auto-transition: when student is on completed screen and admin opens a new lobby
   useEffect(() => {
@@ -676,7 +746,7 @@ export default function CompetitionPlayPage() {
                         </motion.div>
                       </div>
                       <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-green-400' : 'text-green-500'}`}>
-                        Entering arena...
+                        {autoStartMsg}
                       </p>
                     </>
                   ) : (
