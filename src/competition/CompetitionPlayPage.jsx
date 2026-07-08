@@ -99,7 +99,7 @@ function loadPlayState(competitionId) {
 }
 
 export default function CompetitionPlayPage() {
-  const [step, setStep] = useState('code') // code | subject | waiting | active
+  const [step, setStep] = useState('code') // code | subject | waiting | countdown | active
   const [selectedSubject, setSelectedSubject] = useState(null) // 'english' | 'math'
   const [availableSubjects, setAvailableSubjects] = useState([])
   const [code, setCode] = useState('')
@@ -110,7 +110,6 @@ export default function CompetitionPlayPage() {
   const [preloadDone, setPreloadDone] = useState(false)
   const [questions, setQuestions] = useState(null)
 
-  const [countdownActive, setCountdownActive] = useState(false)
   const [countdownNum, setCountdownNum] = useState(3)
   const [competitionId, setCompetitionId] = useState(null)
   const restoredRef = useRef(false)
@@ -135,7 +134,7 @@ export default function CompetitionPlayPage() {
 
   useEffect(() => {
     const handler = (e) => {
-      if (step === 'active' || step === 'waiting') {
+      if (step === 'active' || step === 'waiting' || step === 'countdown') {
         e.preventDefault()
         e.returnValue = ''
       }
@@ -179,15 +178,15 @@ export default function CompetitionPlayPage() {
       setStep('waiting')
     } else if (phase === 'active' && session) {
       if (step === 'waiting' && restoredRef.current !== 'done') {
-        setCountdownActive(true)
-      } else {
+        setStep('countdown')
+      } else if (step !== 'countdown') {
         setStep('active')
       }
     }
   }, [phase, session])
 
   useEffect(() => {
-    if (!countdownActive) return
+    if (step !== 'countdown') return
     setCountdownNum('GET READY!')
     playSFX('correct.wav')
     const sequence = [3, 2, 1, 'GO!', null]
@@ -197,7 +196,6 @@ export default function CompetitionPlayPage() {
       if (val === null) {
         clearInterval(interval)
         setStep('active')
-        setCountdownActive(false)
       } else {
         setCountdownNum(val)
         playSFX('correct.wav')
@@ -205,7 +203,7 @@ export default function CompetitionPlayPage() {
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [countdownActive])
+  }, [step])
 
   // Auto-transition: when student is on completed screen and admin opens a new lobby
   useEffect(() => {
@@ -555,8 +553,6 @@ export default function CompetitionPlayPage() {
   // ===== WAITING / LOBBY =====
   if (step === 'waiting' && session) {
     return (
-      <>
-      {countdownOverlay}
       <div className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
         isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
       }`}>
@@ -712,59 +708,50 @@ export default function CompetitionPlayPage() {
           </div>
         </motion.div>
       </div>
-      </>
     )
   }
 
-  // ===== COUNTDOWN OVERLAY (renders over any screen) =====
-  const countdownOverlay = (
-    <AnimatePresence>
-      {countdownActive && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-[#060814] flex flex-col items-center justify-center text-white"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+  // ===== COUNTDOWN (full-screen transition before game starts) =====
+  if (step === 'countdown') {
+    return (
+      <div className="fixed inset-0 bg-[#060814] flex flex-col items-center justify-center text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={countdownNum}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-              exit={{ scale: 1.8, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
-              className={`font-black tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
-                countdownNum === 'GO!'
-                  ? 'text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
-                  : countdownNum === 'GET READY!'
-                  ? 'text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 bg-clip-text text-transparent'
-                  : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
-              }`}
-            >
-              {countdownNum}
-            </motion.div>
-          </AnimatePresence>
-
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 0.6, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={countdownNum}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+            exit={{ scale: 1.8, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
+            className={`font-black tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
+              countdownNum === 'GO!'
+                ? 'text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
+                : countdownNum === 'GET READY!'
+                ? 'text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 bg-clip-text text-transparent'
+                : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
+            }`}
           >
-            Entering {subjectLabel} arena
-          </motion.p>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+            {countdownNum}
+          </motion.div>
+        </AnimatePresence>
+
+        <motion.p
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 0.6, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
+        >
+          Entering {subjectLabel} arena
+        </motion.p>
+      </div>
+    )
+  }
 
   // ===== ACTIVE GAME =====
   if (step === 'active' && session && questions) {
     return (
       <>
-        {countdownOverlay}
         {isMath ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
             <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} />
