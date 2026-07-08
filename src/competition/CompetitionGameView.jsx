@@ -236,26 +236,26 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', bounce: 0.5, delay: 0.2 }}
-                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${tierColors.bg} flex items-center justify-center mx-auto mb-3.5 shadow-lg ${tierColors.shadow}`}
+                className={`w-20 h-20 sm:w-24 sm:h-24 landscape:w-14 landscape:h-14 rounded-full bg-gradient-to-br ${tierColors.bg} flex items-center justify-center mx-auto mb-3.5 landscape:mb-2 shadow-lg ${tierColors.shadow}`}
               >
-                {tier === 'gold' && <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-float" />}
-                {tier === 'emerald' && <Star className="w-10 h-10 sm:w-12 sm:h-12 text-white fill-current animate-float" />}
-                {tier === 'silver' && <Award className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-float" />}
-                {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-float" />}
+                {tier === 'gold' && <Trophy className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
+                {tier === 'emerald' && <Star className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white fill-current animate-float" />}
+                {tier === 'silver' && <Award className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
+                {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
               </motion.div>
 
               {session?.name && (
-                <p className={`text-sm sm:text-base font-black mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
+                <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
               )}
-              <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none">Competition Complete</h2>
-              <h1 className={`text-xl sm:text-2xl font-black mt-1.5 tracking-tight leading-tight ${tierColors.text}`}>
+              <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none landscape:hidden">Competition Complete</h2>
+              <h1 className={`text-xl sm:text-2xl landscape:text-base font-black mt-1.5 landscape:mt-0.5 tracking-tight leading-tight ${tierColors.text}`}>
                 {tierColors.title}
               </h1>
-              <p className="text-xs text-slate-400 font-bold mt-1">{tierColors.desc}</p>
+              <p className="text-xs text-slate-400 font-bold mt-1 landscape:mt-0 landscape:text-[10px]">{tierColors.desc}</p>
               
               {/* SVG Animated Radial Progress Bar (Compacted in landscape) */}
-              <div className="relative w-36 h-36 mt-3 flex items-center justify-center">
-                <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 144 144">
+              <div className="relative w-36 h-36 landscape:w-24 landscape:h-24 mt-3 landscape:mt-1 flex items-center justify-center">
+                <svg className="w-36 h-36 landscape:w-24 landscape:h-24 transform -rotate-90" viewBox="0 0 144 144">
                   <circle
                     cx="72"
                     cy="72"
@@ -286,7 +286,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
                   </defs>
                 </svg>
                 <div className="absolute text-center">
-                  <span className={`text-3xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  <span className={`text-3xl landscape:text-xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                     {scoreVal}
                   </span>
                   <span className="text-slate-400 text-[10px] sm:text-xs font-bold block mt-0.5 leading-none">
@@ -299,21 +299,21 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
             {/* Right Column: Interactive Stat Cards Grid & PDF Download Button */}
             <div className={`flex flex-col justify-center border-t pt-4 landscape:border-t-0 landscape:border-l landscape:pl-5 sm:landscape:pl-6 landscape:pt-0 gap-4 ${isDark ? 'border-white/10 landscape:border-white/10' : 'border-slate-100 landscape:border-slate-200/50'}`}>
               {/* Interactive Stat Cards Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className={`rounded-xl p-2.5 sm:p-3 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
+              <div className="grid grid-cols-2 gap-3 landscape:gap-2">
+                <div className={`rounded-xl p-2.5 sm:p-3 landscape:p-2 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
                   <div className="flex items-center justify-center gap-1.5 text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                     Accuracy
                   </div>
-                  <p className={`text-lg sm:text-xl font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{pct}%</p>
+                  <p className={`text-lg sm:text-xl landscape:text-base font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{pct}%</p>
                 </div>
 
-                <div className={`rounded-xl p-2.5 sm:p-3 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
+                <div className={`rounded-xl p-2.5 sm:p-3 landscape:p-2 shadow-inner text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200/50'}`}>
                   <div className="flex items-center justify-center gap-1.5 text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider">
                     <Timer className="w-3.5 h-3.5 text-indigo-500" />
                     Time Spent
                   </div>
-                  <p className={`text-lg sm:text-xl font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{formattedTime}</p>
+                  <p className={`text-lg sm:text-xl landscape:text-base font-black font-mono mt-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{formattedTime}</p>
                 </div>
               </div>
 
@@ -324,7 +324,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   disabled={downloadingCert || !validatedScore}
-                  className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-black rounded-xl text-sm shadow-[0_4px_12px_rgba(99,102,241,0.2)] disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-3.5 landscape:py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-black rounded-xl text-sm landscape:text-xs shadow-[0_4px_12px_rgba(99,102,241,0.2)] disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {downloadingCert ? (
                     <>
