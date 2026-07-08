@@ -165,8 +165,23 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     }
   }
 
-  function handleExport() {
-    const list = exportSchool === 'all' ? grouped : grouped.filter(s => s.school === exportSchool)
+  async function handleExport() {
+    const { data: allSessions } = await supabase
+      .from('competition_sessions')
+      .select('participant_code, name, school, country, age, subject, level')
+      .eq('competition_id', state.competition_id)
+    if (!allSessions) return
+
+    const map = new Map()
+    for (const s of allSessions) {
+      const key = s.participant_code
+      if (!map.has(key)) map.set(key, { code: key, name: s.name, school: s.school, country: s.country, age: s.age })
+      const entry = map.get(key)
+      if (s.subject === 'english') entry.engLevel = s.level
+      if (s.subject === 'math') entry.mathLevel = s.level
+    }
+    let list = [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+    if (exportSchool !== 'all') list = list.filter(s => s.school === exportSchool)
     if (list.length === 0) return
 
     const header = ['Name', 'School', 'Country', 'Age', 'Code', 'English Level', 'Math Level']
@@ -178,11 +193,11 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         s.country || '',
         s.age || '',
         s.code,
-        s.english?.level || 0,
-        s.math?.level || 0,
+        s.engLevel ?? '',
+        s.mathLevel ?? '',
       ].join(','))
     }
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const blob = new Blob(['﻿' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -333,10 +348,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                 <colgroup>
                   <col className="w-[4%]" />
                   <col className="w-[5%]" />
-                  <col className="w-[25%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[10%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[12%]" />
                   <col className="w-[12%]" />
                   <col className="w-[14%]" />
                 </colgroup>
