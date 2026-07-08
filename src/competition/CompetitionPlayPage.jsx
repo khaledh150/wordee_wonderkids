@@ -188,21 +188,20 @@ export default function CompetitionPlayPage() {
 
   useEffect(() => {
     if (!countdownActive) return
-    setCountdownNum(3)
+    setCountdownNum('GET READY!')
     playSFX('correct.wav')
-    let cur = 3
+    const sequence = [3, 2, 1, 'GO!', null]
+    let idx = 0
     const interval = setInterval(() => {
-      cur -= 1
-      if (cur === 0) {
-        setCountdownNum('GO!')
-        playSFX('correct.wav')
-      } else if (cur < 0) {
+      const val = sequence[idx]
+      if (val === null) {
         clearInterval(interval)
         setStep('active')
         setCountdownActive(false)
       } else {
-        setCountdownNum(cur)
+        setCountdownNum(val)
         playSFX('correct.wav')
+        idx++
       }
     }, 1000)
     return () => clearInterval(interval)
@@ -736,10 +735,12 @@ export default function CompetitionPlayPage() {
               animate={{ scale: [0, 1.3, 1], opacity: 1 }}
               exit={{ scale: 1.8, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
-              className={`text-7xl sm:text-8xl md:text-9xl font-black font-mono tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
+              className={`font-black tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
                 countdownNum === 'GO!'
-                  ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
-                  : `bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
+                  ? 'text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
+                  : countdownNum === 'GET READY!'
+                  ? 'text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 bg-clip-text text-transparent'
+                  : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
               }`}
             >
               {countdownNum}
