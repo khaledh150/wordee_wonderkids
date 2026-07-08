@@ -249,6 +249,15 @@ export default function ProjectorPage() {
     }
   }, [activeSubject])
 
+  // Auto-switch to the level that has active students
+  const userPickedLevelRef = useRef(false)
+  useEffect(() => {
+    if (userPickedLevelRef.current) return
+    if (levels.length === 0) return
+    const activeLvl = levels.find(l => subjectSessions.some(s => s.level === l && s.status === 'active'))
+    if (activeLvl != null && activeLvl !== displayLevel) setDisplayLevel(activeLvl)
+  }, [subjectSessions, levels])
+
   // Reset countdown detection when subject changes so it fires for each subject
   useEffect(() => {
     prevStartedRef.current = null
@@ -795,8 +804,9 @@ export default function ProjectorPage() {
         </>
       )}
 
-      {/* Header */}
-      <header className={`flex items-center justify-between mb-6 border px-5 py-3 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
+      {/* Header — 3 sections: subject | LIVE | switcher + timer */}
+      <header className={`grid grid-cols-[1fr_auto_1fr] items-center mb-6 border px-5 py-3 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
+        {/* Left: Subject label */}
         <div className="flex items-center gap-3">
           {activeSubject === 'math'
             ? <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
@@ -811,8 +821,10 @@ export default function ProjectorPage() {
             </span>
           )}
           {activeState?.round_label && <span className={`text-xs font-bold uppercase tracking-wider ${textDim}`}>{activeState.round_label}</span>}
+        </div>
 
-          {/* LIVE badge */}
+        {/* Center: LIVE badge */}
+        <div className="flex items-center justify-center px-4">
           <AnimatePresence>
             {showLiveBadge && (
               <motion.div
@@ -820,40 +832,70 @@ export default function ProjectorPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-red-500/30 ml-2"
+                className="flex items-center gap-2.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-red-500/40 relative overflow-hidden"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="w-2.5 h-2.5 rounded-full bg-white"
+                <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 />
-                <span className="text-sm font-black uppercase tracking-widest">LIVE</span>
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
+                />
+                <span className="text-base font-black uppercase tracking-[0.2em] relative z-10">Competition is Live</span>
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
+                  className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right: Level switcher + timer */}
+        <div className="flex items-center gap-3 justify-end">
           {levels.length > 0 && (
-            <div className={`flex gap-0.5 rounded-xl p-1 ${isDark ? 'bg-white/5' : 'bg-slate-200/80'}`}>
+            <div className={`flex gap-1 rounded-2xl p-1.5 border relative ${
+              isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-100 border-slate-200'
+            }`}>
               {levels.map(l => {
                 const lvlSessions = subjectSessions.filter(s => s.level === l)
+                const activeCount = lvlSessions.filter(s => s.status === 'active').length
                 const doneCount = lvlSessions.filter(s => s.status === 'completed').length
+                const isSelected = activeLevel === l
                 return (
-                  <button key={l} onClick={() => setDisplayLevel(l)}
-                    className={`px-3.5 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all cursor-pointer ${
-                      activeLevel === l
-                        ? isMathSubject
-                          ? 'bg-emerald-600 text-white shadow-md'
-                          : 'bg-blue-600 text-white shadow-md'
-                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-white'
+                  <button key={l} onClick={() => { userPickedLevelRef.current = true; setDisplayLevel(l) }}
+                    className={`relative px-4 py-2 rounded-xl font-black text-sm tracking-wider transition-all duration-300 cursor-pointer ${
+                      isSelected
+                        ? 'text-white shadow-lg'
+                        : isDark
+                          ? 'text-slate-400 hover:text-white'
+                          : 'text-slate-500 hover:text-slate-800'
                     }`}>
-                    L{l}
-                    {doneCount > 0 && (
-                      <span className={`ml-1.5 text-[10px] font-mono ${activeLevel === l ? 'text-white/70' : textDim}`}>
-                        {doneCount}/{lvlSessions.length}
-                      </span>
+                    {isSelected && (
+                      <motion.div
+                        layoutId="level-switcher-active"
+                        className={`absolute inset-0 rounded-xl bg-gradient-to-r shadow-lg ${
+                          isMathSubject
+                            ? 'from-emerald-500 to-teal-600 shadow-emerald-500/30'
+                            : 'from-blue-500 to-indigo-600 shadow-blue-500/30'
+                        }`}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
                     )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      Level {l}
+                      {activeCount > 0 && (
+                        <span className={`w-2 h-2 rounded-full animate-pulse ${isSelected ? 'bg-white/80' : 'bg-emerald-400'}`} />
+                      )}
+                      {doneCount > 0 && (
+                        <span className={`text-[10px] font-mono ${isSelected ? 'text-white/70' : textDim}`}>
+                          {doneCount}/{lvlSessions.length}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 )
               })}
@@ -861,7 +903,7 @@ export default function ProjectorPage() {
           )}
 
           {elapsed != null && (
-            <div className={`flex items-center gap-2 border rounded-xl px-3.5 py-1.5 font-mono ${
+            <div className={`flex items-center gap-2 border rounded-xl px-3.5 py-2 font-mono ${
               isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
             }`}>
               <Timer className="w-4 h-4" />
