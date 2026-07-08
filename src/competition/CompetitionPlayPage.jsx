@@ -287,7 +287,6 @@ export default function CompetitionPlayPage() {
       setQuestions(q)
       if (result.completed) setStep('active')
       else if (result.resume) setStep('active')
-      else if (result.remaining > 0) setStep('active')
       else setStep('waiting')
     } catch (err) {
       setError(err.message || 'Failed to join. Please try again.')
@@ -333,7 +332,8 @@ export default function CompetitionPlayPage() {
     if (starting) return
     setStarting(true)
     try {
-      await startRace()
+      const ok = await startRace()
+      if (!ok) setStarting(false)
     } catch (err) {
       setError(err.message || 'Failed to start')
       setStarting(false)

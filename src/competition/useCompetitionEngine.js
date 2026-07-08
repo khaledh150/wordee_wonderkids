@@ -236,7 +236,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
   // ── Start Race ──
   const startRace = useCallback(async () => {
-    if (!session) return
+    if (!session) return false
     const result = await callFunction('join', {
       participant_code: session.participant_code,
       competition_id: competitionId,
@@ -248,19 +248,19 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setValidatedScore(result.validated_score)
       if (result.rank != null) setRank(result.rank)
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'completed', validatedScore: result.validated_score, rank: result.rank ?? null })
-      return
+      return true
     }
 
-    // Server returned not_started (competition not unlocked)
+    // Server returned not_started (competition not unlocked yet)
     if (result.not_started || !result.remaining) {
-      return
+      return false
     }
 
     if (result.resume && result.remaining > 0) {
       setTimeLeft(result.remaining)
       setPhase('active')
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
-      return
+      return true
     }
 
     // Fresh start
@@ -268,7 +268,9 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setTimeLeft(result.remaining)
       setPhase('active')
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
+      return true
     }
+    return false
   }, [session, competitionId, subject])
 
   // ── Timer ──
