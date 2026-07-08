@@ -4,7 +4,7 @@ import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
 import { playSFX } from '../utils/audioPlayer'
-import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, Play, BookOpen, Calculator } from 'lucide-react'
+import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
 import StudentAvatar from './admin/StudentAvatar'
@@ -150,7 +150,7 @@ export default function CompetitionPlayPage() {
     questions,
   })
 
-  const { session, phase, competitionState, announcement, joinCompetition, startRace, markReady } = engine
+  const { session, phase, competitionState, announcement, joinCompetition, startRace, markReady, autoStarting } = engine
 
   const isDark = competitionState?.theme === 'dark'
 
@@ -326,19 +326,6 @@ export default function CompetitionPlayPage() {
     })
   }, [step, session, markReady, selectedSubject])
 
-  const [starting, setStarting] = useState(false)
-
-  async function handleStart() {
-    if (starting) return
-    setStarting(true)
-    try {
-      const ok = await startRace()
-      if (!ok) setStarting(false)
-    } catch (err) {
-      setError(err.message || 'Failed to start')
-      setStarting(false)
-    }
-  }
 
   const renderBackgroundBlobs = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -568,10 +555,9 @@ export default function CompetitionPlayPage() {
 
   // ===== WAITING / LOBBY =====
   if (step === 'waiting' && session) {
-    const adminStarted = !!competitionState?.started_at
-    const canStart = adminStarted && preloadDone
-
     return (
+      <>
+      {countdownOverlay}
       <div className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
         isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
       }`}>
@@ -677,7 +663,28 @@ export default function CompetitionPlayPage() {
                 </AnimatePresence>
 
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 py-2">
-                  {!canStart ? (
+                  {autoStarting ? (
+                    <>
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-4 border-green-300 text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(34,197,94,0.5)] relative flex items-center justify-center">
+                        <motion.div
+                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                          className="absolute inset-0 rounded-full bg-green-500/40"
+                        />
+                        <motion.div
+                          animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
+                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+                          className="absolute inset-0 rounded-full bg-green-500/20"
+                        />
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="relative z-10">
+                          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
+                        </motion.div>
+                      </div>
+                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-green-400' : 'text-green-500'}`}>
+                        Entering arena...
+                      </p>
+                    </>
+                  ) : (
                     <>
                       <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center relative ${isDark ? 'bg-slate-800 border-2 border-slate-700' : 'bg-slate-100 border-2 border-slate-200'}`}>
                         <motion.div
@@ -692,51 +699,9 @@ export default function CompetitionPlayPage() {
                           {!preloadDone ? 'Loading...' : 'Waiting for Admin'}
                         </h3>
                         <p className={`text-[10px] sm:text-xs mt-1 font-semibold leading-normal max-w-[200px] mx-auto ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                          {!preloadDone ? `Finalizing ${subjectLabel} configurations...` : 'The competition will be unlocked shortly.'}
+                          {!preloadDone ? `Finalizing ${subjectLabel} configurations...` : 'The competition will start automatically.'}
                         </p>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <motion.button
-                        onClick={handleStart}
-                        disabled={starting}
-                        whileHover={starting ? {} : { scale: 1.08 }}
-                        whileTap={starting ? {} : { scale: 0.92 }}
-                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(34,197,94,0.5)] cursor-pointer relative flex items-center justify-center border-4 ${starting ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-300' : 'bg-gradient-to-br from-green-500 to-green-700 border-green-400'}`}
-                      >
-                        {!starting && (
-                          <>
-                            <motion.div
-                              animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                              className="absolute inset-0 rounded-full bg-green-500/40"
-                            />
-                            <motion.div
-                              animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                              className="absolute inset-0 rounded-full bg-green-500/20"
-                            />
-                          </>
-                        )}
-                        <motion.div
-                          animate={starting ? { rotate: 360 } : { scale: [1, 1.05, 1] }}
-                          transition={starting ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-                          className="relative z-10 flex flex-col items-center"
-                        >
-                          {starting ? (
-                            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
-                          ) : (
-                            <>
-                              <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current drop-shadow-lg" />
-                              <span className="text-xs sm:text-sm mt-0.5 drop-shadow-lg">START</span>
-                            </>
-                          )}
-                        </motion.div>
-                      </motion.button>
-                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-green-400' : 'text-green-500'}`}>
-                        {starting ? 'Entering arena...' : 'Tap to begin!'}
-                      </p>
                     </>
                   )}
                 </div>
@@ -748,52 +713,57 @@ export default function CompetitionPlayPage() {
           </div>
         </motion.div>
       </div>
+      </>
     )
   }
+
+  // ===== COUNTDOWN OVERLAY (renders over any screen) =====
+  const countdownOverlay = (
+    <AnimatePresence>
+      {countdownActive && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-[#060814] flex flex-col items-center justify-center text-white"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={countdownNum}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+              exit={{ scale: 1.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
+              className={`text-7xl sm:text-8xl md:text-9xl font-black font-mono tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
+                countdownNum === 'GO!'
+                  ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
+                  : `bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
+              }`}
+            >
+              {countdownNum}
+            </motion.div>
+          </AnimatePresence>
+
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 0.6, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
+          >
+            Entering {subjectLabel} arena
+          </motion.p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 
   // ===== ACTIVE GAME =====
   if (step === 'active' && session && questions) {
     return (
       <>
-        <AnimatePresence>
-          {countdownActive && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-[#060814] flex flex-col items-center justify-center text-white"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={countdownNum}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-                  exit={{ scale: 1.8, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
-                  className={`text-7xl sm:text-8xl md:text-9xl font-black font-mono tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
-                    countdownNum === 'GO!'
-                      ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
-                      : `bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
-                  }`}
-                >
-                  {countdownNum}
-                </motion.div>
-              </AnimatePresence>
-
-              <motion.p
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 0.6, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
-              >
-                Entering {subjectLabel} arena
-              </motion.p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+        {countdownOverlay}
         {isMath ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
             <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} />

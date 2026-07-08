@@ -46,6 +46,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [competitionState, setCompetitionState] = useState(null)
   const [orderedQuestions, setOrderedQuestions] = useState([])
   const [hapticPulse, setHapticPulse] = useState(false)
+  const [autoStarting, setAutoStarting] = useState(false)
+  const autoStartRef = useRef(false)
 
   const timerRef = useRef(null)
   const syncRef = useRef(null)
@@ -134,13 +136,15 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     } catch {}
   }, [competitionId])
 
-  // Poll on mount
+  // Poll on mount — fast (2s) when waiting in lobby, normal (15s) otherwise
+  const lobbyPoll = phase === 'waiting'
   useEffect(() => {
     let cancelled = false
-    function tick() { pollState(); if (!cancelled) pollRef.current = setTimeout(tick, jitter(POLL_INTERVAL)) }
+    const interval = lobbyPoll ? 2_000 : POLL_INTERVAL
+    function tick() { pollState(); if (!cancelled) pollRef.current = setTimeout(tick, lobbyPoll ? interval : jitter(interval)) }
     tick()
     return () => { cancelled = true; clearTimeout(pollRef.current) }
-  }, [pollState])
+  }, [pollState, lobbyPoll])
 
   // Heartbeat while waiting
   useEffect(() => {
@@ -150,6 +154,24 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     tick()
     return () => { cancelled = true; clearTimeout(heartbeatRef.current) }
   }, [phase, session, sendHeartbeat])
+
+  // Auto-start: when admin starts the competition, activate student automatically
+  useEffect(() => {
+    if (phase !== 'waiting' || !session || !competitionState?.started_at) return
+    if (autoStartRef.current) return
+    autoStartRef.current = true
+    setAutoStarting(true)
+    const delay = Math.random() * 2000
+    const tid = setTimeout(async () => {
+      try {
+        await startRace()
+      } catch {
+        autoStartRef.current = false
+        setAutoStarting(false)
+      }
+    }, delay)
+    return () => clearTimeout(tid)
+  }, [phase, session, competitionState?.started_at, startRace])
 
   // Keep polling during active (for time extensions only — reduced frequency)
   useEffect(() => {
@@ -182,6 +204,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       clearTimeout(syncRef.current)
       clearTimeout(autoSubmitRef.current)
       submittingRef.current = false
+      autoStartRef.current = false
+      setAutoStarting(false)
       lastSyncedLenRef.current = 0
       setTimeLeft(null)
       setAnswers([])
@@ -439,6 +463,6 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     phase, session, timeLeft, currentScore: correctCount,
     questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline, isSubmitting,
     announcement, competitionState, orderedQuestions, hapticPulse,
-    submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
+    autoStarting, submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
   }
 }

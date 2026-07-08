@@ -540,56 +540,60 @@ export default function ProjectorPage() {
             </motion.p>
           )}
 
-          {/* QR Code */}
-          <motion.div initial={{ opacity: 0, scale: 0.6, rotateX: 30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-            transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.4 }}
-            className={`backdrop-blur-xl border rounded-[32px] p-7 shadow-2xl relative overflow-hidden ${
-              isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
-            }`}>
-            <div className="bg-white rounded-2xl p-4 shadow-inner">
-              {qrCode}
-            </div>
-          </motion.div>
-
-          {/* Scan instruction */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mt-6">
-            <div className={`flex items-center gap-3 mb-1.5 ${sc.accent}`}>
-              <QrCode className="w-5 h-5" />
-              <p className="text-xl font-black tracking-tight">Scan to Enter the Arena</p>
-              <QrCode className="w-5 h-5" />
-            </div>
-            <p className={`text-sm font-mono ${textDim}`}>{window.location.origin}/play</p>
-          </motion.div>
-
-          {/* Connected students */}
-          {subjectSessions.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="mt-10 w-full">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Users className={`w-4 h-4 ${textDim}`} />
-                <span className={`text-xs font-black uppercase tracking-widest ${textDim}`}>
-                  Participants Ready: {readyStudents.length} / {subjectSessions.length}
-                </span>
+          {/* Side-by-side: QR (left) + Roster (right) */}
+          <div className="flex gap-8 w-full items-stretch mt-2">
+            {/* QR Code — left column */}
+            <motion.div initial={{ opacity: 0, scale: 0.6, rotateX: 30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+              transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.4 }}
+              className="flex flex-col items-center shrink-0">
+              <div className={`backdrop-blur-xl border rounded-[32px] p-6 shadow-2xl relative overflow-hidden ${
+                isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
+              }`}>
+                <div className="bg-white rounded-2xl p-3 shadow-inner">
+                  {qrCode}
+                </div>
               </div>
-              <div className="flex flex-wrap justify-center gap-2.5 max-w-4xl mx-auto px-4 max-h-[200px] overflow-y-auto projector-scroll">
-                <AnimatePresence>
-                  {[...subjectSessions].sort((a, b) => (b.ready ? 1 : 0) - (a.ready ? 1 : 0)).map((s, i) => (
-                    <motion.div key={s.participant_id || s.id} layout
-                      initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                      transition={{ delay: 0.05 * i }}
-                      className={`px-3.5 py-2 rounded-full border text-sm font-bold flex items-center gap-2 ${
-                        s.ready
-                          ? isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          : isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
-                      }`}>
-                      <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
-                      <span className={`w-1.5 h-1.5 rounded-full ${s.ready ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
-                      {s.name}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+              <div className={`flex items-center gap-2 mt-4 ${sc.accent}`}>
+                <QrCode className="w-4 h-4" />
+                <p className="text-base font-black tracking-tight">Scan to Enter</p>
+                <QrCode className="w-4 h-4" />
               </div>
+              <p className={`text-xs font-mono mt-1 ${textDim}`}>{window.location.origin}/play</p>
             </motion.div>
-          )}
+
+            {/* Participants — right column, auto-scrolling */}
+            {subjectSessions.length > 0 && (
+              <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}
+                className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className={`w-4 h-4 ${textDim}`} />
+                  <span className={`text-xs font-black uppercase tracking-widest ${textDim}`}>
+                    Ready: {readyStudents.length} / {subjectSessions.length}
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto max-h-[420px] pr-2 projector-scroll">
+                  <div className="flex flex-wrap gap-2">
+                    <AnimatePresence>
+                      {[...subjectSessions].sort((a, b) => (b.ready ? 1 : 0) - (a.ready ? 1 : 0)).map((s, i) => (
+                        <motion.div key={s.participant_id || s.id} layout
+                          initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+                          transition={{ delay: Math.min(0.03 * i, 1) }}
+                          className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-2 ${
+                            s.ready
+                              ? isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
+                          }`}>
+                          <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.ready ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
+                          <span className="truncate max-w-[140px]">{s.name}</span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
         </div>
 
       </div>
@@ -720,12 +724,12 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3rem_2rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                className={`grid grid-cols-[3rem_2.5rem_2fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
                 <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
-                <span className={`font-black truncate text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
+                <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
                 <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>
