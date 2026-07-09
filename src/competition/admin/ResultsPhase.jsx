@@ -13,6 +13,7 @@ function getEnglishTotal(level) {
 
 export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onNewSession, onShowPodium, readOnly }) {
   const [levelFilter, setLevelFilter] = useState(null)
+  const maxTime = (state.duration_seconds || 300) + (state.extra_seconds || 0)
   const [confirmNew, setConfirmNew] = useState(null)
   const [batchProgress, setBatchProgress] = useState(null)
   const [excelExporting, setExcelExporting] = useState(false)
@@ -209,8 +210,9 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
             const hasScore = s.validated_score != null
             const rank = hasScore ? rankCounter++ : ''
             const totalQ = getTotal(subj.key, lvl)
+            const cappedTime = Math.min(s.time_spent_seconds || 0, (state.duration_seconds || 300) + (state.extra_seconds || 0))
             const timeFmt = hasScore && s.time_spent_seconds != null
-              ? `${Math.floor(s.time_spent_seconds / 60)}:${String(s.time_spent_seconds % 60).padStart(2, '0')}`
+              ? `${Math.floor(cappedTime / 60)}:${String(cappedTime % 60).padStart(2, '0')}`
               : ''
 
             const values = [
@@ -433,7 +435,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                   {s.validated_score}
                   <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {getTotalQuestions(s.level)}</span>
                 </td>
-                <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{fmt(s.time_spent_seconds)}</td>
+                <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={async () => {
@@ -560,7 +562,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                       <td className="px-3 py-2 text-center font-mono text-gray-500">{s.display_id}</td>
                       <td className="px-3 py-2 text-gray-600">{s.school || '-'}</td>
                       <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {getTotalQuestions(s.level)}</td>
-                      <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(s.time_spent_seconds)}</td>
+                      <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
                     </tr>
                   ))}
                 </tbody>

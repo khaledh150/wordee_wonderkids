@@ -138,7 +138,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
                 <p className={`font-black text-lg text-center leading-tight ${text}`}>{s.name}</p>
                 {s.school && <p className={`text-xs mt-1 ${textMuted}`}>{s.school}</p>}
                 <p className={`text-2xl font-black font-mono mt-3 ${text}`}>{s.validated_score}</p>
-                <p className={`text-xs font-mono ${textMuted}`}>{fmt(s.time_spent_seconds)}</p>
+                <p className={`text-xs font-mono ${textMuted}`}>{fmt(Math.min(s.time_spent_seconds || 0, (state.duration_seconds || 300) + (state.extra_seconds || 0)))}</p>
                 <p className={`text-[10px] font-bold uppercase tracking-wider mt-2 ${podiumColors[i]}`}>
                   {podiumLabels[i]}
                 </p>
