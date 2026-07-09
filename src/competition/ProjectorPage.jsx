@@ -30,7 +30,7 @@ export default function ProjectorPage() {
   const [displayLevel, setDisplayLevel] = useState(null)
   const [elapsed, setElapsed] = useState(null)
   const [projectorCountdown, setProjectorCountdown] = useState(null) // null | 'COMPETITION STARTING...' | 'GET READY!' | 3 | 2 | 1 | 'GO!'
-  const [showLiveBadge, setShowLiveBadge] = useState(false)
+  const [liveBadge, setLiveBadge] = useState(null) // null | 'live' | 'done'
   const realtimeDebounceRef = useRef(null)
   const prevPodiumRef = useRef({ visible: false, level: null, initialized: false })
   const prevStartedRef = useRef('__uninitialized__')
@@ -180,18 +180,26 @@ export default function ProjectorPage() {
         }, 7000),
         setTimeout(() => {
           setProjectorCountdown(null)
-          setShowLiveBadge(true)
+          setLiveBadge('live')
         }, 8500),
       ]
       return () => timers.forEach(clearTimeout)
     }
   }, [activeState?.started_at])
 
-  // Show LIVE badge only when competition is actually running with active students
+  // LIVE / ALL DONE badge logic
   useEffect(() => {
-    const hasActiveStudents = subjectSessions.some(s => s.status === 'active')
     const isStarted = activeState?.started_at && activeState?.is_unlocked
-    setShowLiveBadge(!!isStarted && hasActiveStudents)
+    if (!isStarted || activeState?.podium_visible) {
+      setLiveBadge(null)
+      return
+    }
+    const hasActiveStudents = subjectSessions.some(s => s.status === 'active')
+    const allCompleted = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting')
+    const anyCompleted = subjectSessions.some(s => s.status === 'completed')
+    if (allCompleted && anyCompleted) setLiveBadge('done')
+    else if (hasActiveStudents || anyCompleted) setLiveBadge('live')
+    else setLiveBadge('live')
   }, [activeState, subjectSessions])
 
   // Podium sound effects — fire on visibility/level changes (skip initial load)
@@ -820,14 +828,15 @@ export default function ProjectorPage() {
           {activeState?.round_label && <span className={`text-xs font-bold uppercase tracking-wider ${textDim}`}>{activeState.round_label}</span>}
         </div>
 
-        {/* Center: LIVE badge */}
+        {/* Center: LIVE / ALL DONE badge */}
         <div className="flex items-center justify-center px-4">
-          <AnimatePresence>
-            {showLiveBadge && (
+          <AnimatePresence mode="wait">
+            {liveBadge === 'live' && (
               <motion.div
+                key="live"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
+                exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-emerald-500/40 relative overflow-hidden"
               >
@@ -846,6 +855,24 @@ export default function ProjectorPage() {
                   transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
                   className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
                 />
+              </motion.div>
+            )}
+            {liveBadge === 'done' && (
+              <motion.div
+                key="done"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="flex items-center gap-2.5 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-amber-500/30 relative overflow-hidden"
+              >
+                <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                />
+                <Trophy className="w-5 h-5 relative z-10" />
+                <span className="text-base font-black uppercase tracking-[0.2em] relative z-10">All Finished</span>
+                <Trophy className="w-5 h-5 relative z-10" />
               </motion.div>
             )}
           </AnimatePresence>
