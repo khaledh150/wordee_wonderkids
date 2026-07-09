@@ -12,41 +12,6 @@ import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
-function playCountdownBeep(type) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-
-    if (type === 'ready') {
-      osc.type = 'sine'
-      osc.frequency.value = 440
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6)
-      osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.6)
-    } else if (type === 'tick') {
-      osc.type = 'sine'
-      osc.frequency.value = 660
-      gain.gain.setValueAtTime(0.35, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25)
-      osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.25)
-    } else if (type === 'go') {
-      osc.type = 'square'
-      osc.frequency.setValueAtTime(523, ctx.currentTime)
-      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1)
-      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2)
-      gain.gain.setValueAtTime(0.25, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5)
-      osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.5)
-    }
-    setTimeout(() => ctx.close(), 1500)
-  } catch {}
-}
 
 const CONCURRENCY = 5
 const CACHE_NAME = 'wordee-competition-assets-v1'
@@ -241,7 +206,6 @@ export default function CompetitionPlayPage() {
     if (step !== 'countdown') { countdownDoneRef.current = false; return }
     countdownDoneRef.current = false
     setCountdownNum('GET READY!')
-    playCountdownBeep('ready')
     const sequence = [3, 2, 1, 'GO!', null]
     let idx = 0
     const interval = setInterval(() => {
@@ -251,7 +215,6 @@ export default function CompetitionPlayPage() {
         countdownDoneRef.current = true
       } else {
         setCountdownNum(val)
-        playCountdownBeep(val === 'GO!' ? 'go' : 'tick')
         idx++
       }
     }, 1000)

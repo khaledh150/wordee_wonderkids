@@ -64,6 +64,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const unmountedRef = useRef(false)
   const saveDebounceRef = useRef(null)
   const autoSubmitRef = useRef(null)
+  const deadlineRef = useRef(null)
   const broadcastRef = useRef(null)
   const [isOffline, setIsOffline] = useState(false)
   const syncFailCountRef = useRef(0)
@@ -238,6 +239,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setAutoStarting(false)
       lastSyncedLenRef.current = 0
       setTimeLeft(null)
+      deadlineRef.current = null
       setAnswers([])
       setCorrectCount(0)
       setValidatedScore(null)
@@ -274,6 +276,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
       setAnswers(restoredAnswers)
       setCorrectCount(restoredCorrect)
+      deadlineRef.current = Date.now() + result.remaining * 1000
       setTimeLeft(result.remaining)
       setPhase('active')
       saveLocal(competitionId, { participantCode, phase: 'active', answers: restoredAnswers, correctCount: restoredCorrect, session: sess })
@@ -311,6 +314,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     }
 
     if (result.resume && result.remaining > 0) {
+      deadlineRef.current = Date.now() + result.remaining * 1000
       setTimeLeft(result.remaining)
       setPhase('active')
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
@@ -319,6 +323,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
     // Fresh start
     if (result.remaining > 0) {
+      deadlineRef.current = Date.now() + result.remaining * 1000
       setTimeLeft(result.remaining)
       setPhase('active')
       saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
@@ -328,49 +333,47 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   }, [session, competitionId, subject])
   startRaceRef.current = startRace
 
-  // ── Timer ──
+  // ── Timer (clock-based to avoid drift from throttled setInterval) ──
   useEffect(() => {
-    if (phase !== 'active' || timeLeft == null || timeLeft <= 0) return
+    if (phase !== 'active' || timeLeft == null || timeLeft <= 0 || !deadlineRef.current) return
 
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev == null || prev <= 0) { clearInterval(timerRef.current); return 0 }
-        const next = prev - 1
+      const next = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000))
 
-        if (next === 60 || next === 30) {
-          if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(next === 30 ? [200, 100, 200] : [200])
-          }
-          setHapticPulse(true)
-          setTimeout(() => setHapticPulse(false), 1000)
+      if ((next === 60 || next === 30) && timeLeftRef.current > next) {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(next === 30 ? [200, 100, 200] : [200])
         }
+        setHapticPulse(true)
+        setTimeout(() => setHapticPulse(false), 1000)
+      }
 
-        if (next <= 0) {
-          clearInterval(timerRef.current)
-          autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
-          return 0
-        }
-        return next
-      })
+      setTimeLeft(next)
+
+      if (next <= 0) {
+        clearInterval(timerRef.current)
+        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
+      }
     }, 1000)
 
     return () => clearInterval(timerRef.current)
   }, [phase])
 
-  // Re-sync timer when tab becomes visible (fixes background tab throttling)
+  // Re-sync timer+deadline when tab becomes visible or time is extended
   useEffect(() => {
     if (phase !== 'active' || !competitionState || !sessionRef.current?.started_at) return
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return
+    const resync = () => {
       const total = (competitionState.duration_seconds || 300) + (competitionState.extra_seconds || 0)
       const elapsed = (Date.now() - new Date(sessionRef.current.started_at).getTime()) / 1000
       const corrected = Math.max(0, Math.round(total - elapsed))
+      deadlineRef.current = Date.now() + corrected * 1000
       setTimeLeft(corrected)
       if (corrected <= 0 && !submittingRef.current) {
         clearInterval(timerRef.current)
         autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
       }
     }
+    const handleVisibility = () => { if (document.visibilityState === 'visible') resync() }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [phase, competitionState])
@@ -381,7 +384,10 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     const total = (competitionState.duration_seconds || 300) + (competitionState.extra_seconds || 0)
     const elapsed = (Date.now() - new Date(sessionRef.current.started_at).getTime()) / 1000
     const newRemaining = Math.max(0, Math.round(total - elapsed))
-    if (newRemaining > (timeLeftRef.current || 0) + 2) setTimeLeft(newRemaining)
+    if (newRemaining > (timeLeftRef.current || 0) + 2) {
+      deadlineRef.current = Date.now() + newRemaining * 1000
+      setTimeLeft(newRemaining)
+    }
   }, [competitionState?.extra_seconds])
 
   // ── Sync ──
@@ -453,7 +459,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         retryCount++
         if (unmountedRef.current) { submittingRef.current = false; return }
         if (retryCount <= 3) setTimeout(trySubmit, Math.min(3000 * Math.pow(2, retryCount - 1), 15000))
-        else { submittingRef.current = false; setSubmitError(true) }
+        else { submittingRef.current = false; setIsSubmitting(false); setSubmitError(true) }
       }
     }
     await trySubmit()

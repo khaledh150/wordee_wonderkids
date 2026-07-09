@@ -164,7 +164,6 @@ export default function ProjectorPage() {
     if (prev === null && currentStarted) {
       // Competition just started — run the countdown sequence
       setProjectorCountdown('COMPETITION STARTING...')
-      playCountdownReady().catch(() => {})
 
       const timers = [
         setTimeout(() => { setProjectorCountdown('GET READY!'); playCountdownReady().catch(() => {}) }, 2000),
@@ -187,20 +186,18 @@ export default function ProjectorPage() {
     }
   }, [activeState?.started_at])
 
-  // LIVE / ALL DONE badge logic
+  // LIVE / ALL DONE badge logic (suppressed during countdown)
   useEffect(() => {
-    const isStarted = activeState?.started_at && activeState?.is_unlocked
-    if (!isStarted || activeState?.podium_visible) {
-      setLiveBadge(null)
-      return
-    }
+    if (projectorCountdown) return
+    if (activeState?.podium_visible) { setLiveBadge(null); return }
     const hasActiveStudents = subjectSessions.some(s => s.status === 'active')
-    const allCompleted = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting')
     const anyCompleted = subjectSessions.some(s => s.status === 'completed')
-    if (allCompleted && anyCompleted) setLiveBadge('done')
+    const allDone = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting') && anyCompleted
+    if (allDone) setLiveBadge('done')
     else if (hasActiveStudents || anyCompleted) setLiveBadge('live')
-    else setLiveBadge('live')
-  }, [activeState, subjectSessions])
+    else if (activeState?.started_at) setLiveBadge('live')
+    else setLiveBadge(null)
+  }, [activeState, subjectSessions, projectorCountdown])
 
   // Podium sound effects — fire on visibility/level changes (skip initial load)
   useEffect(() => {

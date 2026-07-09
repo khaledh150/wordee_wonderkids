@@ -196,7 +196,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
                     {s.validated_score ?? s.provisional_score ?? 0}
                   </td>
                   <td className={`px-4 py-3 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {fmt(s.time_spent_seconds)}
+                    {s.status === 'completed' ? fmt(s.time_spent_seconds) : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge status={s.status} lastSeenAt={s.last_seen_at} />

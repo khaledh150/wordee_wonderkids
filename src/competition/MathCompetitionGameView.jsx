@@ -351,7 +351,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
 
       {/* Submitting overlay */}
       <AnimatePresence>
-        {isSubmitting && !isTimeUp && phase !== 'completed' && (
+        {isSubmitting && !isTimeUp && phase !== 'completed' && !submitError && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -380,7 +380,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
       </AnimatePresence>
 
       <AnimatePresence>
-        {isTimeUp && phase !== 'completed' && (
+        {isTimeUp && phase !== 'completed' && !submitError && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

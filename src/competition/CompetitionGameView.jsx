@@ -460,7 +460,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
       
       {/* Submitting overlay — shows after last question answered while score is being sent */}
       <AnimatePresence>
-        {isSubmitting && !isTimeUp && phase !== 'completed' && (
+        {isSubmitting && !isTimeUp && phase !== 'completed' && !submitError && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -490,7 +490,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
 
       {/* Cinematic Full-screen Time's Up Takeover Overlay (Optimized for landscape text sizes) */}
       <AnimatePresence>
-        {isTimeUp && phase !== 'completed' && (
+        {isTimeUp && phase !== 'completed' && !submitError && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
