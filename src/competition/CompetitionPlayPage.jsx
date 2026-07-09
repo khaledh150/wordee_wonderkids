@@ -169,20 +169,6 @@ export default function CompetitionPlayPage() {
     }
   }, [competitionId])
 
-  // Progressive auto-start messages
-  useEffect(() => {
-    if (!autoStarting) { setAutoStartMsg('Entering arena...'); return }
-    setAutoStartMsg('Entering arena...')
-    const msgs = [
-      [4000, 'Connecting to server...'],
-      [8000, 'Almost there...'],
-      [15000, 'Hang tight, loading...'],
-      [25000, 'Still connecting...'],
-    ]
-    const timers = msgs.map(([delay, msg]) => setTimeout(() => setAutoStartMsg(msg), delay))
-    return () => timers.forEach(clearTimeout)
-  }, [autoStarting])
-
   useEffect(() => {
     const handler = (e) => {
       if (step === 'active' || step === 'waiting' || step === 'countdown') {
@@ -201,6 +187,20 @@ export default function CompetitionPlayPage() {
   })
 
   const { session, phase, competitionState, announcement, joinCompetition, startRace, markReady, autoStarting } = engine
+
+  // Progressive auto-start messages
+  useEffect(() => {
+    if (!autoStarting) { setAutoStartMsg('Entering arena...'); return }
+    setAutoStartMsg('Entering arena...')
+    const msgs = [
+      [4000, 'Connecting to server...'],
+      [8000, 'Almost there...'],
+      [15000, 'Hang tight, loading...'],
+      [25000, 'Still connecting...'],
+    ]
+    const timers = msgs.map(([delay, msg]) => setTimeout(() => setAutoStartMsg(msg), delay))
+    return () => timers.forEach(clearTimeout)
+  }, [autoStarting])
 
   const isDark = competitionState?.theme === 'dark'
 
