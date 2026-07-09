@@ -346,21 +346,23 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-fixed">
                 <colgroup>
-                  <col className="w-[4%]" />
-                  <col className="w-[5%]" />
-                  <col className="w-[22%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[14%]" />
+                  <col style={{ width: 36 }} />
+                  <col style={{ width: 40 }} />
+                  <col />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: 52 }} />
+                  <col style={{ width: 64 }} />
+                  <col style={{ width: 64 }} />
+                  <col style={{ width: 80 }} />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['#', '', 'Name', 'School', 'Age', 'Code', subject === 'math' ? 'Math' : 'Eng', ''].map((h, i) => (
+                    {['#', '', 'NAME', 'SCHOOL', 'AGE', 'CODE', subject === 'math' ? 'MATH' : 'ENG', ''].map((h, i) => (
                       <th
                         key={i}
-                        className={`text-left py-2.5 px-2 text-[10px] font-bold uppercase tracking-wider ${
+                        className={`py-2.5 text-[10px] font-bold uppercase tracking-wider ${
+                          i === 4 || i === 5 || i === 6 ? 'text-center' : 'text-left'
+                        } ${i === 4 ? 'px-1' : 'px-2'} ${
                           isDark ? 'text-slate-500' : 'text-slate-400'
                         }`}
                       >
@@ -427,7 +429,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           <span className={`truncate block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.school || '—'}</span>
                         )}
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-1">
                         <input
                           type="number"
                           min="4"
@@ -435,7 +437,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           value={student.age || ''}
                           onChange={(e) => handleAgeChange(student, e.target.value)}
                           placeholder="—"
-                          className={`w-14 px-1.5 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
+                          className={`w-full px-1 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
                         />
                       </td>
                       <td className="py-2 px-2 text-center">
@@ -443,7 +445,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           {student.code}
                         </span>
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-2 px-2 text-center">
                         <select
                           value={(subject === 'math' ? student.math?.level : student.english?.level) || 0}
                           onChange={(e) => handleLevelChange(student, subject, e.target.value)}
@@ -519,7 +521,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         className={`w-full px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
                       />
                     </td>
-                    <td className="py-2 px-2">
+                    <td className="py-2 px-1">
                       <input
                         type="number"
                         min="4"
@@ -527,13 +529,13 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         value={newStudent.age}
                         onChange={(e) => setNewStudent(p => ({ ...p, age: e.target.value }))}
                         placeholder="—"
-                        className={`w-14 px-1.5 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}${isDark ? ' dark-spinner' : ''}`}
+                        className={`w-full px-1 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}${isDark ? ' dark-spinner' : ''}`}
                       />
                     </td>
-                    <td className="py-2 px-2">
+                    <td className="py-2 px-2 text-center">
                       <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>auto</span>
                     </td>
-                    <td className="py-2 px-2">
+                    <td className="py-2 px-2 text-center">
                       <select
                         value={subject === 'math' ? newStudent.mathLevel : newStudent.englishLevel}
                         onChange={(e) => setNewStudent(p => ({

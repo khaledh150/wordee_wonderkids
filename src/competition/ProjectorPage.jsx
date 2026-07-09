@@ -260,10 +260,10 @@ export default function ProjectorPage() {
     if (activeLvl != null && activeLvl !== displayLevel) setDisplayLevel(activeLvl)
   }, [subjectSessions, levels])
 
-  // Reset countdown detection when subject changes so it fires for each subject
+  // Reset countdown detection when subject or competition changes
   useEffect(() => {
     prevStartedRef.current = null
-  }, [activeSubject])
+  }, [activeSubject, competitionId])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)
 
@@ -385,7 +385,7 @@ export default function ProjectorPage() {
   const hasActive = subjectSessions.some(s => s.status === 'active')
   const anyCompleted = subjectSessions.some(s => s.status === 'completed')
   const isLobby = activeState?.is_unlocked && !hasActive && !activeState?.started_at
-  const isPreLobby = !activeState?.is_unlocked && !showPodium && !activeState?.started_at
+  const isPreLobby = !activeState?.is_unlocked && !activeState?.started_at
 
   // ── PRE-LOBBY SPLASH ──
   if (isPreLobby) {
