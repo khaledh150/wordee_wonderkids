@@ -163,24 +163,24 @@ export default function ProjectorPage() {
     if (!currentStarted || currentStarted === prev) return
     if (prev === null && currentStarted) {
       // Competition just started — run the countdown sequence
-      setProjectorCountdown('COMPETITION STARTING...')
+      setProjectorCountdown('GET READY')
+      playCountdownReady().catch(() => {})
 
       const timers = [
-        setTimeout(() => { setProjectorCountdown('GET READY!'); playCountdownReady().catch(() => {}) }, 2000),
-        setTimeout(() => { setProjectorCountdown(3); playCountdownTick().catch(() => {}) }, 4000),
-        setTimeout(() => { setProjectorCountdown(2); playCountdownTick().catch(() => {}) }, 5000),
+        setTimeout(() => { setProjectorCountdown(3); playCountdownTick().catch(() => {}) }, 3000),
+        setTimeout(() => { setProjectorCountdown(2); playCountdownTick().catch(() => {}) }, 4500),
         setTimeout(() => { setProjectorCountdown(1); playCountdownTick().catch(() => {}) }, 6000),
         setTimeout(() => {
           setProjectorCountdown('GO!')
           playCountdownGo().catch(() => {})
           fireConfetti()
-          setTimeout(() => { try { fireConfetti() } catch {} }, 500)
-          setTimeout(() => { try { fireConfetti() } catch {} }, 1000)
-        }, 7000),
+          setTimeout(() => { try { fireConfetti() } catch {} }, 400)
+          setTimeout(() => { try { fireConfetti() } catch {} }, 800)
+        }, 7500),
         setTimeout(() => {
           setProjectorCountdown(null)
           setLiveBadge('live')
-        }, 8500),
+        }, 9500),
       ]
       return () => timers.forEach(clearTimeout)
     }
@@ -670,61 +670,41 @@ export default function ProjectorPage() {
 
   // ── PROJECTOR COUNTDOWN (full-screen takeover) ──
   if (projectorCountdown !== null) {
-    const isText = typeof projectorCountdown === 'string'
     const isGo = projectorCountdown === 'GO!'
-    const isStarting = projectorCountdown === 'COMPETITION STARTING...'
-    const isReady = projectorCountdown === 'GET READY!'
+    const isReady = projectorCountdown === 'GET READY'
+    const isNumber = typeof projectorCountdown === 'number'
+
+    const accentColor = isGo
+      ? { ring: 'border-emerald-500/40', glow: 'bg-emerald-500', text: 'from-emerald-300 to-emerald-500' }
+      : isReady
+      ? { ring: 'border-amber-500/30', glow: 'bg-amber-500', text: 'from-amber-200 to-amber-500' }
+      : { ring: isMathSubject ? 'border-teal-500/30' : 'border-indigo-500/30', glow: isMathSubject ? 'bg-teal-500' : 'bg-indigo-500', text: isMathSubject ? 'from-teal-200 to-cyan-500' : 'from-indigo-200 to-purple-500' }
 
     return (
-      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${bg}`}>
-        {/* Animated background blobs */}
-        <motion.div
-          animate={{ scale: [1, 1.5, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className={`absolute w-[800px] h-[800px] rounded-full blur-[200px] pointer-events-none ${
-            isGo ? 'bg-emerald-500' : isMathSubject ? 'bg-emerald-500' : 'bg-blue-500'
-          }`}
-        />
-        <motion.div
-          animate={{ scale: [1.2, 0.8, 1.2], opacity: [0.1, 0.25, 0.1] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-          className={`absolute w-[600px] h-[600px] rounded-full blur-[180px] pointer-events-none ${
-            isGo ? 'bg-teal-500' : 'bg-purple-500'
-          }`}
-        />
+      <div style={{ fontFamily: PROJECTOR_FONT }} className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#070B18]">
+        {/* Subtle radial gradient center glow */}
+        <div className={`absolute w-[900px] h-[900px] rounded-full blur-[250px] opacity-20 pointer-events-none ${accentColor.glow}`} />
 
-        {/* Radial pulse ring */}
+        {/* Single slow pulse ring */}
         <motion.div
-          animate={{ scale: [0.8, 2.5], opacity: [0.3, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
-          className={`absolute w-96 h-96 rounded-full border-4 pointer-events-none ${
-            isGo ? 'border-emerald-400' : isReady ? 'border-amber-400' : isMathSubject ? 'border-emerald-400' : 'border-blue-400'
-          }`}
+          animate={{ scale: [1, 2.2], opacity: [0.15, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+          className={`absolute w-80 h-80 rounded-full border-2 pointer-events-none ${accentColor.ring}`}
         />
-        <motion.div
-          animate={{ scale: [0.5, 2], opacity: [0.2, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
-          className={`absolute w-96 h-96 rounded-full border-2 pointer-events-none ${
-            isGo ? 'border-green-300' : isReady ? 'border-yellow-300' : 'border-indigo-300'
-          }`}
-        />
-
-        {/* Grid overlay */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{ backgroundImage: 'linear-gradient(rgba(128,128,128,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,.3) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
 
         {/* Subject badge */}
         <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-8 z-20"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 0.7, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="absolute top-10 z-20"
         >
-          <div className={`flex items-center gap-3 border px-6 py-3 rounded-2xl backdrop-blur-md ${sc.badgeBg}`}>
+          <div className="flex items-center gap-3 border border-white/10 px-6 py-3 rounded-2xl bg-white/5 backdrop-blur-sm">
             {isMathSubject
-              ? <Calculator className={`w-5 h-5 ${sc.badgeText}`} />
-              : <BookOpen className={`w-5 h-5 ${sc.badgeText}`} />
+              ? <Calculator className="w-5 h-5 text-white/60" />
+              : <BookOpen className="w-5 h-5 text-white/60" />
             }
-            <span className={`text-lg font-black uppercase tracking-[0.15em] ${sc.badgeText}`}>{subjectLabel}</span>
+            <span className="text-lg font-black uppercase tracking-[0.2em] text-white/60">{subjectLabel}</span>
           </div>
         </motion.div>
 
@@ -732,57 +712,56 @@ export default function ProjectorPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={projectorCountdown}
-            initial={{ scale: 0, opacity: 0, rotateX: -30 }}
-            animate={{ scale: [0, 1.2, 1], opacity: 1, rotateX: 0 }}
-            exit={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15, duration: 0.8 }}
-            className="relative z-10 text-center"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 1.5, opacity: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 flex flex-col items-center"
           >
-            <span className={`font-black tracking-tight drop-shadow-[0_10px_60px_rgba(99,102,241,0.5)] ${
-              isGo
-                ? 'text-[12rem] sm:text-[14rem] font-mono bg-gradient-to-b from-emerald-300 via-green-400 to-teal-500 bg-clip-text text-transparent'
-                : isStarting
-                ? 'text-5xl sm:text-6xl lg:text-7xl bg-gradient-to-r from-slate-200 via-white to-slate-200 bg-clip-text text-transparent'
-                : isReady
-                ? 'text-7xl sm:text-8xl lg:text-9xl bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent'
-                : `text-[14rem] sm:text-[18rem] font-mono bg-gradient-to-b ${
-                    isMathSubject ? 'from-emerald-300 via-teal-400 to-cyan-500' : 'from-blue-300 via-indigo-400 to-purple-500'
-                  } bg-clip-text text-transparent`
-            }`}>
-              {projectorCountdown}
-            </span>
+            {isNumber && (
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
+                className={`w-72 h-72 rounded-full border-4 ${accentColor.ring} flex items-center justify-center bg-white/[0.03]`}
+              >
+                <span className={`text-[13rem] font-black font-mono leading-none bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent drop-shadow-[0_0_80px_rgba(99,102,241,0.3)]`}>
+                  {projectorCountdown}
+                </span>
+              </motion.div>
+            )}
+            {isReady && (
+              <div className="text-center">
+                <motion.p
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className={`text-7xl sm:text-8xl font-black uppercase tracking-[0.1em] bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent`}
+                >
+                  GET READY
+                </motion.p>
+                <p className="text-xl font-bold uppercase tracking-[0.3em] text-white/30 mt-4">Competition is about to start</p>
+              </div>
+            )}
+            {isGo && (
+              <motion.span
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 0.6, repeat: 2 }}
+                className="text-[11rem] sm:text-[14rem] font-black font-mono bg-gradient-to-b from-emerald-300 to-green-500 bg-clip-text text-transparent drop-shadow-[0_0_100px_rgba(16,185,129,0.4)]"
+              >
+                GO!
+              </motion.span>
+            )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Floating particles */}
-        {!isStarting && Array.from({ length: 12 }).map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              y: [-20, -100 - Math.random() * 200],
-              x: [0, (Math.random() - 0.5) * 300],
-              opacity: [0.6, 0],
-              scale: [0.5, 1.5],
-            }}
-            transition={{ duration: 1.5 + Math.random(), repeat: Infinity, delay: Math.random() * 1.5, ease: 'easeOut' }}
-            className={`absolute w-3 h-3 rounded-full pointer-events-none ${
-              isGo ? 'bg-emerald-400' : isReady ? 'bg-amber-400' : isMathSubject ? 'bg-emerald-400' : 'bg-blue-400'
-            }`}
-            style={{ bottom: '30%', left: `${20 + i * 5}%` }}
-          />
-        ))}
-
         {/* Bottom label */}
-        <motion.div
+        <motion.p
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className={`absolute bottom-12 text-center ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+          animate={{ opacity: 0.3 }}
+          className="absolute bottom-10 text-base font-bold uppercase tracking-[0.4em] text-white/40"
         >
-          <p className="text-lg font-black uppercase tracking-[0.3em]">
-            {isGo ? '🏆 Let the competition begin! 🏆' : 'International Championship'}
-          </p>
-        </motion.div>
+          International Championship
+        </motion.p>
       </div>
     )
   }
