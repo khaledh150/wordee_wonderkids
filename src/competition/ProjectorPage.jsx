@@ -675,22 +675,15 @@ export default function ProjectorPage() {
     const isNumber = typeof projectorCountdown === 'number'
 
     const accentColor = isGo
-      ? { ring: 'border-emerald-500/40', glow: 'bg-emerald-500', text: 'from-emerald-300 to-emerald-500' }
+      ? { ring: isDark ? 'border-emerald-500/40' : 'border-emerald-500/30', glow: 'bg-emerald-500', text: isDark ? 'from-emerald-300 to-emerald-500' : 'from-emerald-600 to-emerald-800' }
       : isReady
-      ? { ring: 'border-amber-500/30', glow: 'bg-amber-500', text: 'from-amber-200 to-amber-500' }
-      : { ring: isMathSubject ? 'border-teal-500/30' : 'border-indigo-500/30', glow: isMathSubject ? 'bg-teal-500' : 'bg-indigo-500', text: isMathSubject ? 'from-teal-200 to-cyan-500' : 'from-indigo-200 to-purple-500' }
+      ? { ring: isDark ? 'border-amber-500/30' : 'border-amber-500/25', glow: 'bg-amber-500', text: isDark ? 'from-amber-200 to-amber-500' : 'from-amber-600 to-orange-700' }
+      : { ring: isMathSubject ? (isDark ? 'border-teal-500/30' : 'border-teal-500/25') : (isDark ? 'border-indigo-500/30' : 'border-indigo-500/25'), glow: isMathSubject ? 'bg-teal-500' : 'bg-indigo-500', text: isMathSubject ? (isDark ? 'from-teal-200 to-cyan-500' : 'from-teal-600 to-cyan-800') : (isDark ? 'from-indigo-200 to-purple-500' : 'from-indigo-600 to-purple-800') }
 
     return (
-      <div style={{ fontFamily: PROJECTOR_FONT }} className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#070B18]">
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-[#070B18]' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100'}`}>
         {/* Subtle radial gradient center glow */}
-        <div className={`absolute w-[900px] h-[900px] rounded-full blur-[250px] opacity-20 pointer-events-none ${accentColor.glow}`} />
-
-        {/* Single slow pulse ring */}
-        <motion.div
-          animate={{ scale: [1, 2.2], opacity: [0.15, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-          className={`absolute w-80 h-80 rounded-full border-2 pointer-events-none ${accentColor.ring}`}
-        />
+        <div className={`absolute w-[900px] h-[900px] rounded-full blur-[250px] pointer-events-none ${accentColor.glow} ${isDark ? 'opacity-20' : 'opacity-10'}`} />
 
         {/* Subject badge */}
         <motion.div
@@ -699,12 +692,12 @@ export default function ProjectorPage() {
           transition={{ delay: 0.3 }}
           className="absolute top-10 z-20"
         >
-          <div className="flex items-center gap-3 border border-white/10 px-6 py-3 rounded-2xl bg-white/5 backdrop-blur-sm">
+          <div className={`flex items-center gap-3 border px-6 py-3 rounded-2xl backdrop-blur-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/60'}`}>
             {isMathSubject
-              ? <Calculator className="w-5 h-5 text-white/60" />
-              : <BookOpen className="w-5 h-5 text-white/60" />
+              ? <Calculator className={`w-5 h-5 ${isDark ? 'text-white/60' : 'text-slate-500'}`} />
+              : <BookOpen className={`w-5 h-5 ${isDark ? 'text-white/60' : 'text-slate-500'}`} />
             }
-            <span className="text-lg font-black uppercase tracking-[0.2em] text-white/60">{subjectLabel}</span>
+            <span className={`text-lg font-black uppercase tracking-[0.2em] ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{subjectLabel}</span>
           </div>
         </motion.div>
 
@@ -718,38 +711,75 @@ export default function ProjectorPage() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="relative z-10 flex flex-col items-center"
           >
-            {isNumber && (
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.2, ease: 'easeInOut' }}
-                className={`w-72 h-72 rounded-full border-4 ${accentColor.ring} flex items-center justify-center bg-white/[0.03]`}
-              >
-                <span className={`text-[13rem] font-black font-mono leading-none bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent drop-shadow-[0_0_80px_rgba(99,102,241,0.3)]`}>
-                  {projectorCountdown}
-                </span>
-              </motion.div>
-            )}
+            {isNumber && (() => {
+              const radius = 140
+              const circumference = 2 * Math.PI * radius
+              const strokeColor = isMathSubject
+                ? (isDark ? 'rgba(20,184,166,0.8)' : 'rgba(13,148,136,0.7)')
+                : (isDark ? 'rgba(129,140,248,0.8)' : 'rgba(79,70,229,0.7)')
+              const glowColor = isMathSubject
+                ? (isDark ? 'rgba(20,184,166,0.6)' : 'rgba(13,148,136,0.4)')
+                : (isDark ? 'rgba(129,140,248,0.6)' : 'rgba(79,70,229,0.4)')
+              return (
+                <div className="relative w-80 h-80 flex items-center justify-center">
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 320 320">
+                    <circle cx="160" cy="160" r={radius} fill="none"
+                      stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}
+                      strokeWidth="3" />
+                    <motion.circle cx="160" cy="160" r={radius} fill="none"
+                      stroke={strokeColor}
+                      strokeWidth="4" strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      initial={{ strokeDashoffset: 0 }}
+                      animate={{ strokeDashoffset: circumference }}
+                      transition={{ duration: 1.5, ease: 'linear' }}
+                      style={{ filter: `drop-shadow(0 0 12px ${glowColor})` }}
+                    />
+                  </svg>
+                  <span className={`text-[13rem] font-black font-mono leading-none bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent relative z-10`}>
+                    {projectorCountdown}
+                  </span>
+                </div>
+              )
+            })()}
             {isReady && (
               <div className="text-center">
                 <motion.p
-                  animate={{ opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className={`text-7xl sm:text-8xl font-black uppercase tracking-[0.1em] bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent`}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className={`text-7xl sm:text-8xl font-black uppercase tracking-[0.15em] bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent`}
                 >
                   GET READY
                 </motion.p>
-                <p className="text-xl font-bold uppercase tracking-[0.3em] text-white/30 mt-4">Competition is about to start</p>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: '12rem' }}
+                  transition={{ duration: 1.5, ease: 'easeOut' }}
+                  className={`h-[2px] mx-auto mt-6 ${isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+                />
+                <p className={`text-lg font-bold uppercase tracking-[0.3em] mt-5 ${isDark ? 'text-white/25' : 'text-slate-400'}`}>Competition is about to begin</p>
               </div>
             )}
             {isGo && (
-              <motion.span
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{ duration: 0.6, repeat: 2 }}
-                className="text-[11rem] sm:text-[14rem] font-black font-mono bg-gradient-to-b from-emerald-300 to-green-500 bg-clip-text text-transparent drop-shadow-[0_0_100px_rgba(16,185,129,0.4)]"
-              >
-                GO!
-              </motion.span>
+              <>
+                <motion.span
+                  initial={{ scale: 0.3 }}
+                  animate={{ scale: [1, 1.06, 1] }}
+                  transition={{ duration: 0.8, times: [0, 0.5, 1] }}
+                  className={`text-[11rem] sm:text-[14rem] font-black font-mono bg-gradient-to-b bg-clip-text text-transparent ${isDark ? 'from-emerald-300 to-green-500' : 'from-emerald-500 to-green-700'}`}
+                >
+                  GO!
+                </motion.span>
+                {[0, 1, 2, 3].map(i => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0.5, opacity: 0.4 }}
+                    animate={{ scale: 3, opacity: 0 }}
+                    transition={{ duration: 1.2, delay: i * 0.15, ease: 'easeOut' }}
+                    className={`absolute w-40 h-40 rounded-full border ${isDark ? 'border-emerald-500/30' : 'border-emerald-500/20'} pointer-events-none`}
+                  />
+                ))}
+              </>
             )}
           </motion.div>
         </AnimatePresence>
@@ -758,7 +788,7 @@ export default function ProjectorPage() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
-          className="absolute bottom-10 text-base font-bold uppercase tracking-[0.4em] text-white/40"
+          className={`absolute bottom-10 text-base font-bold uppercase tracking-[0.4em] ${isDark ? 'text-white/40' : 'text-slate-400'}`}
         >
           International Championship
         </motion.p>

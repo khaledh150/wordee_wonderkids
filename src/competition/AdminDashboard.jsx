@@ -112,6 +112,8 @@ export default function AdminDashboard() {
       duration_seconds: 300,
       extra_seconds: 0,
       announcement: null,
+      podium_visible: false,
+      podium_level: 1,
       updated_at: new Date().toISOString(),
     }).in('id', ['english', 'math'])
 
