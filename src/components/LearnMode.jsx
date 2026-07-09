@@ -59,6 +59,15 @@ export default function LearnMode({ level, onBack, onHome }) {
     if (current) playWordVO(current.audio.split('/').pop())
   }, [current])
 
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'ArrowRight') goNext()
+      else if (e.key === 'ArrowLeft') goPrev()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [goNext, goPrev])
+
   const swipeHandlers = useSwipe(goNext, goPrev)
 
   const handlePlayAgain = useCallback(() => {
