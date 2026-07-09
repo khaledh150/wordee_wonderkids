@@ -187,14 +187,11 @@ export default function ProjectorPage() {
     }
   }, [activeState?.started_at])
 
-  // Show LIVE badge whenever competition is active (persists across re-renders)
+  // Show LIVE badge only when competition is actually running with active students
   useEffect(() => {
-    if (activeState?.started_at && activeState?.is_unlocked) {
-      const hasActive = subjectSessions.some(s => s.status === 'active')
-      if (hasActive) setShowLiveBadge(true)
-    }
-    const allDone = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting')
-    if (allDone && subjectSessions.some(s => s.status === 'completed')) setShowLiveBadge(false)
+    const hasActiveStudents = subjectSessions.some(s => s.status === 'active')
+    const isStarted = activeState?.started_at && activeState?.is_unlocked
+    setShowLiveBadge(!!isStarted && hasActiveStudents)
   }, [activeState, subjectSessions])
 
   // Podium sound effects — fire on visibility/level changes (skip initial load)
@@ -383,7 +380,7 @@ export default function ProjectorPage() {
   const hasActive = subjectSessions.some(s => s.status === 'active')
   const anyCompleted = subjectSessions.some(s => s.status === 'completed')
   const isLobby = activeState?.is_unlocked && !hasActive && !activeState?.started_at
-  const isPreLobby = !activeState?.is_unlocked && !allCompleted && !anyCompleted && !showPodium
+  const isPreLobby = !activeState?.is_unlocked && !showPodium && !activeState?.started_at
 
   // ── PRE-LOBBY SPLASH ──
   if (isPreLobby) {
@@ -832,7 +829,7 @@ export default function ProjectorPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex items-center gap-2.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-red-500/40 relative overflow-hidden"
+                className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-emerald-500/40 relative overflow-hidden"
               >
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
                   animate={{ x: ['-100%', '100%'] }}
@@ -914,7 +911,7 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3rem_2rem_1.5fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3rem_2.5rem_2fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span className="text-center">Rank</span>
         <span></span>
         <span>Participant</span>
