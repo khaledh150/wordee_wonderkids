@@ -28,19 +28,29 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   useEffect(() => { preloadLevelImages(vocab) }, [vocab])
 
+  const autoAdvanceRef = useRef(null)
+
   useEffect(() => {
     setImgLoaded(false)
+    clearTimeout(autoAdvanceRef.current)
     if (current) {
-      playWordVO(current.audio.split('/').pop())
+      playWordVO(current.audio.split('/').pop()).then(() => {
+        if (!mountedRef.current) return
+        autoAdvanceRef.current = setTimeout(() => {
+          if (mountedRef.current) goNext()
+        }, 3000)
+      })
       trackWordLearned(level, current.word)
     }
-  }, [index, level, current])
+    return () => clearTimeout(autoAdvanceRef.current)
+  }, [index, level, current, goNext])
 
   useEffect(() => {
     if (isLast && index > 0) trackLevelCompleted(level, 'learn')
   }, [isLast, index, level])
 
   const goNext = useCallback(() => {
+    clearTimeout(autoAdvanceRef.current)
     stopAll()
     if (isLast) {
       fireCelebration()
@@ -51,6 +61,7 @@ export default function LearnMode({ level, onBack, onHome }) {
   }, [isLast])
 
   const goPrev = useCallback(() => {
+    clearTimeout(autoAdvanceRef.current)
     stopAll()
     if (!isFirst) setIndex(i => i - 1)
   }, [isFirst])
