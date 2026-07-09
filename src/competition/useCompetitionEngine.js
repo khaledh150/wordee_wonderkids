@@ -48,6 +48,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [hapticPulse, setHapticPulse] = useState(false)
   const [autoStarting, setAutoStarting] = useState(false)
   const autoStartRef = useRef(false)
+  const startRaceRef = useRef(null)
 
   const timerRef = useRef(null)
   const syncRef = useRef(null)
@@ -174,7 +175,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     async function tryStart() {
       if (cancelled) return
       try {
-        const ok = await startRace()
+        const ok = await startRaceRef.current()
         if (!ok && !cancelled) {
           attempt++
           if (attempt <= 5) {
@@ -200,7 +201,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
     const tid = setTimeout(tryStart, initialDelay)
     return () => { cancelled = true; clearTimeout(tid) }
-  }, [phase, session, competitionState?.started_at, startRace])
+  }, [phase, session, competitionState?.started_at])
 
   // Keep polling during active (for time extensions only — reduced frequency)
   useEffect(() => {
@@ -325,6 +326,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     }
     return false
   }, [session, competitionId, subject])
+  startRaceRef.current = startRace
 
   // ── Timer ──
   useEffect(() => {

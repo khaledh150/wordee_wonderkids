@@ -30,6 +30,23 @@ export default function LearnMode({ level, onBack, onHome }) {
 
   const autoAdvanceRef = useRef(null)
 
+  const goNext = useCallback(() => {
+    clearTimeout(autoAdvanceRef.current)
+    stopAll()
+    if (isLast) {
+      fireCelebration()
+      setCompleted(true)
+    } else {
+      setIndex(i => i + 1)
+    }
+  }, [isLast])
+
+  const goPrev = useCallback(() => {
+    clearTimeout(autoAdvanceRef.current)
+    stopAll()
+    if (!isFirst) setIndex(i => i - 1)
+  }, [isFirst])
+
   useEffect(() => {
     setImgLoaded(false)
     clearTimeout(autoAdvanceRef.current)
@@ -48,23 +65,6 @@ export default function LearnMode({ level, onBack, onHome }) {
   useEffect(() => {
     if (isLast && index > 0) trackLevelCompleted(level, 'learn')
   }, [isLast, index, level])
-
-  const goNext = useCallback(() => {
-    clearTimeout(autoAdvanceRef.current)
-    stopAll()
-    if (isLast) {
-      fireCelebration()
-      setCompleted(true)
-    } else {
-      setIndex(i => i + 1)
-    }
-  }, [isLast])
-
-  const goPrev = useCallback(() => {
-    clearTimeout(autoAdvanceRef.current)
-    stopAll()
-    if (!isFirst) setIndex(i => i - 1)
-  }, [isFirst])
 
   const handleSpeaker = useCallback(() => {
     if (current) playWordVO(current.audio.split('/').pop())
