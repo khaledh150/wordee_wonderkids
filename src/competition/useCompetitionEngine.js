@@ -47,6 +47,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const [orderedQuestions, setOrderedQuestions] = useState([])
   const [hapticPulse, setHapticPulse] = useState(false)
   const [autoStarting, setAutoStarting] = useState(false)
+  const [countdownReady, setCountdownReady] = useState(false)
   const autoStartRef = useRef(false)
   const startRaceRef = useRef(null)
 
@@ -162,47 +163,46 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     return () => { cancelled = true; clearTimeout(heartbeatRef.current) }
   }, [phase, session, sendHeartbeat])
 
-  // Auto-start: when admin starts the competition, activate student automatically
-  // Retries up to 5 times with exponential backoff if startRace fails
+  // Auto-start: when admin starts the competition, signal countdown ready
+  // The actual startRace() is deferred until AFTER the UI countdown finishes
   useEffect(() => {
     if (phase !== 'waiting' || !session || !competitionState?.started_at) return
     if (autoStartRef.current) return
     autoStartRef.current = true
+    setCountdownReady(true)
+  }, [phase, session, competitionState?.started_at])
+
+  // triggerStart: called by CompetitionPlayPage AFTER countdown animation finishes
+  // Retries up to 5 times with exponential backoff if startRace fails
+  const triggerStart = useCallback(() => {
     setAutoStarting(true)
-    let cancelled = false
     let attempt = 0
-    const initialDelay = Math.random() * 2000
 
     async function tryStart() {
-      if (cancelled) return
       try {
         const ok = await startRaceRef.current()
-        if (!ok && !cancelled) {
+        if (!ok) {
           attempt++
           if (attempt <= 5) {
             const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 1000
             setTimeout(tryStart, backoff)
           } else {
-            autoStartRef.current = false
             setAutoStarting(false)
           }
         }
       } catch {
-        if (cancelled) return
         attempt++
         if (attempt <= 5) {
           const backoff = Math.min(1000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 1000
           setTimeout(tryStart, backoff)
         } else {
-          autoStartRef.current = false
           setAutoStarting(false)
         }
       }
     }
 
-    const tid = setTimeout(tryStart, initialDelay)
-    return () => { cancelled = true; clearTimeout(tid) }
-  }, [phase, session, competitionState?.started_at])
+    tryStart()
+  }, [])
 
   // Keep polling during active (for time extensions only — reduced frequency)
   useEffect(() => {
@@ -237,6 +237,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       submittingRef.current = false
       autoStartRef.current = false
       setAutoStarting(false)
+      setCountdownReady(false)
       lastSyncedLenRef.current = 0
       setTimeLeft(null)
       deadlineRef.current = null
@@ -500,6 +501,6 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     phase, session, timeLeft, currentScore: correctCount,
     questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline, isSubmitting,
     announcement, competitionState, orderedQuestions, hapticPulse,
-    autoStarting, submitError, joinCompetition, startRace, recordAnswer, finish, markReady, sendHeartbeat,
+    autoStarting, countdownReady, submitError, joinCompetition, startRace, triggerStart, recordAnswer, finish, markReady, sendHeartbeat,
   }
 }

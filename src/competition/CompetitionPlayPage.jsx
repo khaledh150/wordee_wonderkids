@@ -151,7 +151,7 @@ export default function CompetitionPlayPage() {
     questions,
   })
 
-  const { session, phase, competitionState, announcement, joinCompetition, startRace, markReady, autoStarting } = engine
+  const { session, phase, competitionState, announcement, joinCompetition, startRace, triggerStart, markReady, autoStarting, countdownReady } = engine
 
   // Progressive auto-start messages
   useEffect(() => {
@@ -193,15 +193,20 @@ export default function CompetitionPlayPage() {
       }
       setStep('waiting')
     } else if (phase === 'active' && session) {
-      if (step === 'waiting' && restoredRef.current !== 'done') {
-        setStep('countdown')
-      } else if (step !== 'countdown') {
+      // Engine is active (startRace succeeded) — go straight to questions
+      if (step === 'countdown' || step === 'waiting') {
         setStep('active')
       }
     }
   }, [phase, session])
 
-  // Countdown animation — runs the sequence then marks done
+  // Countdown trigger: when engine signals countdownReady (admin started), show countdown BEFORE starting race
+  useEffect(() => {
+    if (!countdownReady || step !== 'waiting') return
+    setStep('countdown')
+  }, [countdownReady, step])
+
+  // Countdown animation — runs the sequence, then calls triggerStart (which calls startRace on server)
   useEffect(() => {
     if (step !== 'countdown') { countdownDoneRef.current = false; return }
     countdownDoneRef.current = false
@@ -213,30 +218,14 @@ export default function CompetitionPlayPage() {
       if (val === null) {
         clearInterval(interval)
         countdownDoneRef.current = true
+        triggerStart()
       } else {
         setCountdownNum(val)
         idx++
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [step])
-
-  // Transition to active only when BOTH countdown is done AND engine is ready
-  useEffect(() => {
-    if (step !== 'countdown') return
-    if (phase !== 'active') return
-    if (!countdownDoneRef.current) return
-    setStep('active')
-  })
-
-  // Fallback: if countdown finishes but engine isn't active yet, poll until it is
-  useEffect(() => {
-    if (step !== 'countdown') return
-    const id = setInterval(() => {
-      if (countdownDoneRef.current && phase === 'active') setStep('active')
-    }, 100)
-    return () => clearInterval(id)
-  }, [step, phase])
+  }, [step, triggerStart])
 
   // Auto-transition: when student is on completed screen and admin opens a new lobby
   useEffect(() => {
@@ -747,8 +736,8 @@ export default function CompetitionPlayPage() {
   // ===== COUNTDOWN (full-screen transition before game starts) =====
   if (step === 'countdown') {
     return (
-      <div className="fixed inset-0 bg-[#060814] flex flex-col items-center justify-center text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+      <div className={`fixed inset-0 flex flex-col items-center justify-center ${isDark ? 'bg-[#060814] text-white' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900'}`}>
+        <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)]' : 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,rgba(255,255,255,0)_60%)]'}`} />
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -757,12 +746,14 @@ export default function CompetitionPlayPage() {
             animate={{ scale: [0, 1.3, 1], opacity: 1 }}
             exit={{ scale: 1.8, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
-            className={`font-black tracking-tight text-center drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)] ${
+            className={`font-black tracking-tight text-center ${isDark ? 'drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)]' : 'drop-shadow-[0_10px_40px_rgba(99,102,241,0.15)]'} ${
               countdownNum === 'GO!'
-                ? 'text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent'
+                ? `text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r bg-clip-text text-transparent ${isDark ? 'from-emerald-400 via-green-400 to-teal-400' : 'from-emerald-500 via-green-600 to-teal-600'}`
                 : countdownNum === 'GET READY!'
-                ? 'text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 bg-clip-text text-transparent'
-                : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r ${isMath ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-indigo-400 via-purple-400 to-rose-400'} bg-clip-text text-transparent`
+                ? `text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r bg-clip-text text-transparent ${isDark ? 'from-amber-300 via-yellow-400 to-amber-300' : 'from-amber-500 via-orange-500 to-amber-500'}`
+                : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r bg-clip-text text-transparent ${isMath
+                    ? (isDark ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-teal-600 via-cyan-600 to-blue-600')
+                    : (isDark ? 'from-indigo-400 via-purple-400 to-rose-400' : 'from-indigo-600 via-purple-600 to-rose-600')}`
             }`}
           >
             {countdownNum}
@@ -773,7 +764,10 @@ export default function CompetitionPlayPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 0.6, y: 0 }}
           transition={{ delay: 0.2 }}
-          className={`${isMath ? 'text-teal-300' : 'text-indigo-300'} font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4`}
+          className={`font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4 ${isMath
+            ? (isDark ? 'text-teal-300' : 'text-teal-600')
+            : (isDark ? 'text-indigo-300' : 'text-indigo-500')
+          }`}
         >
           Entering {subjectLabel} arena
         </motion.p>
