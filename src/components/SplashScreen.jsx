@@ -98,7 +98,7 @@ export default function SplashScreen({ onDone }) {
         ))}
       </motion.div>
       <motion.button
-        className="mt-5 px-10 py-3.5 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full text-xl shadow-lg active:scale-95 transition-transform"
+        className="mt-5 md:mt-7 px-10 md:px-14 py-3.5 md:py-4.5 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full text-xl md:text-2xl shadow-lg active:scale-95 transition-transform"
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1.5 }}
