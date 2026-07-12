@@ -350,7 +350,7 @@ function StatusBadge({ status, lastSeenAt }) {
     offline: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
     disconnected: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
   }
-  const labels = { completed: 'Done', active: 'Playing', waiting: 'Lobby', offline: 'Offline', disconnected: 'Disconnected' }
+  const labels = { completed: 'Done', active: 'Playing', waiting: 'Lobby', offline: 'Offline', disconnected: 'D/C' }
   return (
     <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${styles[displayStatus] || styles.offline}`}>
       {labels[displayStatus] || 'Offline'}

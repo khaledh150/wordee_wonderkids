@@ -192,13 +192,13 @@ export default function ProjectorPage() {
   useEffect(() => {
     if (projectorCountdown) return
     if (activeState?.podium_visible) { setLiveBadge(null); return }
-    const hasActiveStudents = subjectSessions.some(s => s.status === 'active')
-    const anyCompleted = subjectSessions.some(s => s.status === 'completed')
-    const allDone = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting') && anyCompleted
-    if (allDone) setLiveBadge('done')
-    else if (hasActiveStudents || anyCompleted) setLiveBadge('live')
-    else if (activeState?.started_at) setLiveBadge('live')
-    else setLiveBadge(null)
+    if (activeState?.is_unlocked && activeState?.started_at) {
+      setLiveBadge('live')
+    } else {
+      const anyCompleted = subjectSessions.some(s => s.status === 'completed')
+      if (anyCompleted) setLiveBadge('done')
+      else setLiveBadge(null)
+    }
   }, [activeState, subjectSessions, projectorCountdown])
 
   // Podium sound effects — fire on visibility/level changes (skip initial load)
@@ -253,14 +253,27 @@ export default function ProjectorPage() {
     }
   }, [activeSubject])
 
-  // Auto-switch to the level that has active students
+  // Auto-cycle through levels with activity, 5s per level
   const userPickedLevelRef = useRef(false)
+  const autoCycleRef = useRef(null)
   useEffect(() => {
     if (userPickedLevelRef.current) return
-    if (levels.length === 0) return
-    const activeLvl = levels.find(l => subjectSessions.some(s => s.level === l && s.status === 'active'))
-    if (activeLvl != null && activeLvl !== displayLevel) setDisplayLevel(activeLvl)
+    if (levels.length <= 1) return
+    const activeLevels = levels.filter(l => subjectSessions.some(s => s.level === l && (s.status === 'active' || s.status === 'completed')))
+    if (activeLevels.length <= 1) return
+    clearInterval(autoCycleRef.current)
+    autoCycleRef.current = setInterval(() => {
+      setDisplayLevel(prev => {
+        const idx = activeLevels.indexOf(prev)
+        return activeLevels[(idx + 1) % activeLevels.length]
+      })
+    }, 5000)
+    return () => clearInterval(autoCycleRef.current)
   }, [subjectSessions, levels])
+  // Stop auto-cycling when user picks manually
+  useEffect(() => {
+    if (userPickedLevelRef.current) clearInterval(autoCycleRef.current)
+  }, [userPickedLevelRef.current])
 
   // Reset countdown detection when subject or competition changes
   useEffect(() => {
@@ -374,6 +387,12 @@ export default function ProjectorPage() {
   }
 
   const fullscreenBtn = fsSupported && (
+    <button onClick={toggleFs} className={`p-2 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 active:scale-95 cursor-pointer ${isDark ? 'bg-white/10 border-white/15 text-white/60 hover:bg-white/20 hover:text-white' : 'bg-black/5 border-black/10 text-slate-500 hover:bg-black/10 hover:text-slate-800'}`}>
+      {isFs ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+    </button>
+  )
+
+  const floatingFullscreenBtn = fsSupported && (
     <button onClick={toggleFs} className={`fixed top-4 right-4 z-50 p-2.5 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 active:scale-95 cursor-pointer ${isDark ? 'bg-white/10 border-white/15 text-white/60 hover:bg-white/20 hover:text-white' : 'bg-black/5 border-black/10 text-slate-500 hover:bg-black/10 hover:text-slate-800'}`}>
       {isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
     </button>
@@ -383,7 +402,7 @@ export default function ProjectorPage() {
   if (!state) {
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center font-bold text-xl gap-3 ${bg} ${textMuted}`}>
-        {fullscreenBtn}
+        {floatingFullscreenBtn}
         <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
         <span>Initializing broadcast...</span>
       </div>
@@ -394,13 +413,14 @@ export default function ProjectorPage() {
   const hasActive = subjectSessions.some(s => s.status === 'active')
   const anyCompleted = subjectSessions.some(s => s.status === 'completed')
   const isLobby = activeState?.is_unlocked && !hasActive && !activeState?.started_at
-  const isPreLobby = !activeState?.is_unlocked && !activeState?.started_at
+  const isPreLobby = !activeState?.is_unlocked && !activeState?.started_at && !anyCompleted
+  const isStopped = !activeState?.is_unlocked && !activeState?.started_at && anyCompleted && !showPodium
 
   // ── PRE-LOBBY SPLASH ──
   if (isPreLobby) {
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors ${bg} ${text}`}>
-        {fullscreenBtn}
+        {floatingFullscreenBtn}
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.3, 1], x: [0, 80, 0], y: [0, -60, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
@@ -494,7 +514,7 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
-        {fullscreenBtn}
+        {floatingFullscreenBtn}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
 
         {/* Level badge */}
@@ -573,7 +593,7 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
-        {fullscreenBtn}
+        {floatingFullscreenBtn}
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, -40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -663,8 +683,14 @@ export default function ProjectorPage() {
                               ? isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                               : isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
                           }`}>
-                          <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.ready ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
+                          <div className="relative shrink-0">
+                            <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
+                            {s.ready && (
+                              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              </span>
+                            )}
+                          </div>
                           <span className="truncate max-w-[140px]">{s.name}</span>
                         </motion.div>
                       ))}
@@ -694,7 +720,7 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-[#070B18]' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100'}`}>
-        {fullscreenBtn}
+        {floatingFullscreenBtn}
         {/* Subtle radial gradient center glow */}
         <div className={`absolute w-[900px] h-[900px] rounded-full blur-[250px] pointer-events-none ${accentColor.glow} ${isDark ? 'opacity-20' : 'opacity-10'}`} />
 
@@ -809,10 +835,48 @@ export default function ProjectorPage() {
     )
   }
 
+  // ── STOPPED STATE (competition ended, show results/splash) ──
+  if (isStopped) {
+    return (
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
+        {floatingFullscreenBtn}
+        {isDark ? (
+          <>
+            <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-[-30%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-blue-600/8" />
+            <motion.div animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -40, 20, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute bottom-[-30%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-indigo-600/8" />
+          </>
+        ) : (
+          <>
+            <motion.div animate={{ scale: [1, 1.15, 1], x: [0, 40, 0] }} transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-[-30%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-blue-300/15" />
+            <motion.div animate={{ scale: [1, 0.9, 1.1, 1], x: [0, -30, 15, 0] }} transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute bottom-[-30%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none bg-indigo-300/10" />
+          </>
+        )}
+
+        <div className="flex-1 flex flex-col items-center justify-center relative z-10 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-4">
+            <Trophy className={`w-16 h-16 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
+            <h1 className={`text-4xl sm:text-5xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              Competition Ended
+            </h1>
+            <p className={`text-lg font-bold ${textMuted}`}>
+              {subjectSessions.filter(s => s.status === 'completed').length} students completed — {subjectLabel}
+            </p>
+            <p className={`text-sm ${textDim}`}>
+              Show the podium from the admin panel, or open a new lobby
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
   // ── LIVE LEADERBOARD ──
   return (
     <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
-      {fullscreenBtn}
       {isDark ? (
         <>
           <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -829,132 +893,132 @@ export default function ProjectorPage() {
         </>
       )}
 
-      {/* Header — 3 sections: subject | LIVE | switcher + timer */}
-      <header className={`grid grid-cols-[1fr_auto_1fr] items-center mb-6 border px-5 py-3 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
-        {/* Left: Subject label */}
+      {/* Header — row 1: subject + LIVE badge + timer + fullscreen */}
+      <header className={`flex flex-col gap-2 mb-4 border px-4 py-2.5 rounded-2xl backdrop-blur-md relative z-10 shadow-sm ${cardBg}`}>
         <div className="flex items-center gap-3">
-          {activeSubject === 'math'
-            ? <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-            : <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-          }
-          <h1 className={`text-2xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {subjectLabel}
-          </h1>
-          {activeLevel != null && levels.length <= 1 && (
-            <span className={`text-sm font-black px-2.5 py-1 rounded-lg border ${sc.levelBadge}`}>
+          {/* Left: Subject */}
+          <div className="flex items-center gap-2 shrink-0">
+            {activeSubject === 'math'
+              ? <Calculator className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+              : <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            }
+            <h1 className={`text-xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {subjectLabel}
+            </h1>
+          </div>
+
+          {/* Center: LIVE / ALL DONE badge */}
+          <div className="flex-1 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {liveBadge === 'live' && (
+                <motion.div
+                  key="live"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-emerald-500/30 relative overflow-hidden"
+                >
+                  <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-2.5 h-2.5 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
+                  />
+                  <span className="text-sm font-black uppercase tracking-[0.15em] relative z-10">LIVE</span>
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
+                    className="w-2.5 h-2.5 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
+                  />
+                </motion.div>
+              )}
+              {liveBadge === 'done' && (
+                <motion.div
+                  key="done"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20 relative overflow-hidden"
+                >
+                  <Trophy className="w-4 h-4 relative z-10" />
+                  <span className="text-sm font-black uppercase tracking-[0.15em] relative z-10">Finished</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Right: Timer + Fullscreen */}
+          <div className="flex items-center gap-2 shrink-0">
+            {elapsed != null && (
+              <div className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 font-mono ${
+                isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
+              }`}>
+                <Timer className="w-3.5 h-3.5" />
+                <span className="text-base font-black">{formatElapsed(elapsed)}</span>
+              </div>
+            )}
+            {fullscreenBtn}
+          </div>
+        </div>
+
+        {/* Row 2: Level switcher (compact) */}
+        {levels.length > 1 && (
+          <div className={`flex gap-1 rounded-xl p-1 border ${
+            isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-100 border-slate-200'
+          }`}>
+            {levels.map(l => {
+              const lvlSessions = subjectSessions.filter(s => s.level === l)
+              const activeCount = lvlSessions.filter(s => s.status === 'active').length
+              const doneCount = lvlSessions.filter(s => s.status === 'completed').length
+              const isSelected = activeLevel === l
+              return (
+                <button key={l} onClick={() => { userPickedLevelRef.current = true; clearInterval(autoCycleRef.current); setDisplayLevel(l) }}
+                  className={`relative flex-1 px-2 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all duration-300 cursor-pointer ${
+                    isSelected
+                      ? 'text-white shadow-md'
+                      : isDark
+                        ? 'text-slate-400 hover:text-white'
+                        : 'text-slate-500 hover:text-slate-800'
+                  }`}>
+                  {isSelected && (
+                    <motion.div
+                      layoutId="level-switcher-active"
+                      className={`absolute inset-0 rounded-lg bg-gradient-to-r shadow-md ${
+                        isMathSubject
+                          ? 'from-emerald-500 to-teal-600 shadow-emerald-500/30'
+                          : 'from-blue-500 to-indigo-600 shadow-blue-500/30'
+                      }`}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-1">
+                    L{l}
+                    {activeCount > 0 && (
+                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelected ? 'bg-white/80' : 'bg-emerald-400'}`} />
+                    )}
+                    {doneCount > 0 && (
+                      <span className={`text-[9px] font-mono ${isSelected ? 'text-white/70' : textDim}`}>
+                        {doneCount}/{lvlSessions.length}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {levels.length === 1 && activeLevel != null && (
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-black px-2 py-0.5 rounded-lg border ${sc.levelBadge}`}>
               Level {activeLevel}
             </span>
-          )}
-          {activeState?.round_label && <span className={`text-xs font-bold uppercase tracking-wider ${textDim}`}>{activeState.round_label}</span>}
-        </div>
-
-        {/* Center: LIVE / ALL DONE badge */}
-        <div className="flex items-center justify-center px-4">
-          <AnimatePresence mode="wait">
-            {liveBadge === 'live' && (
-              <motion.div
-                key="live"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-emerald-500/40 relative overflow-hidden"
-              >
-                <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                />
-                <motion.div
-                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
-                />
-                <span className="text-base font-black uppercase tracking-[0.2em] relative z-10">Competition is Live</span>
-                <motion.div
-                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
-                  className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 relative z-10"
-                />
-              </motion.div>
-            )}
-            {liveBadge === 'done' && (
-              <motion.div
-                key="done"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex items-center gap-2.5 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white px-5 py-2 rounded-2xl shadow-xl shadow-amber-500/30 relative overflow-hidden"
-              >
-                <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                />
-                <Trophy className="w-5 h-5 relative z-10" />
-                <span className="text-base font-black uppercase tracking-[0.2em] relative z-10">All Finished</span>
-                <Trophy className="w-5 h-5 relative z-10" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Right: Level switcher + timer */}
-        <div className="flex items-center gap-3 justify-end">
-          {levels.length > 0 && (
-            <div className={`flex gap-1 rounded-2xl p-1.5 border relative ${
-              isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-100 border-slate-200'
-            }`}>
-              {levels.map(l => {
-                const lvlSessions = subjectSessions.filter(s => s.level === l)
-                const activeCount = lvlSessions.filter(s => s.status === 'active').length
-                const doneCount = lvlSessions.filter(s => s.status === 'completed').length
-                const isSelected = activeLevel === l
-                return (
-                  <button key={l} onClick={() => { userPickedLevelRef.current = true; setDisplayLevel(l) }}
-                    className={`relative px-4 py-2 rounded-xl font-black text-sm tracking-wider transition-all duration-300 cursor-pointer ${
-                      isSelected
-                        ? 'text-white shadow-lg'
-                        : isDark
-                          ? 'text-slate-400 hover:text-white'
-                          : 'text-slate-500 hover:text-slate-800'
-                    }`}>
-                    {isSelected && (
-                      <motion.div
-                        layoutId="level-switcher-active"
-                        className={`absolute inset-0 rounded-xl bg-gradient-to-r shadow-lg ${
-                          isMathSubject
-                            ? 'from-emerald-500 to-teal-600 shadow-emerald-500/30'
-                            : 'from-blue-500 to-indigo-600 shadow-blue-500/30'
-                        }`}
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      Level {l}
-                      {activeCount > 0 && (
-                        <span className={`w-2 h-2 rounded-full animate-pulse ${isSelected ? 'bg-white/80' : 'bg-emerald-400'}`} />
-                      )}
-                      {doneCount > 0 && (
-                        <span className={`text-[10px] font-mono ${isSelected ? 'text-white/70' : textDim}`}>
-                          {doneCount}/{lvlSessions.length}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          {elapsed != null && (
-            <div className={`flex items-center gap-2 border rounded-xl px-3.5 py-2 font-mono ${
-              isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
-            }`}>
-              <Timer className="w-4 h-4" />
-              <span className="text-lg font-black">{formatElapsed(elapsed)}</span>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {/* Column headers */}
@@ -1017,7 +1081,7 @@ export default function ProjectorPage() {
                 <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>
                 <span className="text-right">
                   {(() => {
-                    const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 45000
+                    const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 60000
                     if (s.status === 'completed') return (
                       <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
                         isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
@@ -1034,7 +1098,7 @@ export default function ProjectorPage() {
                     if (s.status === 'active' && !isOnline) return (
                       <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
                         isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/25' : 'text-rose-600 bg-rose-50 border-rose-200'
-                      }`}>Disconnected</span>
+                      }`}>D/C</span>
                     )
                     if (s.status === 'waiting' && isOnline) return (
                       <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${

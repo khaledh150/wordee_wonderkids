@@ -657,12 +657,11 @@ export default function CompetitionPlayPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className={`rounded-2xl p-3 flex items-center justify-center gap-2.5 ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-wiggle" />
-                    <div className="text-left">
-                      <p className={`text-[10px] sm:text-xs font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>Ready</p>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-emerald-600/80 leading-none mt-0.5">Engine is fully ready</p>
+                  <div className={`rounded-2xl p-4 flex flex-col items-center justify-center gap-2 ${isDark ? 'bg-emerald-500/15 border-2 border-emerald-500/30' : 'bg-emerald-50 border-2 border-emerald-300'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/30' : 'bg-emerald-500'}`}>
+                      <CheckCircle2 className={`w-7 h-7 ${isDark ? 'text-emerald-400' : 'text-white'}`} />
                     </div>
+                    <p className={`text-sm font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Ready!</p>
                   </div>
                 )}
               </div>
@@ -741,43 +740,122 @@ export default function CompetitionPlayPage() {
     )
   }
 
-  // ===== COUNTDOWN (full-screen transition before game starts) =====
+  // ===== COUNTDOWN (full-screen transition — matches projector style) =====
   if (step === 'countdown') {
+    const isGo = countdownNum === 'GO!'
+    const isReady = countdownNum === 'GET READY!'
+    const isNumber = typeof countdownNum === 'number'
+
+    const accentColor = isGo
+      ? { glow: 'bg-emerald-500', text: isDark ? 'from-emerald-300 to-emerald-500' : 'from-emerald-600 to-emerald-800' }
+      : isReady
+      ? { glow: 'bg-amber-500', text: isDark ? 'from-amber-200 to-amber-500' : 'from-amber-600 to-orange-700' }
+      : { glow: isMath ? 'bg-teal-500' : 'bg-indigo-500', text: isMath ? (isDark ? 'from-teal-200 to-cyan-500' : 'from-teal-600 to-cyan-800') : (isDark ? 'from-indigo-200 to-purple-500' : 'from-indigo-600 to-purple-800') }
+
     return (
-      <div className={`fixed inset-0 flex flex-col items-center justify-center ${isDark ? 'bg-[#060814] text-white' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900'}`}>
-        <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,0,0,0)_60%)]' : 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,rgba(255,255,255,0)_60%)]'}`} />
+      <div className={`fixed inset-0 flex flex-col items-center justify-center overflow-hidden ${isDark ? 'bg-[#070B18]' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100'}`}>
+        <div className={`absolute w-[500px] h-[500px] rounded-full blur-[200px] pointer-events-none ${accentColor.glow} ${isDark ? 'opacity-20' : 'opacity-10'}`} />
+
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 0.7, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="absolute top-6 z-20"
+        >
+          <div className={`flex items-center gap-2 border px-4 py-2 rounded-xl backdrop-blur-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/60'}`}>
+            {isMath
+              ? <Calculator className={`w-4 h-4 ${isDark ? 'text-white/60' : 'text-slate-500'}`} />
+              : <BookOpen className={`w-4 h-4 ${isDark ? 'text-white/60' : 'text-slate-500'}`} />
+            }
+            <span className={`text-sm font-black uppercase tracking-[0.15em] ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
+              {isMath ? 'Mathematics' : 'English Spelling'}
+            </span>
+          </div>
+        </motion.div>
 
         <AnimatePresence mode="wait">
           <motion.div
             key={countdownNum}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-            exit={{ scale: 1.8, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 240, damping: 20, duration: 0.7 }}
-            className={`font-black tracking-tight text-center ${isDark ? 'drop-shadow-[0_10px_40px_rgba(99,102,241,0.4)]' : 'drop-shadow-[0_10px_40px_rgba(99,102,241,0.15)]'} ${
-              countdownNum === 'GO!'
-                ? `text-6xl sm:text-7xl md:text-8xl font-mono bg-gradient-to-r bg-clip-text text-transparent ${isDark ? 'from-emerald-400 via-green-400 to-teal-400' : 'from-emerald-500 via-green-600 to-teal-600'}`
-                : countdownNum === 'GET READY!'
-                ? `text-4xl sm:text-5xl md:text-6xl bg-gradient-to-r bg-clip-text text-transparent ${isDark ? 'from-amber-300 via-yellow-400 to-amber-300' : 'from-amber-500 via-orange-500 to-amber-500'}`
-                : `text-7xl sm:text-8xl md:text-9xl font-mono bg-gradient-to-r bg-clip-text text-transparent ${isMath
-                    ? (isDark ? 'from-teal-400 via-cyan-400 to-blue-400' : 'from-teal-600 via-cyan-600 to-blue-600')
-                    : (isDark ? 'from-indigo-400 via-purple-400 to-rose-400' : 'from-indigo-600 via-purple-600 to-rose-600')}`
-            }`}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 1.5, opacity: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 flex flex-col items-center"
           >
-            {countdownNum}
+            {isNumber && (() => {
+              const radius = 80
+              const circumference = 2 * Math.PI * radius
+              const strokeColor = isMath
+                ? (isDark ? 'rgba(20,184,166,0.8)' : 'rgba(13,148,136,0.7)')
+                : (isDark ? 'rgba(129,140,248,0.8)' : 'rgba(79,70,229,0.7)')
+              return (
+                <div className="relative w-48 h-48 flex items-center justify-center">
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 192 192">
+                    <circle cx="96" cy="96" r={radius} fill="none"
+                      stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}
+                      strokeWidth="3" />
+                    <motion.circle cx="96" cy="96" r={radius} fill="none"
+                      stroke={strokeColor}
+                      strokeWidth="4" strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      initial={{ strokeDashoffset: 0 }}
+                      animate={{ strokeDashoffset: circumference }}
+                      transition={{ duration: 1.5, ease: 'linear' }}
+                    />
+                  </svg>
+                  <span className={`text-8xl font-black font-mono leading-none bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent relative z-10`}>
+                    {countdownNum}
+                  </span>
+                </div>
+              )
+            })()}
+            {isReady && (
+              <div className="text-center">
+                <motion.p
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className={`text-4xl sm:text-5xl font-black uppercase tracking-[0.12em] bg-gradient-to-b ${accentColor.text} bg-clip-text text-transparent`}
+                >
+                  GET READY
+                </motion.p>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: '8rem' }}
+                  transition={{ duration: 1.5, ease: 'easeOut' }}
+                  className={`h-[2px] mx-auto mt-4 ${isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+                />
+              </div>
+            )}
+            {isGo && (
+              <>
+                <motion.span
+                  initial={{ scale: 0.3 }}
+                  animate={{ scale: [1, 1.06, 1] }}
+                  transition={{ duration: 0.8, times: [0, 0.5, 1] }}
+                  className={`text-7xl sm:text-8xl font-black font-mono bg-gradient-to-b bg-clip-text text-transparent ${isDark ? 'from-emerald-300 to-green-500' : 'from-emerald-500 to-green-700'}`}
+                >
+                  GO!
+                </motion.span>
+                {[0, 1, 2].map(i => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0.5, opacity: 0.4 }}
+                    animate={{ scale: 3, opacity: 0 }}
+                    transition={{ duration: 1.2, delay: i * 0.15, ease: 'easeOut' }}
+                    className={`absolute w-24 h-24 rounded-full border ${isDark ? 'border-emerald-500/30' : 'border-emerald-500/20'} pointer-events-none`}
+                  />
+                ))}
+              </>
+            )}
           </motion.div>
         </AnimatePresence>
 
         <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 0.6, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className={`font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs mt-4 ${isMath
-            ? (isDark ? 'text-teal-300' : 'text-teal-600')
-            : (isDark ? 'text-indigo-300' : 'text-indigo-500')
-          }`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          className={`absolute bottom-8 text-xs font-bold uppercase tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-400'}`}
         >
-          Entering {subjectLabel} arena
+          International Championship
         </motion.p>
       </div>
     )

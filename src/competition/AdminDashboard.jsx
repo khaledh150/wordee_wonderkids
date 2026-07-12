@@ -123,31 +123,27 @@ export default function AdminDashboard() {
         .select('*')
         .eq('competition_id', oldId)
       if (oldSessions?.length) {
-        const existingCodes = []
-        const inserts = oldSessions.map(s => {
-          const code = generateCode(existingCodes)
-          existingCodes.push(code)
-          return {
-            competition_id: newId,
-            participant_code: code,
-            display_id: s.display_id,
-            name: s.name,
-            school: s.school,
-            country: s.country,
-            age: s.age,
-            subject: s.subject,
-            level: s.level,
-            status: 'registered',
-            provisional_score: 0,
-            validated_score: null,
-            questions_answered: 0,
-            time_spent_seconds: 0,
-            ready: false,
-            answers_snapshot: null,
-            started_at: null,
-            completed_at: null,
-          }
-        })
+        const inserts = oldSessions.map(s => ({
+          competition_id: newId,
+          participant_code: s.participant_code,
+          display_id: s.display_id,
+          name: s.name,
+          school: s.school,
+          country: s.country,
+          age: s.age,
+          subject: s.subject,
+          level: s.level,
+          photo_url: s.photo_url,
+          status: 'registered',
+          provisional_score: 0,
+          validated_score: null,
+          questions_answered: 0,
+          time_spent_seconds: 0,
+          ready: false,
+          answers_snapshot: null,
+          started_at: null,
+          completed_at: null,
+        }))
         await supabase.from('competition_sessions').insert(inserts)
       }
     }
