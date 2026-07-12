@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
-import { Lock, GraduationCap, Sparkles, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator } from 'lucide-react'
+import { Lock, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
 import StudentAvatar from './admin/StudentAvatar'
@@ -582,8 +582,11 @@ export default function CompetitionPlayPage() {
 
   // ===== WAITING / LOBBY =====
   if (step === 'waiting' && session) {
+    const accentFrom = isMath ? 'from-teal-500' : 'from-indigo-500'
+    const accentTo = isMath ? 'to-cyan-500' : 'to-purple-500'
+
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-colors ${
+      <div className={`min-h-[100dvh] max-h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors ${
         isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
       }`}>
         {renderBackgroundBlobs()}
@@ -596,145 +599,41 @@ export default function CompetitionPlayPage() {
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', duration: 0.6 }}
-          className="w-full max-w-md landscape:max-w-2xl relative z-10"
+          className="w-full max-w-[90vw] sm:max-w-sm relative z-10 flex flex-col items-center gap-5 sm:gap-7"
         >
-          <div className={`w-full backdrop-blur-xl border rounded-3xl shadow-[0_20px_50px_rgba(31,38,135,0.08)] p-5 sm:p-8 text-center flex flex-col transition-colors ${
-            isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/70 border-white/40'
-          }`}>
+          <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-20 h-20 sm:w-24 sm:h-24" />
 
-            <h2 className={`text-xs font-black ${isMath ? 'text-teal-500' : 'text-indigo-500'} uppercase tracking-widest leading-none mb-4.5 landscape:hidden`}>
-              {isMath ? 'Math' : 'Spelling'} Competition Lobby
-            </h2>
-
-            <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 sm:gap-6 text-center landscape:text-left">
-
-              <div className="flex flex-col justify-between gap-3">
-                <div className={`bg-gradient-to-br ${isDark ? (isMath ? 'from-teal-950/50 to-cyan-950/50 border-teal-800/30' : 'from-indigo-950/50 to-purple-950/50 border-indigo-800/30') : (isMath ? 'from-teal-50 to-cyan-50 border-teal-100/50' : 'from-indigo-50 to-purple-50 border-indigo-100/50')} rounded-2xl border p-3.5 sm:p-4.5 relative overflow-hidden shadow-inner text-left`}>
-                  <div className="flex items-center gap-3">
-                    <StudentAvatar photoUrl={session.photo_url} name={session.name} size="md" className="shadow-md shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className={`text-base sm:text-lg font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}{session.nickname ? ` (${session.nickname})` : ''}</p>
-                        <FlagIcon country={session.country} />
-                      </div>
-                      {session.school && (
-                        <p className={`text-[10px] sm:text-xs ${isMath ? 'text-teal-600/80' : 'text-indigo-600/80'} font-bold flex items-center gap-1 mt-0.5 truncate`}>
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          {session.school}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={`mt-3 flex items-center justify-between border-t pt-2 px-0.5 ${isDark ? 'border-white/10' : 'border-indigo-100/30'}`}>
-                    <span className={`inline-block px-2 py-0.5 ${isMath ? 'bg-teal-500/10 text-teal-600 border-teal-200/50' : 'bg-indigo-500/10 text-indigo-600 border-indigo-200/50'} text-[9px] sm:text-[10px] font-extrabold rounded-full border uppercase tracking-wider`}>
-                      Level {session.level}
-                    </span>
-                    <span className={`text-[10px] font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Code: {session.participant_code}
-                    </span>
-                  </div>
-                </div>
-
-                {selectedSubject === 'english' && !preloadDone ? (
-                  <div className={`rounded-2xl border p-3 sm:p-4 text-center shadow-sm ${isDark ? 'bg-slate-900 border-slate-700/50' : 'bg-slate-50 border-slate-200/50'}`}>
-                    <div className="flex items-center justify-between mb-1.5 px-0.5">
-                      <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Caching Vocab</span>
-                      <span className="text-[10px] font-black text-indigo-600 font-mono">
-                        {preloadProgress.total ? Math.round((preloadProgress.loaded / preloadProgress.total) * 100) : 0}%
-                      </span>
-                    </div>
-                    <div className={`h-3 border rounded-full p-0.5 overflow-hidden shadow-inner ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-200/60 border-slate-200'}`}>
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full"
-                        animate={{ width: preloadProgress.total ? `${(preloadProgress.loaded / preloadProgress.total) * 100}%` : '0%' }}
-                        transition={{ type: 'spring', damping: 20 }}
-                      />
-                    </div>
-                    <p className={`text-[9px] font-bold mt-1.5 flex items-center justify-center gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
-                      Loading Vocab ({preloadProgress.loaded}/{preloadProgress.total})
-                    </p>
-                  </div>
-                ) : (
-                  <div className={`rounded-2xl p-4 flex flex-col items-center justify-center gap-2 ${isDark ? 'bg-emerald-500/15 border-2 border-emerald-500/30' : 'bg-emerald-50 border-2 border-emerald-300'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/30' : 'bg-emerald-500'}`}>
-                      <CheckCircle2 className={`w-7 h-7 ${isDark ? 'text-emerald-400' : 'text-white'}`} />
-                    </div>
-                    <p className={`text-sm font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Ready!</p>
-                  </div>
-                )}
-              </div>
-
-              <div className={`flex flex-col justify-center gap-3 border-t pt-4 landscape:border-t-0 landscape:border-l landscape:pl-5 sm:landscape:pl-6 landscape:pt-0 ${isDark ? 'border-white/10 landscape:border-white/10' : 'border-slate-100 landscape:border-slate-200/50'}`}>
-                <AnimatePresence>
-                  {announcement && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -6 }}
-                      className={`rounded-2xl p-3 text-left relative overflow-hidden ${isDark ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-[9px] font-black uppercase tracking-widest leading-none ${isDark ? 'text-amber-400' : 'text-amber-800'}`}>Coordinator Notice</p>
-                          <p className={`text-xs font-bold mt-1 leading-normal max-h-[50px] overflow-y-auto ${isDark ? 'text-amber-200' : 'text-amber-950'}`}>{announcement}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-2">
-                  {autoStarting ? (
-                    <>
-                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-4 border-green-300 text-white font-black text-xl sm:text-2xl uppercase tracking-wider shadow-[0_0_30px_rgba(34,197,94,0.5)] relative flex items-center justify-center">
-                        <motion.div
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-                          className="absolute inset-0 rounded-full bg-green-500/40"
-                        />
-                        <motion.div
-                          animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-                          className="absolute inset-0 rounded-full bg-green-500/20"
-                        />
-                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="relative z-10">
-                          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
-                        </motion.div>
-                      </div>
-                      <p className={`text-[10px] sm:text-xs font-bold animate-pulse ${isDark ? 'text-green-400' : 'text-green-500'}`}>
-                        {autoStartMsg}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center relative ${isDark ? 'bg-slate-800 border-2 border-slate-700' : 'bg-slate-100 border-2 border-slate-200'}`}>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${isDark ? 'border-t-slate-500' : 'border-t-slate-400'}`}
-                        />
-                        <Lock className={`w-8 h-8 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
-                      </div>
-                      <div className="text-center">
-                        <h3 className={`text-sm sm:text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                          {!preloadDone ? 'Loading...' : 'Waiting for Admin'}
-                        </h3>
-                        <p className={`text-[10px] sm:text-xs mt-1 font-semibold leading-normal max-w-[200px] mx-auto ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                          {!preloadDone ? `Finalizing ${subjectLabel} configurations...` : 'The competition will start automatically.'}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {error && <p className={`text-[10px] font-bold mt-3 leading-tight p-2 rounded-xl border ${isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' : 'text-rose-500 bg-rose-50 border-rose-200/50'}`}>{error}</p>}
+          <div className="text-center w-full">
+            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {session.nickname || session.name}
+            </h1>
+            {session.nickname && (
+              <p className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{session.name}</p>
+            )}
           </div>
+
+          <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
+            <span className="text-white font-black text-base sm:text-lg uppercase tracking-widest">Level {session.level}</span>
+          </div>
+
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', delay: 0.2 }}
+            className="flex flex-col items-center gap-2 mt-2"
+          >
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-xl ${
+              isDark ? 'bg-emerald-500/20 border-4 border-emerald-400/40' : 'bg-emerald-500 border-4 border-emerald-400'
+            }`}>
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <CheckCircle2 className={`w-10 h-10 sm:w-12 sm:h-12 ${isDark ? 'text-emerald-400' : 'text-white'}`} />
+              </motion.div>
+            </div>
+            <p className={`text-lg sm:text-xl font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
+          </motion.div>
         </motion.div>
       </div>
     )
