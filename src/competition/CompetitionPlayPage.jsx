@@ -439,7 +439,16 @@ export default function CompetitionPlayPage() {
               <input
                 type="text"
                 value={code}
-                onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '')
+                  setCode(val)
+                  if (val.length === 4) {
+                    setTimeout(() => {
+                      const form = e.target.closest('form')
+                      if (form) form.requestSubmit()
+                    }, 150)
+                  }
+                }}
                 placeholder="1234"
                 className={`w-full text-center text-3xl sm:text-4xl font-mono font-black tracking-[0.5em] pl-[0.5em] border-2 focus:ring-4 rounded-xl py-3 sm:py-4 outline-none shadow-sm transition-all landscape:py-2 landscape:text-2xl ${
                   isDark
@@ -457,7 +466,7 @@ export default function CompetitionPlayPage() {
 
             <button
               type="submit"
-              disabled={loading || code.trim().length < 1}
+              disabled={loading || code.trim().length < 4}
               className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_4px_12px_rgba(79,70,229,0.2)] text-white font-black rounded-xl text-base sm:text-lg disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98] transition-all cursor-pointer landscape:py-2.5 landscape:text-sm"
             >
               {loading ? (
@@ -599,42 +608,40 @@ export default function CompetitionPlayPage() {
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', duration: 0.6 }}
-          className="w-full max-w-[90vw] sm:max-w-sm landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center gap-5 sm:gap-7 landscape:gap-10"
+          className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center gap-6 sm:gap-8 md:gap-10 landscape:gap-12"
         >
-          {/* Left side in landscape: avatar + name + level */}
-          <div className="flex flex-col items-center gap-3 landscape:gap-4">
-            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-20 h-20 sm:w-24 sm:h-24 landscape:w-16 landscape:h-16" />
+          <div className="flex flex-col items-center gap-4 sm:gap-5 landscape:gap-4">
+            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 landscape:w-24 landscape:h-24" />
 
-            <div className="text-center">
-              <h1 className={`text-2xl sm:text-3xl landscape:text-xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                {session.nickname || session.name}
+            <div className="text-center px-2">
+              <h1 className={`text-3xl sm:text-4xl md:text-5xl landscape:text-2xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                {session.name}
               </h1>
               {session.nickname && (
-                <p className={`text-xs sm:text-sm landscape:text-xs font-semibold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{session.name}</p>
+                <p className={`text-lg sm:text-xl md:text-2xl landscape:text-base font-bold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>({session.nickname})</p>
               )}
             </div>
 
-            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
-              <span className="text-white font-black text-sm sm:text-base landscape:text-xs uppercase tracking-widest">
-                {isMath ? 'Math' : 'Spelling'} — Level {session.level}
+            <div className={`inline-flex items-center gap-2 px-5 sm:px-6 md:px-8 py-2 sm:py-2.5 md:py-3 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
+              <span className="text-white font-black text-base sm:text-lg md:text-xl landscape:text-sm uppercase tracking-widest">
+                {isMath ? 'Math' : 'English Spelling'} — Level {session.level}
               </span>
             </div>
           </div>
 
-          {/* Right side in landscape: ready indicator */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
-            className="flex flex-col items-center gap-1.5"
+            className="flex flex-col items-center gap-2"
           >
             <motion.div
               animate={{ scale: [1, 1.08, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <CheckCircle2 className={`w-16 h-16 sm:w-20 sm:h-20 landscape:w-14 landscape:h-14 drop-shadow-lg ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
+              <CheckCircle2 className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 landscape:w-18 landscape:h-18 drop-shadow-lg ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
             </motion.div>
-            <p className={`text-base sm:text-lg landscape:text-sm font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
+            <p className={`text-lg sm:text-xl md:text-2xl landscape:text-base font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
           </motion.div>
         </motion.div>
       </div>
