@@ -640,66 +640,24 @@ export default function ProjectorPage() {
             </motion.p>
           )}
 
-          {/* Side-by-side: QR (left) + Roster (right) */}
-          <div className="flex gap-8 w-full items-stretch mt-2">
-            {/* QR Code — left column */}
-            <motion.div initial={{ opacity: 0, scale: 0.6, rotateX: 30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.4 }}
-              className="flex flex-col items-center shrink-0">
-              <div className={`backdrop-blur-xl border rounded-[32px] p-6 shadow-2xl relative overflow-hidden ${
-                isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
-              }`}>
-                <div className="bg-white rounded-2xl p-3 shadow-inner">
-                  {qrCode}
-                </div>
+          {/* Centered QR Code */}
+          <motion.div initial={{ opacity: 0, scale: 0.6, rotateX: 30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+            transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.4 }}
+            className="flex flex-col items-center mt-2">
+            <div className={`backdrop-blur-xl border rounded-[32px] p-6 shadow-2xl relative overflow-hidden ${
+              isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
+            }`}>
+              <div className="bg-white rounded-2xl p-3 shadow-inner">
+                {qrCode}
               </div>
-              <div className={`flex items-center gap-2 mt-4 ${sc.accent}`}>
-                <QrCode className="w-4 h-4" />
-                <p className="text-base font-black tracking-tight">Scan to Enter</p>
-                <QrCode className="w-4 h-4" />
-              </div>
-              <p className={`text-xs font-mono mt-1 ${textDim}`}>{window.location.origin}/play</p>
-            </motion.div>
-
-            {/* Participants — right column, auto-scrolling */}
-            {subjectSessions.length > 0 && (
-              <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}
-                className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className={`w-4 h-4 ${textDim}`} />
-                  <span className={`text-xs font-black uppercase tracking-widest ${textDim}`}>
-                    Ready: {readyStudents.length} / {subjectSessions.length}
-                  </span>
-                </div>
-                <div className="flex-1 overflow-y-auto max-h-[420px] pr-2 projector-scroll">
-                  <div className="flex flex-wrap gap-2">
-                    <AnimatePresence>
-                      {[...subjectSessions].sort((a, b) => (b.ready ? 1 : 0) - (a.ready ? 1 : 0)).map((s, i) => (
-                        <motion.div key={s.participant_id || s.id} layout
-                          initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                          transition={{ delay: Math.min(0.03 * i, 1) }}
-                          className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-2 ${
-                            s.ready
-                              ? isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
-                          }`}>
-                          <div className="relative shrink-0">
-                            <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
-                            {s.ready && (
-                              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                              </span>
-                            )}
-                          </div>
-                          <span className="truncate max-w-[140px]">{s.nickname || s.name}</span>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
+            </div>
+            <div className={`flex items-center gap-2 mt-4 ${sc.accent}`}>
+              <QrCode className="w-4 h-4" />
+              <p className="text-base font-black tracking-tight">Scan to Enter</p>
+              <QrCode className="w-4 h-4" />
+            </div>
+            <p className={`text-xs font-mono mt-1 ${textDim}`}>{window.location.origin}/play</p>
+          </motion.div>
         </div>
 
       </div>
