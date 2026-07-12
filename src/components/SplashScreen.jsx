@@ -67,7 +67,7 @@ export default function SplashScreen({ onDone }) {
       </div>
 
       <motion.h1
-        className="text-3xl sm:text-5xl md:text-6xl font-extrabold mt-3 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent"
+        className="text-4xl sm:text-6xl md:text-7xl font-black mt-3 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -75,12 +75,12 @@ export default function SplashScreen({ onDone }) {
         English Spelling
       </motion.h1>
       <motion.p
-        className="text-lg sm:text-xl text-purple-400 mt-1 font-semibold"
+        className="text-lg sm:text-xl md:text-2xl text-purple-400 mt-1 font-bold"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        Learn English Words
+        Practice & Competition
       </motion.p>
       <motion.div
         className="mt-5 flex gap-3"
