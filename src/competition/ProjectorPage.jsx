@@ -226,11 +226,14 @@ export default function ProjectorPage() {
   useEffect(() => {
     if (!activeState?.started_at || !activeState?.is_unlocked) { setElapsed(null); return }
     const start = new Date(activeState.started_at).getTime()
-    const allDone = subjectSessions.length > 0 && subjectSessions.every(s => s.status === 'completed' || s.status === 'waiting')
-    const anyCompleted = subjectSessions.some(s => s.status === 'completed')
-    if (allDone && anyCompleted) {
-      const lastDone = Math.max(...subjectSessions.filter(s => s.completed_at).map(s => new Date(s.completed_at).getTime()))
-      setElapsed(Math.round((lastDone - start) / 1000))
+    const activeSessions = subjectSessions.filter(s => s.status === 'active' || s.status === 'completed')
+    const allDone = activeSessions.length > 0 && activeSessions.every(s => s.status === 'completed')
+    if (allDone) {
+      const completedSessions = activeSessions.filter(s => s.completed_at)
+      if (completedSessions.length > 0) {
+        const lastDone = Math.max(...completedSessions.map(s => new Date(s.completed_at).getTime()))
+        setElapsed(Math.round((lastDone - start) / 1000))
+      }
       return
     }
     const id = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000)
@@ -275,9 +278,9 @@ export default function ProjectorPage() {
     if (userPickedLevelRef.current) clearInterval(autoCycleRef.current)
   }, [userPickedLevelRef.current])
 
-  // Reset countdown detection when subject or competition changes
+  // Reset countdown detection when subject or competition changes — use current value so refresh doesn't replay
   useEffect(() => {
-    prevStartedRef.current = null
+    prevStartedRef.current = activeState?.started_at || null
   }, [activeSubject, competitionId])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)

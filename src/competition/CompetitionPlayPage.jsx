@@ -219,20 +219,17 @@ export default function CompetitionPlayPage() {
     if (step !== 'countdown') { countdownDoneRef.current = false; return }
     countdownDoneRef.current = false
     setCountdownNum('GET READY!')
-    const sequence = [3, 2, 1, 'GO!', null]
-    let idx = 0
-    const interval = setInterval(() => {
-      const val = sequence[idx]
-      if (val === null) {
-        clearInterval(interval)
+    const timers = [
+      setTimeout(() => setCountdownNum(3), 1500),
+      setTimeout(() => setCountdownNum(2), 2500),
+      setTimeout(() => setCountdownNum(1), 3500),
+      setTimeout(() => setCountdownNum('GO!'), 4500),
+      setTimeout(() => {
         countdownDoneRef.current = true
         triggerStart()
-      } else {
-        setCountdownNum(val)
-        idx++
-      }
-    }, 1000)
-    return () => clearInterval(interval)
+      }, 5500),
+    ]
+    return () => timers.forEach(clearTimeout)
   }, [step, triggerStart])
 
   // Auto-transition: when student is on completed screen and admin opens a new lobby

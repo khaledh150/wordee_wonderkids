@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { Clock } from 'lucide-react'
 
 export function useTimer(durationSeconds, onTimeUp) {
@@ -59,15 +60,25 @@ export default function PracticeTimerDisplay({ timeLeft }) {
   const seconds = timeLeft % 60
   const isWarning = timeLeft <= 60 && timeLeft > 30
   const isCritical = timeLeft <= 30
+  const isUrgent = timeLeft <= 10
+
+  const heartbeat = isCritical
+    ? {
+        scale: [1, isUrgent ? 1.25 : 1.15, 1],
+        transition: { duration: isUrgent ? 0.4 : 0.7, repeat: Infinity, ease: 'easeInOut' },
+      }
+    : {}
 
   return (
-    <div
-      className={`flex items-center gap-0.5 sm:gap-1 font-bold text-xs sm:text-sm lg:text-base xl:text-lg tabular-nums ${isCritical ? 'text-red-500 animate-pulse' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}
+    <motion.div
+      animate={heartbeat.scale ? { scale: heartbeat.scale } : {}}
+      transition={heartbeat.transition || {}}
+      className={`flex items-center gap-0.5 sm:gap-1 font-bold text-xs sm:text-sm lg:text-base xl:text-lg tabular-nums ${isCritical ? 'text-red-500' : isWarning ? 'text-orange-500' : 'text-purple-500'}`}
       role="timer"
       aria-label={`${minutes} minutes ${seconds} seconds remaining`}
     >
-      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+      <Clock className={`w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 ${isCritical ? 'animate-spin' : ''}`} style={isCritical ? { animationDuration: isUrgent ? '1s' : '2s' } : {}} />
       {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-    </div>
+    </motion.div>
   )
 }
