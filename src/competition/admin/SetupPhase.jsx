@@ -18,6 +18,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
   const [roundLabel, setRoundLabel] = useState(state?.round_label || '')
   const [adding, setAdding] = useState(false)
   const [exportSchool, setExportSchool] = useState('all')
+  const [schoolFilter, setSchoolFilter] = useState('all')
   const [uploadingPhoto, setUploadingPhoto] = useState(null)
   const photoInputRef = useRef(null)
   const photoTargetRef = useRef(null)
@@ -37,6 +38,11 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     }
     return [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
   }, [sessions])
+
+  const filteredGrouped = useMemo(() => {
+    if (schoolFilter === 'all') return grouped
+    return grouped.filter(s => s.school === schoolFilter)
+  }, [grouped, schoolFilter])
 
   const studentCount = grouped.length
 
@@ -255,7 +261,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
                   isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'
                 }`}>
-                  {studentCount} Student{studentCount !== 1 ? 's' : ''}
+                  {schoolFilter !== 'all' ? `${filteredGrouped.length} / ` : ''}{studentCount} Student{studentCount !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -289,17 +295,20 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             </div>
           </div>
 
-          {/* Export school filter */}
+          {/* School filter */}
           {studentCount > 0 && schools.length > 1 && (
             <div className="flex items-center gap-2 mb-3">
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Export:</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>School:</span>
               <select
-                value={exportSchool}
-                onChange={(e) => setExportSchool(e.target.value)}
+                value={schoolFilter}
+                onChange={(e) => { setSchoolFilter(e.target.value); setExportSchool(e.target.value) }}
                 className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none ${selectClass}`}
               >
-                <option value="all">All Schools</option>
-                {schools.map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="all">All Schools ({studentCount})</option>
+                {schools.map(s => {
+                  const count = grouped.filter(g => g.school === s).length
+                  return <option key={s} value={s}>{s} ({count})</option>
+                })}
               </select>
             </div>
           )}
@@ -372,7 +381,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   </tr>
                 </thead>
                 <tbody>
-                  {grouped.map((student, rowIdx) => {
+                  {filteredGrouped.map((student, rowIdx) => {
                     const isEditing = editingCode === student.code
                     return (
                     <tr
