@@ -25,16 +25,9 @@
 import { readFileSync, writeFileSync } from 'fs'
 import { randomBytes } from 'crypto'
 
-const CODE_LENGTH = 6
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O/1/I to avoid confusion
-
 function generateCode() {
-  const bytes = randomBytes(CODE_LENGTH)
-  let code = ''
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    code += CODE_CHARS[bytes[i] % CODE_CHARS.length]
-  }
-  return code
+  const n = randomBytes(2).readUInt16BE(0) % 10000
+  return String(n).padStart(4, '0')
 }
 
 function escapeSql(str) {
