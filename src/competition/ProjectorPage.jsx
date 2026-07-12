@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator } from 'lucide-react'
+import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator, Maximize, Minimize } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
 import { playCelebrationSequence, playLevelTransition, playCountdownTick, playCountdownReady, playCountdownGo } from '../utils/celebrationSounds'
+import useFullscreen from '../utils/useFullscreen'
 import StudentAvatar from './admin/StudentAvatar'
 import logo from '../assets/wonderkids_logo.webp'
 
@@ -18,6 +19,7 @@ function formatTime(seconds) {
 }
 
 export default function ProjectorPage() {
+  const { isFs, toggle: toggleFs, supported: fsSupported } = useFullscreen()
   const [theme, setTheme] = useState('dark')
   const [authed, setAuthed] = useState(false)
   const [email, setEmail] = useState('')
@@ -371,10 +373,17 @@ export default function ProjectorPage() {
     )
   }
 
+  const fullscreenBtn = fsSupported && (
+    <button onClick={toggleFs} className={`fixed top-4 right-4 z-50 p-2.5 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 active:scale-95 cursor-pointer ${isDark ? 'bg-white/10 border-white/15 text-white/60 hover:bg-white/20 hover:text-white' : 'bg-black/5 border-black/10 text-slate-500 hover:bg-black/10 hover:text-slate-800'}`}>
+      {isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+    </button>
+  )
+
   // ── LOADING ──
   if (!state) {
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center font-bold text-xl gap-3 ${bg} ${textMuted}`}>
+        {fullscreenBtn}
         <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
         <span>Initializing broadcast...</span>
       </div>
@@ -391,6 +400,7 @@ export default function ProjectorPage() {
   if (isPreLobby) {
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors ${bg} ${text}`}>
+        {fullscreenBtn}
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.3, 1], x: [0, 80, 0], y: [0, -60, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
@@ -484,10 +494,11 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+        {fullscreenBtn}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
 
         {/* Level badge */}
-        <div className="absolute top-6 right-6 z-20">
+        <div className="absolute top-6 right-16 z-20">
           <span className={`px-4 py-2 rounded-xl font-black text-sm uppercase tracking-wider border ${sc.levelBadge}`}>
             Level {podiumLevel}
           </span>
@@ -562,6 +573,7 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+        {fullscreenBtn}
         {isDark ? (
           <>
             <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, -40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -682,6 +694,7 @@ export default function ProjectorPage() {
 
     return (
       <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-[#070B18]' : 'bg-gradient-to-br from-slate-50 via-white to-slate-100'}`}>
+        {fullscreenBtn}
         {/* Subtle radial gradient center glow */}
         <div className={`absolute w-[900px] h-[900px] rounded-full blur-[250px] pointer-events-none ${accentColor.glow} ${isDark ? 'opacity-20' : 'opacity-10'}`} />
 
@@ -799,6 +812,7 @@ export default function ProjectorPage() {
   // ── LIVE LEADERBOARD ──
   return (
     <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen p-5 relative overflow-hidden flex flex-col transition-colors ${bg} ${text}`}>
+      {fullscreenBtn}
       {isDark ? (
         <>
           <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
