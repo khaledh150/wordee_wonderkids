@@ -183,7 +183,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
               </motion.div>
 
               {session?.name && (
-                <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
+                <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}{session.nickname ? ` (${session.nickname})` : ''}</p>
               )}
               <h2 className="text-[10px] font-black text-teal-500 uppercase tracking-widest leading-none landscape:hidden">Competition Complete</h2>
               <h1 className={`text-xl sm:text-2xl landscape:text-base font-black mt-1.5 landscape:mt-0.5 tracking-tight leading-tight ${tierColors.text}`}>

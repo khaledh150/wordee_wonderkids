@@ -14,7 +14,7 @@ const AdminPage = lazy(() => import('./competition/AdminPage'))
 const CompetitionPlayPage = lazy(() => import('./competition/CompetitionPlayPage'))
 const ProjectorPage = lazy(() => import('./competition/ProjectorPage'))
 
-export const APP_VERSION = '1.4.5'
+export const APP_VERSION = '1.4.6'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {

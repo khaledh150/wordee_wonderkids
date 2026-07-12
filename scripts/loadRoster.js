@@ -98,6 +98,7 @@ async function main() {
       participant_code: code,
       display_id: item.display_id || `${(item.country || 'XX').toUpperCase()}-${String(i + 1).padStart(3, '0')}`,
       name: item.name,
+      nickname: item.nickname || null,
       school: item.school || null,
       country: item.country?.toLowerCase() || null,
     }

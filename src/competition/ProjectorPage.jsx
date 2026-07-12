@@ -100,7 +100,7 @@ export default function ProjectorPage() {
     if (!competitionId) return
     const { data } = await supabase
       .from('competition_sessions')
-      .select('participant_id, participant_code, display_id, competition_id, name, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
+      .select('participant_id, participant_code, display_id, competition_id, name, nickname, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
       .eq('competition_id', competitionId)
     if (data) setSessions(data)
   }, [competitionId])
@@ -544,7 +544,7 @@ export default function ProjectorPage() {
                 transition={{ type: 'spring', damping: 18, stiffness: 80, delay: 0.5 + displayIdx * 0.5 }}>
                 <div className="mb-4 flex flex-col items-center">
                   <StudentAvatar photoUrl={student.photo_url} name={student.name} size="xl" className="mb-3 ring-4 ring-white/20 shadow-xl" />
-                  <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
+                  <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}{student.nickname ? ` (${student.nickname})` : ''}</p>
                   {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
                   <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
                   <p className={`text-sm font-mono font-bold mt-1 ${textDim}`}>{formatTime(cappedTime)}</p>
@@ -571,7 +571,7 @@ export default function ProjectorPage() {
                     <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>
                       <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
                       <td className="py-3 px-2 w-10"><StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" /></td>
-                      <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</td>
+                      <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</td>
                       <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
                       <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
                       <td className={`py-3 px-4 font-mono text-right font-bold ${textDim}`}>{formatTime(cappedTime)}</td>
@@ -691,7 +691,7 @@ export default function ProjectorPage() {
                               </span>
                             )}
                           </div>
-                          <span className="truncate max-w-[140px]">{s.name}</span>
+                          <span className="truncate max-w-[140px]">{s.nickname || s.name}</span>
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -1075,7 +1075,7 @@ export default function ProjectorPage() {
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
                 <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
-                <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}</span>
+                <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</span>
                 <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
                 <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>

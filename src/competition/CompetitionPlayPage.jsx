@@ -614,7 +614,7 @@ export default function CompetitionPlayPage() {
                     <StudentAvatar photoUrl={session.photo_url} name={session.name} size="md" className="shadow-md shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className={`text-base sm:text-lg font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
+                        <p className={`text-base sm:text-lg font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}{session.nickname ? ` (${session.nickname})` : ''}</p>
                         <FlagIcon country={session.country} />
                       </div>
                       {session.school && (

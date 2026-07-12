@@ -28,12 +28,13 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     for (const s of sessions) {
       const key = s.participant_code
       if (!map.has(key)) {
-        map.set(key, { code: key, name: s.name, school: s.school, country: s.country, display_id: s.display_id, age: s.age, english: null, math: null })
+        map.set(key, { code: key, name: s.name, nickname: s.nickname, school: s.school, country: s.country, display_id: s.display_id, age: s.age, english: null, math: null })
       }
       const entry = map.get(key)
       if (s.subject === 'english') entry.english = s
       if (s.subject === 'math') entry.math = s
       if (s.age && !entry.age) entry.age = s.age
+      if (s.nickname && !entry.nickname) entry.nickname = s.nickname
       if (s.photo_url && !entry.photo_url) entry.photo_url = s.photo_url
     }
     return [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
@@ -174,7 +175,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
   async function handleExport() {
     const { data: allSessions } = await supabase
       .from('competition_sessions')
-      .select('participant_code, name, school, country, age, subject, level')
+      .select('participant_code, name, nickname, school, country, age, subject, level')
       .eq('competition_id', state.competition_id)
     if (!allSessions) return
 
@@ -358,7 +359,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   <col style={{ width: 36 }} />
                   <col style={{ width: 40 }} />
                   <col />
-                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '15%' }} />
                   <col style={{ width: 52 }} />
                   <col style={{ width: 64 }} />
                   <col style={{ width: 64 }} />
@@ -366,12 +368,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['#', '', 'NAME', 'SCHOOL', 'AGE', 'CODE', subject === 'math' ? 'MATH' : 'ENG', ''].map((h, i) => (
+                    {['#', '', 'NAME', 'NICKNAME', 'SCHOOL', 'AGE', 'CODE', subject === 'math' ? 'MATH' : 'ENG', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`py-2.5 text-[10px] font-bold uppercase tracking-wider ${
-                          i === 4 || i === 5 || i === 6 ? 'text-center' : 'text-left'
-                        } ${i === 4 ? 'px-1' : 'px-2'} ${
+                          i === 5 || i === 6 || i === 7 ? 'text-center' : 'text-left'
+                        } ${i === 5 ? 'px-1' : 'px-2'} ${
                           isDark ? 'text-slate-500' : 'text-slate-400'
                         }`}
                       >
@@ -426,6 +428,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         ) : (
                           <span className={`font-medium truncate block ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</span>
                         )}
+                      </td>
+                      <td className="py-2 px-2">
+                        <span className={`truncate block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.nickname || '—'}</span>
                       </td>
                       <td className="py-2 px-2">
                         {isEditing ? (
@@ -522,6 +527,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         className={`w-full px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
                       />
                     </td>
+                    <td className="py-2 px-2"></td>
                     <td className="py-2 px-2">
                       <input
                         value={newStudent.school}

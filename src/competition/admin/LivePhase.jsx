@@ -184,7 +184,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
                   }`}
                 >
                   <td className="px-4 py-3 font-mono font-black text-slate-500">{i + 1}</td>
-                  <td className={`px-4 py-3 font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name || s.student_name}</td>
+                  <td className={`px-4 py-3 font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name || s.student_name}{s.nickname ? ` (${s.nickname})` : ''}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs font-black px-2 py-0.5 rounded border ${
                       isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'

@@ -134,6 +134,7 @@ export default function AdminDashboard() {
           subject: s.subject,
           level: s.level,
           photo_url: s.photo_url,
+          nickname: s.nickname,
           status: 'registered',
           provisional_score: 0,
           validated_score: null,
