@@ -170,11 +170,19 @@ export default function CompetitionPlayPage() {
   const isDark = competitionState?.theme === 'dark'
 
   async function getQuestionsForSession(sub, level, participantId) {
-    if (sub === 'math') {
-      const { getMathCompetitionQuestions } = await import('./mathCompetitionQuestions')
-      return getMathCompetitionQuestions(level, participantId)
+    try {
+      if (sub === 'math') {
+        const { getMathCompetitionQuestions } = await import('./mathCompetitionQuestions')
+        return getMathCompetitionQuestions(level, participantId)
+      }
+      return getCompetitionQuestions(level)
+    } catch (err) {
+      if (err.message?.includes('dynamically imported module') || err.message?.includes('MIME type')) {
+        window.location.reload()
+        return []
+      }
+      throw err
     }
-    return getCompetitionQuestions(level)
   }
 
   useEffect(() => {
