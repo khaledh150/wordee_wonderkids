@@ -608,22 +608,22 @@ export default function CompetitionPlayPage() {
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', duration: 0.6 }}
-          className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center gap-6 sm:gap-8 md:gap-10 landscape:gap-12"
+          className="w-full max-w-full landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center justify-center flex-1 landscape:gap-[6vw]"
         >
-          <div className="flex flex-col items-center gap-4 sm:gap-5 landscape:gap-4">
-            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 landscape:w-24 landscape:h-24" />
+          <div className="flex flex-col items-center gap-[2.5vh] landscape:gap-[2vh]">
+            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl !w-[22vmin] !h-[22vmin] landscape:!w-[18vmin] landscape:!h-[18vmin]" />
 
-            <div className="text-center px-2">
-              <h1 className={`text-3xl sm:text-4xl md:text-5xl landscape:text-2xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-center px-4">
+              <h1 className={`text-[clamp(1.8rem,6vmin,4rem)] landscape:text-[clamp(1.4rem,4vmin,2.5rem)] font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 {session.name}
               </h1>
               {session.nickname && (
-                <p className={`text-lg sm:text-xl md:text-2xl landscape:text-base font-bold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>({session.nickname})</p>
+                <p className={`text-[clamp(1rem,3.5vmin,2rem)] landscape:text-[clamp(0.9rem,2.5vmin,1.5rem)] font-bold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>({session.nickname})</p>
               )}
             </div>
 
-            <div className={`inline-flex items-center gap-2 px-5 sm:px-6 md:px-8 py-2 sm:py-2.5 md:py-3 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
-              <span className="text-white font-black text-base sm:text-lg md:text-xl landscape:text-sm uppercase tracking-widest">
+            <div className={`inline-flex items-center gap-2 px-[clamp(1.2rem,4vmin,2.5rem)] py-[clamp(0.5rem,1.5vmin,1rem)] rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
+              <span className="text-white font-black text-[clamp(0.8rem,2.5vmin,1.5rem)] landscape:text-[clamp(0.7rem,2vmin,1.2rem)] uppercase tracking-widest">
                 {isMath ? 'Math' : 'English Spelling'} — Level {session.level}
               </span>
             </div>
@@ -633,15 +633,15 @@ export default function CompetitionPlayPage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-[1vh] mt-[2vh] landscape:mt-0"
           >
             <motion.div
               animate={{ scale: [1, 1.08, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <CheckCircle2 className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 landscape:w-18 landscape:h-18 drop-shadow-lg ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
+              <CheckCircle2 style={{ width: 'clamp(5rem, 20vmin, 12rem)', height: 'clamp(5rem, 20vmin, 12rem)' }} className={`drop-shadow-lg landscape:!w-[clamp(4rem,14vmin,8rem)] landscape:!h-[clamp(4rem,14vmin,8rem)] ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
             </motion.div>
-            <p className={`text-lg sm:text-xl md:text-2xl landscape:text-base font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
+            <p className={`text-[clamp(1rem,3vmin,2rem)] landscape:text-[clamp(0.8rem,2.5vmin,1.3rem)] font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
           </motion.div>
         </motion.div>
       </div>

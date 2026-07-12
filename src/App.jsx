@@ -14,7 +14,7 @@ const AdminPage = lazy(() => import('./competition/AdminPage'))
 const CompetitionPlayPage = lazy(() => import('./competition/CompetitionPlayPage'))
 const ProjectorPage = lazy(() => import('./competition/ProjectorPage'))
 
-export const APP_VERSION = '1.4.9'
+export const APP_VERSION = '1.5.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version']
 
 function writeHash(screen, level) {
@@ -79,10 +79,23 @@ function App() {
       } catch {} finally { checking = false }
     }
     checkForUpdate()
-    const id = setInterval(checkForUpdate, 60_000)
+    const id = setInterval(checkForUpdate, 15_000)
     const onVisible = () => { if (document.visibilityState === 'visible') checkForUpdate() }
     window.addEventListener('focus', checkForUpdate)
     document.addEventListener('visibilitychange', onVisible)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) {
+          reg.update()
+          reg.addEventListener('updatefound', () => {
+            const sw = reg.installing
+            if (sw) sw.addEventListener('statechange', () => {
+              if (sw.state === 'activated') checkForUpdate()
+            })
+          })
+        }
+      })
+    }
     return () => { clearInterval(id); window.removeEventListener('focus', checkForUpdate); document.removeEventListener('visibilitychange', onVisible) }
   }, [])
 
