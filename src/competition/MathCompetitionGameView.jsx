@@ -99,7 +99,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         level: level,
         school: session.school || null,
         country: session.country || null,
-        eventName: (competitionState && competitionState.round_label) || 'MathWiz Arena',
+        eventName: (competitionState && competitionState.round_label) || 'Math Competition',
         competitionId: (competitionState && competitionState.competition_id) || 'Wonderkids'
       })
     } catch (err) {
