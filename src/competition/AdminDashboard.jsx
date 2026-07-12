@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                 autoPhase={autoPhase}
                 updateState={updateState}
                 loadSessions={loadSessions}
-                onBackToSetup={async () => { await updateState({ is_unlocked: false }) }}
+                onBackToSetup={async () => { await updateState({ is_unlocked: false }); setPhaseOverride(null) }}
               />
             </motion.div>
           )}

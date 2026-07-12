@@ -955,7 +955,7 @@ export default function ProjectorPage() {
                     />
                   )}
                   <span className="relative z-10 flex items-center justify-center gap-1">
-                    L{l}
+                    Level {l}
                     {activeCount > 0 && (
                       <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelected ? 'bg-white/80' : 'bg-emerald-400'}`} />
                     )}

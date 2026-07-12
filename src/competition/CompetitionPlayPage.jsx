@@ -599,40 +599,42 @@ export default function CompetitionPlayPage() {
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', duration: 0.6 }}
-          className="w-full max-w-[90vw] sm:max-w-sm relative z-10 flex flex-col items-center gap-5 sm:gap-7"
+          className="w-full max-w-[90vw] sm:max-w-sm landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center gap-5 sm:gap-7 landscape:gap-10"
         >
-          <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-20 h-20 sm:w-24 sm:h-24" />
+          {/* Left side in landscape: avatar + name + level */}
+          <div className="flex flex-col items-center gap-3 landscape:gap-4">
+            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl w-20 h-20 sm:w-24 sm:h-24 landscape:w-16 landscape:h-16" />
 
-          <div className="text-center w-full">
-            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-              {session.nickname || session.name}
-            </h1>
-            {session.nickname && (
-              <p className={`text-xs sm:text-sm font-semibold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{session.name}</p>
-            )}
+            <div className="text-center">
+              <h1 className={`text-2xl sm:text-3xl landscape:text-xl font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                {session.nickname || session.name}
+              </h1>
+              {session.nickname && (
+                <p className={`text-xs sm:text-sm landscape:text-xs font-semibold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{session.name}</p>
+              )}
+            </div>
+
+            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
+              <span className="text-white font-black text-sm sm:text-base landscape:text-xs uppercase tracking-widest">
+                {isMath ? 'Math' : 'Spelling'} — Level {session.level}
+              </span>
+            </div>
           </div>
 
-          <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
-            <span className="text-white font-black text-base sm:text-lg uppercase tracking-widest">Level {session.level}</span>
-          </div>
-
+          {/* Right side in landscape: ready indicator */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
-            className="flex flex-col items-center gap-2 mt-2"
+            className="flex flex-col items-center gap-1.5"
           >
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-xl ${
-              isDark ? 'bg-emerald-500/20 border-4 border-emerald-400/40' : 'bg-emerald-500 border-4 border-emerald-400'
-            }`}>
-              <motion.div
-                animate={{ scale: [1, 1.15, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <CheckCircle2 className={`w-10 h-10 sm:w-12 sm:h-12 ${isDark ? 'text-emerald-400' : 'text-white'}`} />
-              </motion.div>
-            </div>
-            <p className={`text-lg sm:text-xl font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
+            <motion.div
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <CheckCircle2 className={`w-16 h-16 sm:w-20 sm:h-20 landscape:w-14 landscape:h-14 drop-shadow-lg ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
+            </motion.div>
+            <p className={`text-base sm:text-lg landscape:text-sm font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
           </motion.div>
         </motion.div>
       </div>

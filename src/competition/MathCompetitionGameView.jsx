@@ -335,8 +335,15 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         </div>
       </div>
 
+      <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-0.5 shrink-0 relative z-10">
+        <span className="text-xs sm:text-sm lg:text-base font-bold text-teal-400">Q{currentIndex + 1}/{total}</span>
+        <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          Live
+        </span>
+      </div>
+
       <div className="flex-1 overflow-auto min-h-0 relative z-10">
-        <span className="absolute top-1 left-2 sm:left-3 lg:left-4 text-xs sm:text-sm lg:text-base font-bold text-teal-400 z-20">Q{currentIndex + 1}/{total}</span>
         <div className="flex items-center justify-center min-h-full px-3 sm:px-4 lg:px-6 py-1">
           <AnimatePresence mode="wait">
             <MathQuestionArea
