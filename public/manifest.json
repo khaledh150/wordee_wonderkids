@@ -1,7 +1,7 @@
 {
-  "name": "English Spelling - Learn English Words",
-  "short_name": "English Spelling",
-  "description": "Learn English Vocabulary for Kids",
+  "name": "WonderKids - English Spelling & Math Championship",
+  "short_name": "WonderKids",
+  "description": "International English Spelling & Math Championship",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

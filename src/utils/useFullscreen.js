@@ -13,6 +13,31 @@ export function enterFullscreen() {
   } catch {}
 }
 
+export function exitFullscreen() {
+  if (!supportsFullscreen) return
+  try {
+    if (!(document.fullscreenElement || document.webkitFullscreenElement)) return
+    const exit = document.exitFullscreen || document.webkitExitFullscreen
+    if (exit) exit.call(document).catch(() => {})
+  } catch {}
+}
+
+export function isFullscreenActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement)
+}
+
+export function toggleFullscreen() {
+  if (isFullscreenActive()) {
+    exitFullscreen()
+  } else {
+    enterFullscreen()
+  }
+}
+
+export function requestFullscreen() {
+  enterFullscreen()
+}
+
 export default function useFullscreen() {
   const [isFs, setIsFs] = useState(!!(typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)))
 
@@ -28,13 +53,7 @@ export default function useFullscreen() {
   }, [])
 
   const toggle = useCallback(() => {
-    if (!supportsFullscreen) return
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      const exit = document.exitFullscreen || document.webkitExitFullscreen
-      if (exit) exit.call(document).catch(() => {})
-    } else {
-      enterFullscreen()
-    }
+    toggleFullscreen()
   }, [])
 
   return { isFs, toggle, supported: supportsFullscreen }

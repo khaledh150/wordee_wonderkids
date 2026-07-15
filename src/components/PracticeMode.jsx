@@ -200,8 +200,8 @@ export default function PracticeMode({ level, onBack, onHome, mode = 'practice' 
 
       <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 xl:px-6 py-0.5 shrink-0">
         <span className={`text-xs sm:text-sm lg:text-base xl:text-lg font-bold ${isTest ? 'text-orange-400' : 'text-pink-400'}`}>Q{index + 1}/{total}</span>
-        <span className={`inline-flex items-center text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${isTest ? 'bg-orange-500' : 'bg-pink-500'}`}>
-          Practice
+        <span className={`inline-flex items-center text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${isTest ? 'bg-orange-500' : 'bg-amber-400'}`}>
+          {modeLabel}
         </span>
       </div>
 

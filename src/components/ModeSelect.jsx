@@ -8,75 +8,72 @@ export default function ModeSelect({ level, onSelect, onBack }) {
 
   return (
     <motion.div
-      className="w-full h-screen-safe flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
+      className="w-full h-screen-safe flex flex-col items-center justify-center p-4 md:p-6 bg-gradient-to-br from-pink-50 via-white to-purple-50 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      <div className="absolute top-3 left-3 lg:top-4 lg:left-4 xl:top-5 xl:left-5 flex gap-2">
-        <button
-          onClick={onBack}
-          aria-label="Go back"
-          className="p-2 lg:p-2.5 xl:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="w-5 h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-purple-500" />
-        </button>
+      <button
+        onClick={onBack}
+        aria-label="Back"
+        className="absolute top-3 left-3 md:top-5 md:left-5 z-10 p-2 md:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform"
+      >
+        <ArrowLeft size={20} className="text-text-light md:!w-6 md:!h-6" />
+      </button>
+      <div className="absolute top-3 right-3 md:top-5 md:right-5 z-10">
+        <FullscreenBtn />
       </div>
-      <FullscreenBtn className="absolute top-3 right-3 lg:top-4 lg:right-4 xl:top-5 xl:right-5" />
 
       <motion.div
-        className="text-5xl lg:text-6xl xl:text-7xl mb-2"
+        className="text-5xl sm:text-6xl md:text-7xl mb-2 md:mb-3"
         animate={{ y: [0, -8, 0] }}
         transition={{ repeat: Infinity, duration: 2 }}
       >
         {levelData?.emoji}
       </motion.div>
-      <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-purple-700 mb-1">
+      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text mb-0.5">
         {levelData?.name}
       </h2>
-      <p className="text-purple-400 font-semibold mb-6 lg:text-lg xl:text-xl">{levelData?.subtitle}</p>
+      <p className="text-text-light font-medium text-sm md:text-base mb-6 md:mb-8">{levelData?.subtitle}</p>
 
-      <div className="grid grid-cols-3 gap-3 lg:gap-5 xl:gap-6 w-full max-w-sm sm:max-w-xl lg:max-w-2xl xl:max-w-3xl">
+      <div className="grid grid-cols-3 gap-3 md:gap-5 w-full max-w-sm sm:max-w-xl md:max-w-2xl">
         <motion.button
-          className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white rounded-3xl p-4 sm:p-6 lg:p-8 xl:p-10 shadow-xl shadow-teal-200 flex flex-col items-center gap-2 sm:gap-3 active:scale-95 transition-transform"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.93 }}
+          className="flex flex-col items-center gap-2 md:gap-3 p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-teal-400 to-cyan-400 text-white gummy-shadow gummy-press transition-all"
+          whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
+          transition={{ delay: 0.1 }}
           onClick={() => onSelect('learn')}
         >
-          <BookOpen className="w-8 h-8 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
-          <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-extrabold">Learn</span>
-          <span className="text-[11px] sm:text-sm lg:text-base xl:text-lg opacity-90">Words & pictures</span>
+          <BookOpen className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">Learn</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">Words & pictures</span>
         </motion.button>
 
         <motion.button
-          className="bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-3xl p-4 sm:p-6 lg:p-8 xl:p-10 shadow-xl shadow-pink-200 flex flex-col items-center gap-2 sm:gap-3 active:scale-95 transition-transform"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.93 }}
+          className="flex flex-col items-center gap-2 md:gap-3 p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-pink-400 to-rose-400 text-white gummy-shadow gummy-press transition-all"
+          whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.06 }}
+          transition={{ delay: 0.15 }}
           onClick={() => onSelect('practice')}
         >
-          <Gamepad2 className="w-8 h-8 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
-          <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-extrabold">Practice</span>
-          <span className="text-[11px] sm:text-sm lg:text-base xl:text-lg opacity-90">Try & retry</span>
+          <Gamepad2 className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">Practice</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">Try & retry</span>
         </motion.button>
 
         <motion.button
-          className="bg-gradient-to-br from-orange-400 to-amber-400 text-white rounded-3xl p-4 sm:p-6 lg:p-8 xl:p-10 shadow-xl shadow-orange-200 flex flex-col items-center gap-2 sm:gap-3 active:scale-95 transition-transform"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.93 }}
+          className="flex flex-col items-center gap-2 md:gap-3 p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-br from-orange-400 to-amber-400 text-white gummy-shadow gummy-press transition-all"
+          whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12 }}
+          transition={{ delay: 0.2 }}
           onClick={() => onSelect('test')}
         >
-          <ClipboardCheck className="w-8 h-8 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
-          <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-extrabold">Test</span>
-          <span className="text-[11px] sm:text-sm lg:text-base xl:text-lg opacity-90">5 min quiz</span>
+          <ClipboardCheck className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">Test</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">5 min quiz</span>
         </motion.button>
       </div>
     </motion.div>
