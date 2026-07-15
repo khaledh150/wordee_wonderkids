@@ -72,12 +72,14 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     const level = Number(newLevel)
 
     if (row && level === 0) {
-      await supabase.from('competition_sessions').delete().eq('participant_id', row.participant_id)
+      const { error } = await supabase.from('competition_sessions').delete().eq('participant_id', row.participant_id)
+      if (error) { alert('Failed to remove level: ' + error.message); return }
     } else if (row && level > 0) {
-      await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('participant_id', row.participant_id)
+      const { error } = await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('participant_id', row.participant_id)
+      if (error) { alert('Failed to update level: ' + error.message); return }
     } else if (!row && level > 0) {
       const refRow = student.english || student.math
-      await supabase.from('competition_sessions').insert({
+      const { error } = await supabase.from('competition_sessions').insert({
         competition_id: state.competition_id,
         participant_code: student.code,
         display_id: refRow.display_id,
@@ -88,6 +90,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         subject: subjectKey,
         level,
       })
+      if (error) { alert('Failed to add level: ' + error.message); return }
     }
     await loadSessions()
   }
@@ -96,7 +99,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     const age = newAge === '' ? null : Number(newAge)
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
-      await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('participant_id', id)
+      const { error } = await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('participant_id', id)
+      if (error) { alert('Failed to update age: ' + error.message); return }
     }
     await loadSessions()
   }
@@ -106,7 +110,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     if (ids.length === 0) return
     for (const id of ids) {
-      await supabase.from('competition_sessions').delete().eq('participant_id', id)
+      const { error } = await supabase.from('competition_sessions').delete().eq('participant_id', id)
+      if (error) { alert('Failed to delete student: ' + error.message); return }
     }
     await loadSessions()
   }
@@ -125,7 +130,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     }
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
-      await supabase.from('competition_sessions').update(updates).eq('participant_id', id)
+      const { error } = await supabase.from('competition_sessions').update(updates).eq('participant_id', id)
+      if (error) { alert('Failed to save edit: ' + error.message); return }
     }
     setEditingCode(null)
     await loadSessions()
@@ -164,7 +170,8 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         return
       }
 
-      await supabase.from('competition_sessions').insert(rows)
+      const { error } = await supabase.from('competition_sessions').insert(rows)
+      if (error) { alert('Failed to add student: ' + error.message); return }
       setNewStudent({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
       await loadSessions()
     } finally {

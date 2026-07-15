@@ -203,6 +203,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Calculate rank among same level/subject/competition peers
+    // NOTE: Known limitation — concurrent submits with the same score may receive
+    // the same rank due to the COUNT-based approach. This is acceptable because rank
+    // is recalculated on subsequent reads (idempotent path above) and on the results page.
     let rank: number | null = null;
     try {
       const { count } = await supabase

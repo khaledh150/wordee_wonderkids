@@ -281,7 +281,7 @@ export default function MathExam({ levelConfig: config, user, onFinish, onExit }
           Q{currentIndex + 1}/{questions.length}
         </span>
         <span className="inline-flex items-center bg-orange text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
-          Test
+          {t('math.mode.test')}
         </span>
       </div>
 

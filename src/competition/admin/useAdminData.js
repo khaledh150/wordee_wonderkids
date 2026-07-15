@@ -5,15 +5,18 @@ export default function useAdminData({ subject }) {
   const [state, setState] = useState(null)
   const [sessions, setSessions] = useState([])
   const [elapsed, setElapsed] = useState(null)
+  const [error, setError] = useState(null)
   const channelRef = useRef(null)
   const debounceRef = useRef(null)
 
   const loadState = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('competition_state')
       .select('*')
       .eq('id', subject)
       .single()
+    if (fetchError) { setError(fetchError.message); return null }
+    setError(null)
     if (data) setState(data)
     return data
   }, [subject])
@@ -26,7 +29,9 @@ export default function useAdminData({ subject }) {
       .eq('competition_id', state.competition_id)
       .eq('subject', subject)
     if (levelFilter) q = q.eq('level', levelFilter)
-    const { data } = await q
+    const { data, error: fetchError } = await q
+    if (fetchError) { setError(fetchError.message); return }
+    setError(null)
     if (data) setSessions(data)
   }, [state, subject])
 
@@ -99,5 +104,5 @@ export default function useAdminData({ subject }) {
     return 'setup'
   })()
 
-  return { state, sessions, elapsed, phase, loadState, loadSessions, updateState }
+  return { state, sessions, elapsed, phase, error, loadState, loadSessions, updateState }
 }

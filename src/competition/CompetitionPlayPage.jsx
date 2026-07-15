@@ -115,13 +115,45 @@ export default function CompetitionPlayPage() {
   const countdownDoneRef = useRef(false)
   const [autoStartMsg, setAutoStartMsg] = useState('Entering arena...')
   const [competitionId, setCompetitionId] = useState(null)
+  const [compIdError, setCompIdError] = useState(false)
   const restoredRef = useRef(false)
 
   useVersionCheck()
 
   useEffect(() => {
-    supabase.from('competition_state').select('competition_id').limit(1).single()
-      .then(({ data }) => { if (data) setCompetitionId(data.competition_id) })
+    let cancelled = false
+    let attempt = 0
+    const maxRetries = 3
+    const retryDelay = 2000
+    const timeout = 10000
+
+    async function fetchCompetitionId() {
+      while (attempt < maxRetries && !cancelled) {
+        attempt++
+        try {
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), timeout)
+          const { data, error: fetchErr } = await supabase
+            .from('competition_state')
+            .select('competition_id')
+            .limit(1)
+            .single()
+            .abortSignal(controller.signal)
+          clearTimeout(timer)
+          if (cancelled) return
+          if (fetchErr) throw fetchErr
+          if (data) { setCompetitionId(data.competition_id); return }
+        } catch {
+          if (cancelled) return
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, retryDelay))
+          }
+        }
+      }
+      if (!cancelled) setCompIdError(true)
+    }
+    fetchCompetitionId()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -381,6 +413,21 @@ export default function CompetitionPlayPage() {
   const subjectLabel = isMath ? 'math' : 'spelling'
 
   if (!competitionId) {
+    if (compIdError) {
+      return (
+        <div className={`min-h-screen flex flex-col items-center justify-center font-bold gap-4 px-6 text-center ${isDark ? 'bg-[#060814] text-white' : 'bg-[#FFF5F0] text-slate-800'}`}>
+          <AlertCircle className="w-12 h-12 text-rose-500" />
+          <p className="text-lg font-black">Could not connect</p>
+          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Please check your internet and try again.</p>
+          <button
+            onClick={() => { setCompIdError(false); window.location.reload() }}
+            className="mt-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-xl cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center font-bold gap-2.5 ${isDark ? 'bg-[#060814] text-indigo-400' : 'bg-[#FFF5F0] text-indigo-400'}`}>
         <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
@@ -460,6 +507,7 @@ export default function CompetitionPlayPage() {
                 pattern="[0-9]*"
                 autoFocus
                 autoComplete="off"
+                aria-label="Competition code"
                 disabled={loading}
               />
             </div>

@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     ])
   }, [theme])
 
-  const { state, sessions, elapsed, phase: autoPhase, loadState, loadSessions, updateState } = useAdminData({ subject })
+  const { state, sessions, elapsed, phase: autoPhase, error: adminError, loadState, loadSessions, updateState } = useAdminData({ subject })
   const [phaseOverride, setPhaseOverride] = useState(null)
   const phase = phaseOverride || autoPhase
 
@@ -90,7 +90,8 @@ export default function AdminDashboard() {
     }
     if (skipped > 0) console.warn(`Roster: skipped ${skipped} duplicate entries`)
     if (inserts.length > 0) {
-      await supabase.from('competition_sessions').insert(inserts)
+      const { error } = await supabase.from('competition_sessions').insert(inserts)
+      if (error) { alert('Roster import failed: ' + error.message); return }
       await loadSessions()
     }
   }
@@ -100,12 +101,13 @@ export default function AdminDashboard() {
     const newId = 'comp_' + rnd
     const oldId = state.competition_id
 
-    await supabase.from('competition_history').insert({
+    const { error: histErr } = await supabase.from('competition_history').insert({
       competition_id: newId,
       round_label: state.round_label || null,
     })
+    if (histErr) { alert('Failed to create history entry: ' + histErr.message); return }
 
-    await supabase.from('competition_state').update({
+    const { error: stateErr } = await supabase.from('competition_state').update({
       competition_id: newId,
       is_unlocked: false,
       started_at: null,
@@ -116,6 +118,7 @@ export default function AdminDashboard() {
       podium_level: 1,
       updated_at: new Date().toISOString(),
     }).in('id', ['english', 'math'])
+    if (stateErr) { alert('Failed to reset competition state: ' + stateErr.message); return }
 
     if (copyRoster) {
       const { data: oldSessions } = await supabase
@@ -145,7 +148,8 @@ export default function AdminDashboard() {
           started_at: null,
           completed_at: null,
         }))
-        await supabase.from('competition_sessions').insert(inserts)
+        const { error: copyErr } = await supabase.from('competition_sessions').insert(inserts)
+        if (copyErr) { alert('Failed to copy roster: ' + copyErr.message) }
       }
     }
 
@@ -179,6 +183,11 @@ export default function AdminDashboard() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {adminError && (
+          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-bold ${isDark ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+            Error: {adminError}
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {phase === 'setup' && (
             <motion.div key="setup" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>

@@ -357,7 +357,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       }
     }, 1000)
 
-    return () => clearInterval(timerRef.current)
+    return () => { clearInterval(timerRef.current); if (autoSubmitRef.current) clearTimeout(autoSubmitRef.current) }
   }, [phase])
 
   // Re-sync timer+deadline when tab becomes visible or time is extended

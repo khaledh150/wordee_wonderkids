@@ -89,7 +89,8 @@ export default function ProjectorPage() {
   }
 
   const loadStates = useCallback(async () => {
-    const { data } = await supabase.from('competition_state').select('*').in('id', ['english', 'math'])
+    const { data, error } = await supabase.from('competition_state').select('*').in('id', ['english', 'math'])
+    if (error) { console.warn('Failed to load competition states:', error.message); return }
     if (data) {
       for (const d of data) {
         if (d.id === 'english') setEngState(d)
@@ -100,10 +101,11 @@ export default function ProjectorPage() {
 
   const loadSessions = useCallback(async () => {
     if (!competitionId) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('competition_sessions')
       .select('participant_id, participant_code, display_id, competition_id, name, nickname, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
       .eq('competition_id', competitionId)
+    if (error) { console.warn('Failed to load sessions:', error.message); return }
     if (data) setSessions(data)
   }, [competitionId])
 
