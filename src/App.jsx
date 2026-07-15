@@ -8,6 +8,8 @@ import LoadingScreen from './components/LoadingScreen'
 import { stopAll, clearIdleTimer } from './utils/audioPlayer'
 import InAppBrowserGuard from './components/InAppBrowserGuard'
 import { LanguageProvider } from './i18n/LanguageContext'
+import { levelConfig } from './math/mathEngine'
+import useVersionCheck from './hooks/useVersionCheck'
 
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
@@ -21,12 +23,13 @@ const MathExam = lazy(() => import('./math/MathExam'))
 const MathResults = lazy(() => import('./math/MathResults'))
 const MathPrintExam = lazy(() => import('./math/MathPrintExam'))
 
-export const APP_VERSION = '1.7.1'
+export const APP_VERSION = '1.8.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version', 'wonderkids_language', 'mathwiz_answers', 'mathwiz_exam_progress']
 
-function writeHash(screen, level) {
+function writeHash(screen, level, ml) {
   let hash = `s=${screen}`
   if (level != null) hash += `&l=${level}`
+  if (ml != null) hash += `&ml=${ml}`
   window.location.hash = hash
 }
 
@@ -65,52 +68,11 @@ function App() {
     } catch {}
   }, [])
 
-  useEffect(() => {
-    let checking = false
-    async function checkForUpdate() {
-      if (checking) return
-      checking = true
-      try {
-        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
-        if (!res.ok) return
-        const data = await res.json()
-        if (data.version && data.version !== APP_VERSION) {
-          if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations()
-            await Promise.all(regs.map(r => r.unregister()))
-          }
-          if ('caches' in window) {
-            const keys = await caches.keys()
-            await Promise.all(keys.map(k => caches.delete(k)))
-          }
-          window.location.reload()
-        }
-      } catch {} finally { checking = false }
-    }
-    checkForUpdate()
-    const id = setInterval(checkForUpdate, 15_000)
-    const onVisible = () => { if (document.visibilityState === 'visible') checkForUpdate() }
-    window.addEventListener('focus', checkForUpdate)
-    document.addEventListener('visibilitychange', onVisible)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg) {
-          reg.update()
-          reg.addEventListener('updatefound', () => {
-            const sw = reg.installing
-            if (sw) sw.addEventListener('statechange', () => {
-              if (sw.state === 'activated') checkForUpdate()
-            })
-          })
-        }
-      })
-    }
-    return () => { clearInterval(id); window.removeEventListener('focus', checkForUpdate); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])
+  useVersionCheck()
 
   useEffect(() => {
-    if (screen !== 'splash') writeHash(screen, selectedLevel)
-  }, [screen, selectedLevel])
+    if (screen !== 'splash') writeHash(screen, selectedLevel, mathLevel?.level)
+  }, [screen, selectedLevel, mathLevel])
 
   useEffect(() => {
     const onPopState = () => {
@@ -118,9 +80,14 @@ function App() {
       const params = new URLSearchParams(hash)
       const s = params.get('s')
       if (s && s !== screen) {
-        setScreen(s)
         const l = params.get('l')
         if (l) setSelectedLevel(Number(l))
+        const ml = params.get('ml')
+        if (ml) {
+          const config = levelConfig.find(c => c.level === Number(ml))
+          if (config) setMathLevel(config)
+        }
+        setScreen(s)
       }
     }
     window.addEventListener('popstate', onPopState)
@@ -182,7 +149,7 @@ function App() {
             key="mode"
             level={selectedLevel}
             onSelect={(m) => navigate(m, { mode: m })}
-            onBack={goHome}
+            onBack={() => navigate('levels')}
           />
         )}
         {screen === 'learn' && (

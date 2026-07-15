@@ -123,7 +123,7 @@ export default function HomeScreen({ onPracticeEnglish, onPracticeMath, onCompet
           animate={{ opacity: 0.5 }}
           transition={{ delay: 1 }}
         >
-          © 2026 Wonder Kids CO., LTD. All rights reserved.
+          {t('app.copyright')}
         </motion.p>
         <motion.p
           className="text-[9px] sm:text-[10px] md:text-xs text-text-muted"

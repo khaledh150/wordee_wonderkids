@@ -10,6 +10,7 @@ import StudentAvatar from './admin/StudentAvatar'
 import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
+import useVersionCheck from '../hooks/useVersionCheck'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
 
@@ -115,6 +116,8 @@ export default function CompetitionPlayPage() {
   const [autoStartMsg, setAutoStartMsg] = useState('Entering arena...')
   const [competitionId, setCompetitionId] = useState(null)
   const restoredRef = useRef(false)
+
+  useVersionCheck()
 
   useEffect(() => {
     supabase.from('competition_state').select('competition_id').limit(1).single()

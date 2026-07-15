@@ -8,6 +8,7 @@ import { playCelebrationSequence, playLevelTransition, playCountdownTick, playCo
 import useFullscreen from '../utils/useFullscreen'
 import StudentAvatar from './admin/StudentAvatar'
 import logo from '../assets/wonderkids_logo.webp'
+import useVersionCheck from '../hooks/useVersionCheck'
 
 const PROJECTOR_FONT = "'Playfair Display', Georgia, 'Times New Roman', serif"
 
@@ -19,6 +20,7 @@ function formatTime(seconds) {
 }
 
 export default function ProjectorPage() {
+  useVersionCheck()
   const { isFs, toggle: toggleFs, supported: fsSupported } = useFullscreen()
   const [theme, setTheme] = useState('dark')
   const [authed, setAuthed] = useState(false)

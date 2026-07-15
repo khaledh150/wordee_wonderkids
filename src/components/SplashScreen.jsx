@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
+import { useLang } from '../i18n/LanguageContext'
 import logo from '../assets/wonderkids_logo.webp'
 
 const SYMBOLS = ['A', 'B', '3', '+', 'Z', 'a', '7', 'c', '×', 'w']
@@ -39,9 +40,10 @@ function FloatingSymbol({ symbol, color, index, total }) {
 }
 
 export default function SplashScreen({ onDone }) {
+  const { t } = useLang()
   useEffect(() => {
-    const t = setTimeout(onDone, 3000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(onDone, 3000)
+    return () => clearTimeout(timer)
   }, [onDone])
 
   return (
@@ -72,7 +74,7 @@ export default function SplashScreen({ onDone }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        English Spelling & Math
+        {t('app.splashTitle')}
       </motion.h1>
       <motion.p
         className="text-lg sm:text-xl md:text-2xl lg:text-3xl phone-ls:text-sm text-purple-400 mt-1 font-bold"
@@ -80,7 +82,7 @@ export default function SplashScreen({ onDone }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        Practice & Competition
+        {t('app.splashSubtitle')}
       </motion.p>
       <motion.div
         className="mt-4 phone-ls:mt-2 flex gap-3"
@@ -105,7 +107,7 @@ export default function SplashScreen({ onDone }) {
         onClick={onDone}
         whileTap={{ scale: 0.9 }}
       >
-        Let's Go!
+        {t('app.letsGo')}
       </motion.button>
     </motion.div>
   )

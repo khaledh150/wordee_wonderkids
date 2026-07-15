@@ -32,7 +32,7 @@ export default function MathLevelSelect({ onSelectLevel, onPrint, onBack }) {
 
       <div className="max-w-2xl md:max-w-3xl mx-auto w-full">
         <div className="text-center mb-4 md:mb-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text mb-1">Math</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text mb-1">{t('math.title')}</h1>
           <p className="text-text-light text-sm md:text-base">{t('math.levels.title')}</p>
         </div>
         <div className="grid gap-2.5 md:gap-3 grid-cols-2">

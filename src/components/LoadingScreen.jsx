@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
+import { useLang } from '../i18n/LanguageContext'
 
 export default function LoadingScreen() {
+  const { t } = useLang()
   return (
     <div className="w-full h-screen-safe flex flex-col items-center justify-center bg-gradient-to-b from-pink-50 to-purple-50">
       <motion.div
@@ -10,7 +12,7 @@ export default function LoadingScreen() {
       >
         📚
       </motion.div>
-      <p className="mt-4 text-xl font-bold text-purple-400">Loading...</p>
+      <p className="mt-4 text-xl font-bold text-purple-400">{t('common.loading')}</p>
       <div className="mt-4 w-48 h-2 bg-purple-100 rounded-full overflow-hidden">
         <motion.div
           className="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full"

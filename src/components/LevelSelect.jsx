@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { LEVELS } from '../data/vocabulary'
+import { useLang } from '../i18n/LanguageContext'
 import FullscreenBtn from './FullscreenBtn'
 
 const levelColors = [
@@ -11,6 +12,7 @@ const levelColors = [
 ]
 
 export default function LevelSelect({ onSelect, onBack }) {
+  const { t } = useLang()
   return (
     <motion.div
       className="w-full min-h-screen-safe flex flex-col items-center justify-center p-4 md:p-6 overflow-auto relative bg-gradient-to-br from-pink-50 via-white to-purple-50"
@@ -34,8 +36,8 @@ export default function LevelSelect({ onSelect, onBack }) {
 
       <div className="max-w-2xl md:max-w-3xl mx-auto w-full">
         <div className="text-center mb-4 md:mb-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text mb-1">English Spelling</h1>
-          <p className="text-text-light text-sm md:text-base">Choose your level</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text mb-1">{t('english.title')}</h1>
+          <p className="text-text-light text-sm md:text-base">{t('english.chooseLevel')}</p>
         </div>
 
         <div className="grid gap-3 md:gap-4 sm:grid-cols-2">

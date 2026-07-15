@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import AdminLogin from './AdminLogin'
 import AdminDashboard from './AdminDashboard'
+import useVersionCheck from '../hooks/useVersionCheck'
 
 export default function AdminPage() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = not logged in
+
+  useVersionCheck()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {

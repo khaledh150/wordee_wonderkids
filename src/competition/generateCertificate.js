@@ -41,7 +41,7 @@ async function loadImageAsDataUrl(url) {
 
 async function loadLogoAsDataUrl() {
   try {
-    const logoModule = await import('../assets/logo.webp')
+    const logoModule = await import('../assets/wonderkids_logo.webp')
     return await loadImageAsDataUrl(logoModule.default)
   } catch {
     return null

@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useCallback } from 'react'
+import { useLang } from '../i18n/LanguageContext'
 import { playSound } from './sound'
 
 const STEPS = ['ready', '3', '2', '1', 'go']
 
 export default function CountdownOverlay({ onComplete }) {
+  const { t } = useLang()
   const [step, setStep] = useState(0)
   const stableComplete = useCallback(onComplete, [])
 
@@ -25,7 +27,7 @@ export default function CountdownOverlay({ onComplete }) {
   const current = STEPS[step]
   if (step >= STEPS.length) return null
 
-  const display = current === 'ready' ? 'Get Ready' : current === 'go' ? 'GO!' : current
+  const display = current === 'ready' ? t('math.countdown.getReady') : current === 'go' ? t('math.countdown.go') : current
   const colors = { ready: 'text-white', 3: 'text-primary', 2: 'text-orange', 1: 'text-red', go: 'text-green' }
 
   return (

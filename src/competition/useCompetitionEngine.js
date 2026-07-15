@@ -353,7 +353,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
       if (next <= 0) {
         clearInterval(timerRef.current)
-        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
+        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 15000)
       }
     }, 1000)
 
@@ -371,7 +371,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setTimeLeft(corrected)
       if (corrected <= 0 && !submittingRef.current) {
         clearInterval(timerRef.current)
-        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 3000)
+        autoSubmitRef.current = setTimeout(() => { if (phaseRef.current === 'active' && !submittingRef.current) doSubmit() }, Math.random() * 15000)
       }
     }
     const handleVisibility = () => { if (document.visibilityState === 'visible') resync() }

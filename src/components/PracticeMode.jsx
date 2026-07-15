@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2, ChevronRight } from 'lucide-react'
+import { useLang } from '../i18n/LanguageContext'
 import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, playSFX, stopAll } from '../utils/audioPlayer'
@@ -25,6 +26,7 @@ function shuffleArray(arr) {
 }
 
 export default function PracticeMode({ level, onBack, onHome, mode = 'practice' }) {
+  const { t } = useLang()
   const isTest = mode === 'test'
   const allVocab = getVocabForLevel(level)
   const levelData = LEVELS.find(l => l.id === level)
@@ -152,7 +154,7 @@ export default function PracticeMode({ level, onBack, onHome, mode = 'practice' 
     timerRef.current.start()
   }, [allVocab])
 
-  const modeLabel = isTest ? 'Test' : 'Practice'
+  const modeLabel = isTest ? t('english.test') : t('english.practice')
 
   if (finished) {
     return (

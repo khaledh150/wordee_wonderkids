@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2, ChevronLeft, ChevronRight, RotateCcw, PartyPopper } from 'lucide-react'
+import { useLang } from '../i18n/LanguageContext'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
 import { playWordVO, stopAll } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
@@ -10,6 +11,7 @@ import useSwipe from '../utils/useSwipe'
 import FullscreenBtn from './FullscreenBtn'
 
 export default function LearnMode({ level, onBack, onHome }) {
+  const { t } = useLang()
   const vocab = getVocabForLevel(level)
   const levelData = LEVELS.find(l => l.id === level)
   const [index, setIndex] = useState(0)
@@ -102,8 +104,8 @@ export default function LearnMode({ level, onBack, onHome }) {
         >
           <PartyPopper className="w-10 h-10 sm:w-14 sm:h-14 lg:w-18 lg:h-18 text-white" />
         </motion.div>
-        <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-purple-700 mt-3">Lesson Complete!</h1>
-        <p className="text-purple-400 text-sm sm:text-base lg:text-lg mt-1">You learned {vocab.length} words in {levelData?.name}</p>
+        <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-purple-700 mt-3">{t('english.lessonComplete')}</h1>
+        <p className="text-purple-400 text-sm sm:text-base lg:text-lg mt-1">{t('english.learnedWords').replace('{count}', vocab.length).replace('{level}', levelData?.name)}</p>
 
         <button
           onClick={() => { stopAll(); onHome() }}
@@ -111,7 +113,7 @@ export default function LearnMode({ level, onBack, onHome }) {
           className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:bottom-8 lg:left-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 lg:py-3.5 bg-gradient-to-r from-pink-400 to-purple-500 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform text-sm sm:text-base lg:text-lg z-20"
         >
           <Home className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-          Home
+          {t('common.home')}
         </button>
         <button
           onClick={handlePlayAgain}
@@ -119,7 +121,7 @@ export default function LearnMode({ level, onBack, onHome }) {
           className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 flex items-center gap-1.5 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 lg:py-3.5 bg-white border-2 border-purple-300 text-purple-600 font-bold rounded-full shadow-md active:scale-95 transition-transform text-sm sm:text-base lg:text-lg z-20"
         >
           <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-          Play Again
+          {t('english.playAgain')}
         </button>
       </motion.div>
     )
@@ -139,7 +141,7 @@ export default function LearnMode({ level, onBack, onHome }) {
         <button onClick={onBack} aria-label="Go back" className="p-1.5 sm:p-2 lg:p-2.5 xl:p-3 rounded-full bg-white/80 shadow-md active:scale-90 transition-transform shrink-0">
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-purple-500" />
         </button>
-        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-purple-500 shrink-0">Learn · {levelData?.name}</span>
+        <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-bold text-purple-500 shrink-0">{t('english.learn')} · {levelData?.name}</span>
         <div className="flex-1 h-1.5 sm:h-2 lg:h-2.5 xl:h-3 bg-purple-100 rounded-full overflow-hidden min-w-6" role="progressbar" aria-valuenow={index + 1} aria-valuemin={1} aria-valuemax={vocab.length}>
           <motion.div
             className="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full"

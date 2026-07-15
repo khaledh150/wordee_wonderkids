@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { LEVELS } from '../data/vocabulary'
 import { ArrowLeft, BookOpen, Gamepad2, ClipboardCheck } from 'lucide-react'
+import { useLang } from '../i18n/LanguageContext'
 import FullscreenBtn from './FullscreenBtn'
 
 export default function ModeSelect({ level, onSelect, onBack }) {
+  const { t } = useLang()
   const levelData = LEVELS.find(l => l.id === level)
 
   return (
@@ -46,8 +48,8 @@ export default function ModeSelect({ level, onSelect, onBack }) {
           onClick={() => onSelect('learn')}
         >
           <BookOpen className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
-          <span className="text-lg sm:text-xl md:text-2xl font-bold">Learn</span>
-          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">Words & pictures</span>
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">{t('english.learn')}</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">{t('english.learnDesc')}</span>
         </motion.button>
 
         <motion.button
@@ -59,8 +61,8 @@ export default function ModeSelect({ level, onSelect, onBack }) {
           onClick={() => onSelect('practice')}
         >
           <Gamepad2 className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
-          <span className="text-lg sm:text-xl md:text-2xl font-bold">Practice</span>
-          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">Try & retry</span>
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">{t('english.practice')}</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">{t('english.practiceDesc')}</span>
         </motion.button>
 
         <motion.button
@@ -72,8 +74,8 @@ export default function ModeSelect({ level, onSelect, onBack }) {
           onClick={() => onSelect('test')}
         >
           <ClipboardCheck className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14" />
-          <span className="text-lg sm:text-xl md:text-2xl font-bold">Test</span>
-          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">5 min quiz</span>
+          <span className="text-lg sm:text-xl md:text-2xl font-bold">{t('english.test')}</span>
+          <span className="text-white/80 text-[11px] sm:text-sm md:text-base">{t('english.testDesc')}</span>
         </motion.button>
       </div>
     </motion.div>

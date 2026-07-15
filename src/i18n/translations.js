@@ -2,7 +2,10 @@ export const translations = {
   en: {
     app: {
       title: 'WonderKids',
-      copyright: 'Wonder Kids Co., Ltd. All rights reserved.',
+      copyright: '© 2026 Wonder Kids CO., LTD. All rights reserved.',
+      splashTitle: 'English Spelling & Math',
+      splashSubtitle: 'Practice & Competition',
+      letsGo: "Let's Go!",
       version: 'Version',
     },
     home: {
@@ -22,8 +25,29 @@ export const translations = {
       test: 'Test',
       testDesc: '5 min quiz',
       back: 'Back',
+      lessonComplete: 'Lesson Complete!',
+      learnedWords: 'You learned {count} words in {level}',
+      playAgain: 'Play Again',
+      results: {
+        perfect: 'Perfect!',
+        excellent: 'Excellent!',
+        great: 'Great job!',
+        good: 'Good try!',
+        keepTrying: 'Keep trying!',
+        outOf: 'out of',
+        allDone: 'All questions done!',
+        timeUp: "Time's up!",
+        practiceComplete: 'Practice complete!',
+        correct: 'Correct',
+        wrong: 'Wrong',
+        time: 'Time',
+        accuracy: 'accuracy',
+        home: 'Home',
+        tryAgain: 'Try Again',
+      },
     },
     math: {
+      title: 'Math',
       levels: {
         title: 'Choose Your Level',
         level: 'Level',
@@ -48,6 +72,10 @@ export const translations = {
         exitTitle: 'Leave?',
         exitMessage: 'Your progress will be lost if you leave now.',
         exitConfirm: 'Leave',
+      },
+      countdown: {
+        getReady: 'Get Ready',
+        go: 'GO!',
       },
       results: {
         correct: 'Correct',
@@ -81,12 +109,16 @@ export const translations = {
       ok: 'OK',
       back: 'Back',
       loading: 'Loading...',
+      home: 'Home',
     },
   },
   th: {
     app: {
       title: 'WonderKids',
-      copyright: 'Wonder Kids Co., Ltd. สงวนลิขสิทธิ์',
+      copyright: '© 2026 Wonder Kids CO., LTD. สงวนลิขสิทธิ์',
+      splashTitle: 'สะกดคำ & คณิตศาสตร์',
+      splashSubtitle: 'ฝึกซ้อม & การแข่งขัน',
+      letsGo: 'เริ่มเลย!',
       version: 'เวอร์ชัน',
     },
     home: {
@@ -106,8 +138,29 @@ export const translations = {
       test: 'ทดสอบ',
       testDesc: 'แบบทดสอบ 5 นาที',
       back: 'กลับ',
+      lessonComplete: 'บทเรียนเสร็จสิ้น!',
+      learnedWords: 'คุณเรียนรู้ {count} คำใน {level}',
+      playAgain: 'เล่นอีกครั้ง',
+      results: {
+        perfect: 'เต็ม!',
+        excellent: 'ยอดเยี่ยม!',
+        great: 'ดีมาก!',
+        good: 'พยายามดี!',
+        keepTrying: 'ฝึกฝนต่อไป!',
+        outOf: 'จาก',
+        allDone: 'ตอบครบทุกข้อ!',
+        timeUp: 'หมดเวลา!',
+        practiceComplete: 'ฝึกซ้อมเสร็จสิ้น!',
+        correct: 'ถูก',
+        wrong: 'ผิด',
+        time: 'เวลา',
+        accuracy: 'ความแม่นยำ',
+        home: 'หน้าหลัก',
+        tryAgain: 'ลองอีกครั้ง',
+      },
     },
     math: {
+      title: 'คณิตศาสตร์',
       levels: {
         title: 'เลือกระดับของคุณ',
         level: 'ระดับ',
@@ -132,6 +185,10 @@ export const translations = {
         exitTitle: 'ออกหรือไม่?',
         exitMessage: 'ความคืบหน้าจะหายไปหากคุณออกตอนนี้',
         exitConfirm: 'ออก',
+      },
+      countdown: {
+        getReady: 'เตรียมตัว',
+        go: 'ไป!',
       },
       results: {
         correct: 'ถูก',
@@ -165,6 +222,7 @@ export const translations = {
       ok: 'ตกลง',
       back: 'กลับ',
       loading: 'กำลังโหลด...',
+      home: 'หน้าหลัก',
     },
   },
 }
