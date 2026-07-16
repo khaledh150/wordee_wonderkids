@@ -65,13 +65,11 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Session not active" }, 400, req);
     }
 
-    // Rate limit: if answers_snapshot already exists AND updated less than 25s ago, throttle
-    // Always allow the first sync (answers_snapshot is null after join)
+    // Rate limit: throttle rapid syncs but still allow score updates through
     if (session.answers_snapshot != null && session.updated_at) {
       const lastUpdate = new Date(session.updated_at).getTime();
       const now = Date.now();
-      if (now - lastUpdate < 5_000) {
-        // Still update last_seen_at even when throttled
+      if (now - lastUpdate < 2_000) {
         await supabase
           .from("competition_sessions")
           .update({ last_seen_at: new Date().toISOString() })

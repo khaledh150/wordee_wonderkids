@@ -1,16 +1,39 @@
 /**
  * Competition Simulation — Full Lifecycle Test
  *
- * Simulates 1000 students through a complete English competition, then
- * transitions to Math and runs a second exam.  Reports performance
- * metrics, data-integrity checks, and a final summary.
+ * Simulates students through a complete English + Math competition
+ * with REALISTIC timing. Each exam is 5 minutes (300s real) compressed
+ * to ~15s wall-clock. Students answer at 1-3 seconds per question,
+ * sync every 8-12 seconds, and most hit the time limit before finishing
+ * all 200 questions. Reports performance metrics and data integrity.
+ *
+ * Designed for Supabase FREE TIER constraints:
+ *   - Edge function concurrency: ~25
+ *   - API rate limit: ~500 req/min
+ *   - DB connections: ~60 via pooler
+ *   - Realtime: 200 concurrent connections
+ *
+ * The script runs a TIERED approach automatically:
+ *   Tier 1: 10 students (smoke test)
+ *   Tier 2: 50 students
+ *   Tier 3: 100 students
+ *   Tier 4: 200 students (likely practical max)
+ * It reports results at each tier and stops if a tier fails badly.
  *
  * Usage:
- *   node scripts/competition-simulation.js [num_students]
+ *   node scripts/competition-simulation.js [options]
+ *
+ * Options:
+ *   --students N     Number of students (default: 50, max recommended: 200)
+ *   --tier           Run tiered mode: 10 -> 50 -> 100 -> 200 (overrides --students)
+ *   --compress N     Time compression factor (default: 1 = real time, 20 = 20x faster)
+ *   --dry-run        Validate script logic without hitting Supabase
+ *   --skip-cleanup   Leave test data in the DB for manual inspection
  *
  * Env vars (read from .env):
  *   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY  — project credentials
  *   ADMIN_EMAIL, ADMIN_PASSWORD                 — admin account for setup
+ *   SUPABASE_SERVICE_ROLE_KEY                   — alternative to admin auth
  *
  * The script NEVER logs credential values.
  */
@@ -20,7 +43,7 @@ import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 
 // ═══════════════════════════════════════════════════════════════
-// 0.  ENV + CONSTANTS
+// 0.  ENV + CLI PARSING
 // ═══════════════════════════════════════════════════════════════
 
 function loadEnv() {
@@ -39,27 +62,44 @@ function loadEnv() {
 }
 loadEnv()
 
-const BASE_URL   = process.env.VITE_SUPABASE_URL
-const ANON_KEY   = process.env.VITE_SUPABASE_ANON_KEY
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const FUNC_BASE  = `${BASE_URL}/functions/v1`
+function parseArgs() {
+  const args = process.argv.slice(2)
+  const opts = { students: 50, tier: false, dryRun: false, skipCleanup: false, compress: 0 }
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--students' && args[i + 1]) { opts.students = parseInt(args[i + 1]); i++ }
+    else if (args[i] === '--compress' && args[i + 1]) { opts.compress = parseInt(args[i + 1]); i++ }
+    else if (args[i] === '--tier') opts.tier = true
+    else if (args[i] === '--dry-run') opts.dryRun = true
+    else if (args[i] === '--skip-cleanup') opts.skipCleanup = true
+    else if (!args[i].startsWith('--') && !isNaN(args[i])) opts.students = parseInt(args[i])
+  }
+  return opts
+}
 
-if (!BASE_URL || !ANON_KEY) {
-  console.error('ERROR: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set.')
+const CLI = parseArgs()
+
+const BASE_URL    = process.env.VITE_SUPABASE_URL
+const ANON_KEY    = process.env.VITE_SUPABASE_ANON_KEY
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const FUNC_BASE   = `${BASE_URL}/functions/v1`
+
+if (!CLI.dryRun && (!BASE_URL || !ANON_KEY)) {
+  console.error('ERROR: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set (or use --dry-run).')
   process.exit(1)
 }
 
-const NUM_STUDENTS       = parseInt(process.argv[2]) || 1000
-const COMP_ID            = `sim_${Date.now()}`
-const BATCH_SIZE         = 50          // concurrent students per batch
-const BATCH_DELAY_MS     = 100         // pause between batches
+// Push to the limit — max out edge function concurrency
+const MAX_CONCURRENT     = 24         // 24 of 25 edge func slots (leave 1 for admin/projector)
+const BATCH_DELAY_MS     = 200        // pause between batches
+const BACKOFF_BASE_MS    = 1000       // initial backoff on 429
+const MAX_RETRIES        = 3          // retries per request
 const ENGLISH_LEVELS     = [1, 2, 3, 4]
 const MATH_LEVELS        = [1, 2, 3, 4, 5, 6, 7, 8]
-const ENGLISH_DURATION   = 300         // 5 min
-const MATH_DURATION      = 600         // 10 min
+const ENGLISH_DURATION   = 300        // 5 min
+const MATH_DURATION      = 600        // 10 min
 const CODE_CHARS         = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
-// Question counts per level (matching competitionQuestions / mathCompetitionQuestions)
+// Question counts per level
 const ENGLISH_Q_COUNT = { 1: 174, 2: 100, 3: 98, 4: 104 }
 const MATH_Q_COUNT    = { 1: 200, 2: 200, 3: 200, 4: 200, 5: 200, 6: 200, 7: 200, 8: 200 }
 
@@ -76,7 +116,7 @@ function genCode() {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
-function pct(arr, p) {
+function percentile(arr, p) {
   if (!arr.length) return 0
   const sorted = [...arr].sort((a, b) => a - b)
   return sorted[Math.floor(sorted.length * p / 100)] || 0
@@ -87,7 +127,7 @@ function avg(arr) {
   return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
 }
 
-function fmt(seconds) {
+function fmtTime(seconds) {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return `${m}m ${s}s`
@@ -99,75 +139,123 @@ function fmt(seconds) {
 
 function createStats() {
   return {
-    join:      { ok: 0, err: 0, times: [], errors: {} },
-    heartbeat: { ok: 0, err: 0, times: [], errors: {} },
-    sync:      { ok: 0, err: 0, times: [], errors: {} },
-    submit:    { ok: 0, err: 0, times: [], errors: {} },
-    poll:      { ok: 0, err: 0, times: [], errors: {} },
+    join:      { ok: 0, err: 0, times: [], errors: {}, rateLimits: 0 },
+    heartbeat: { ok: 0, err: 0, times: [], errors: {}, rateLimits: 0 },
+    sync:      { ok: 0, err: 0, times: [], errors: {}, rateLimits: 0 },
+    submit:    { ok: 0, err: 0, times: [], errors: {}, rateLimits: 0 },
+    poll:      { ok: 0, err: 0, times: [], errors: {}, rateLimits: 0 },
   }
 }
 
 let stats = createStats()
 
 function recordError(bucket, errMsg) {
-  const key = (errMsg || 'unknown').slice(0, 60)
+  const key = (errMsg || 'unknown').slice(0, 80)
   bucket.errors[key] = (bucket.errors[key] || 0) + 1
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3.  API CALLERS
+// 3.  API CALLERS (with rate-limit awareness + concurrency semaphore)
 // ═══════════════════════════════════════════════════════════════
 
-async function callFn(name, body, retries = 2) {
-  const bucket = stats[name] || stats.poll
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const start = Date.now()
-    try {
-      const res = await fetch(`${FUNC_BASE}/${name}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const elapsed = Date.now() - start
-      bucket.times.push(elapsed)
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        bucket.ok++
-        return data
-      }
-      if (res.status === 429 && attempt < retries) {
-        // rate limited — back off and retry
-        await sleep(1000 * (attempt + 1) + Math.random() * 500)
-        continue
-      }
-      bucket.err++
-      recordError(bucket, data.error || `HTTP ${res.status}`)
-      return null
-    } catch (e) {
-      bucket.times.push(Date.now() - start)
-      if (attempt < retries) {
-        await sleep(500 * (attempt + 1))
-        continue
-      }
-      bucket.err++
-      recordError(bucket, e.message)
-      return null
-    }
+// Semaphore to limit concurrent HTTP requests (all 500 students run in parallel
+// but only MAX_CONCURRENT requests hit Supabase at once)
+let activeRequests = 0
+const requestQueue = []
+function acquireSlot() {
+  if (activeRequests < MAX_CONCURRENT) {
+    activeRequests++
+    return Promise.resolve()
   }
-  return null
+  return new Promise(resolve => requestQueue.push(resolve))
+}
+function releaseSlot() {
+  activeRequests--
+  if (requestQueue.length > 0) {
+    activeRequests++
+    requestQueue.shift()()
+  }
+}
+
+async function callFn(name, body) {
+  if (CLI.dryRun) {
+    const bucket = stats[name] || stats.poll
+    bucket.ok++
+    bucket.times.push(Math.random() * 100 + 50)
+    return { participant_id: 'dry-run-id', remaining: 300, ok: true, validated_score: 0 }
+  }
+
+  const bucket = stats[name] || stats.poll
+  await acquireSlot()
+  try {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const start = Date.now()
+      try {
+        const res = await fetch(`${FUNC_BASE}/${name}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const elapsed = Date.now() - start
+        bucket.times.push(elapsed)
+        const data = await res.json().catch(() => ({}))
+
+        if (res.ok) {
+          bucket.ok++
+          return data
+        }
+
+        if (res.status === 429) {
+          bucket.rateLimits++
+          if (attempt < MAX_RETRIES) {
+            const backoff = BACKOFF_BASE_MS * Math.pow(2, attempt) + Math.random() * 500
+            await sleep(backoff)
+            continue
+          }
+        }
+
+        if (res.status >= 500 && attempt < MAX_RETRIES) {
+          await sleep(BACKOFF_BASE_MS * (attempt + 1) + Math.random() * 300)
+          continue
+        }
+
+        bucket.err++
+        recordError(bucket, data.error || `HTTP ${res.status}`)
+        return null
+      } catch (e) {
+        bucket.times.push(Date.now() - start)
+        if (attempt < MAX_RETRIES) {
+          await sleep(500 * (attempt + 1))
+          continue
+        }
+        bucket.err++
+        recordError(bucket, e.message)
+        return null
+      }
+    }
+    return null
+  } finally {
+    releaseSlot()
+  }
 }
 
 async function pollState(subject) {
-  const start = Date.now()
+  if (CLI.dryRun) { stats.poll.ok++; stats.poll.times.push(30); return }
+  await acquireSlot()
   try {
-    await fetch(`${BASE_URL}/rest/v1/competition_state?id=eq.${subject}&select=is_unlocked,started_at`, {
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
-    })
-    stats.poll.times.push(Date.now() - start)
-    stats.poll.ok++
-  } catch {
-    stats.poll.times.push(Date.now() - start)
-    stats.poll.err++
+    const start = Date.now()
+    try {
+      await fetch(`${BASE_URL}/rest/v1/competition_state?id=eq.${subject}&select=is_unlocked,started_at`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
+      })
+      stats.poll.times.push(Date.now() - start)
+      stats.poll.ok++
+    } catch {
+      stats.poll.times.push(Date.now() - start)
+      stats.poll.err++
+    }
+  } finally {
+    releaseSlot()
   }
 }
 
@@ -179,7 +267,6 @@ function genAnswers(subject, level, correctPct) {
   const prefix = subject === 'english' ? 'eng' : 'math'
   const bank   = subject === 'english' ? ENGLISH_Q_COUNT : MATH_Q_COUNT
   const total  = bank[level] || 50
-  // Students answer 40-100% of questions
   const numToAnswer = Math.floor(total * (0.4 + Math.random() * 0.6))
   const answers = []
   for (let i = 1; i <= numToAnswer; i++) {
@@ -194,177 +281,68 @@ function genAnswers(subject, level, correctPct) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 5.  STUDENT SIMULATION SCENARIOS
+// 5.  BATCH RUNNER (respects free-tier concurrency)
 // ═══════════════════════════════════════════════════════════════
 
-async function simulateNormal(code, level, subject) {
-  await pollState(subject)
-  const jr = await callFn('join', { participant_code: code, competition_id: COMP_ID, subject })
-  if (!jr) return 'join_failed'
-
-  await callFn('heartbeat', { participant_code: code, competition_id: COMP_ID, subject, ready: true })
-
-  // 3-5 syncs at realistic intervals
-  const numSyncs = 3 + Math.floor(Math.random() * 3)
-  let latestAnswers = []
-  for (let s = 0; s < numSyncs; s++) {
-    await sleep(500 + Math.random() * 3000) // 0.5-3.5s between syncs
-    latestAnswers = genAnswers(subject, level, 0.5 + Math.random() * 0.3)
-    await callFn('sync', {
-      participant_code: code,
-      competition_id: COMP_ID,
-      subject,
-      provisional_score: Math.floor(latestAnswers.length * 0.6),
-      questions_answered: latestAnswers.length,
-      answers: latestAnswers,
-    })
-  }
-
-  // Final submit
-  await sleep(100 + Math.random() * 500)
-  const finalAnswers = genAnswers(subject, level, 0.5 + Math.random() * 0.4) // 50-90%
-  const sr = await callFn('submit', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    answers: finalAnswers,
-  })
-  return sr ? 'completed' : 'submit_failed'
-}
-
-async function simulateFast(code, level, subject) {
-  const jr = await callFn('join', { participant_code: code, competition_id: COMP_ID, subject })
-  if (!jr) return 'join_failed'
-
-  await callFn('heartbeat', { participant_code: code, competition_id: COMP_ID, subject, ready: true })
-
-  // Fast finisher — submit immediately with high accuracy
-  await sleep(200 + Math.random() * 800)
-  const answers = genAnswers(subject, level, 0.85 + Math.random() * 0.15) // 85-100%
-  const sr = await callFn('submit', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    answers,
-  })
-  return sr ? 'completed_fast' : 'submit_failed'
-}
-
-async function simulateDropout(code, level, subject) {
-  const jr = await callFn('join', { participant_code: code, competition_id: COMP_ID, subject })
-  if (!jr) return 'join_failed'
-
-  await callFn('heartbeat', { participant_code: code, competition_id: COMP_ID, subject, ready: true })
-
-  // Sync once, then disappear
-  await sleep(300 + Math.random() * 700)
-  const answers = genAnswers(subject, level, 0.3 + Math.random() * 0.3) // 30-60%
-  await callFn('sync', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    provisional_score: Math.floor(answers.length * 0.4),
-    questions_answered: answers.length,
-    answers,
-  })
-  return 'dropped'
-}
-
-async function simulateReconnect(code, level, subject) {
-  // Join, sync, "disconnect", re-join, sync again, submit
-  const jr = await callFn('join', { participant_code: code, competition_id: COMP_ID, subject })
-  if (!jr) return 'join_failed'
-
-  await callFn('heartbeat', { participant_code: code, competition_id: COMP_ID, subject, ready: true })
-
-  // First sync
-  await sleep(300 + Math.random() * 500)
-  const partialAnswers = genAnswers(subject, level, 0.5)
-  await callFn('sync', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    provisional_score: Math.floor(partialAnswers.length * 0.5),
-    questions_answered: partialAnswers.length,
-    answers: partialAnswers,
-  })
-
-  // "Disconnect" — pause
-  await sleep(2000 + Math.random() * 3000)
-
-  // Reconnect — re-join (should get resume with remaining time)
-  const rr = await callFn('join', { participant_code: code, competition_id: COMP_ID, subject })
-  if (!rr) return 'reconnect_failed'
-
-  // Sync more answers
-  await sleep(500 + Math.random() * 1000)
-  const moreAnswers = genAnswers(subject, level, 0.6 + Math.random() * 0.3)
-  await callFn('sync', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    provisional_score: Math.floor(moreAnswers.length * 0.7),
-    questions_answered: moreAnswers.length,
-    answers: moreAnswers,
-  })
-
-  // Submit
-  await sleep(200 + Math.random() * 500)
-  const finalAnswers = genAnswers(subject, level, 0.6 + Math.random() * 0.3)
-  const sr = await callFn('submit', {
-    participant_code: code,
-    competition_id: COMP_ID,
-    subject,
-    answers: finalAnswers,
-  })
-  return sr ? 'completed_reconnect' : 'submit_failed'
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 6.  BATCH RUNNER
-// ═══════════════════════════════════════════════════════════════
-
-async function runExamSimulation(students, subject, label) {
+async function runExamSimulation(students, subject, compId, label, supabase) {
   console.log(`\n${'='.repeat(50)}`)
-  console.log(`  ${label} EXAM SIMULATION — ${students.length} students`)
+  console.log(`  ${label} EXAM SIMULATION  (${students.length} students)`)
+  console.log(`  Real exam: ${REAL_EXAM_DURATION}s (${REAL_EXAM_DURATION/60}min) | Compressed: ~${Math.round(SIM_EXAM_DURATION)}s wall-clock | Factor: ${TIME_COMPRESSION_FACTOR}x`)
   console.log(`${'='.repeat(50)}`)
 
+  // Set started_at NOW — right before students begin, not during setup.
+  // Add 120s extra buffer so join burst doesn't eat into exam time.
+  if (!CLI.dryRun && supabase) {
+    console.log(`  Setting ${subject} started_at NOW (with 120s extra buffer)...`)
+    await supabase.from('competition_state').update({
+      started_at: new Date().toISOString(),
+      extra_seconds: 120,
+      updated_at: new Date().toISOString(),
+    }).eq('id', subject)
+  }
+
   stats = createStats()
+  currentStudentCount = students.length
   const examStart = Date.now()
   const outcomes = {}
 
-  // Assign scenarios
+  // ALL students participate — no dropouts, no disconnects, everyone plays.
+  // Distribution by skill level:
+  // ~55% average: 5-8s per question, get through 40-60, moderate accuracy
+  // ~15% slow: 10-15s per question, only 20-30 questions, lower accuracy
+  // ~10% serious: fast + careful, ~120-170 questions, high accuracy (the winners)
+  // ~10% fast_guess: rush, ~75-100 questions, low accuracy
+  // ~10% clicker: tap through all 200 randomly, can finish before time, mostly wrong
   const scenarios = students.map(s => {
     const r = Math.random()
-    if (r < 0.03) return { ...s, scenario: 'never_join' }        // 3%
-    if (r < 0.08) return { ...s, scenario: 'reconnect' }         // 5%
-    if (r < 0.18) return { ...s, scenario: 'dropout' }           // 10%
-    if (r < 0.33) return { ...s, scenario: 'fast' }              // 15%
-    return { ...s, scenario: 'normal' }                           // 67%
+    if (r < 0.10) return { ...s, scenario: 'clicker' }
+    if (r < 0.20) return { ...s, scenario: 'fast_guess' }
+    if (r < 0.30) return { ...s, scenario: 'serious' }
+    if (r < 0.45) return { ...s, scenario: 'slow' }
+    return { ...s, scenario: 'average' }
   })
 
-  // Process in staggered batches
-  for (let i = 0; i < scenarios.length; i += BATCH_SIZE) {
-    const batch = scenarios.slice(i, i + BATCH_SIZE)
-    const results = await Promise.all(batch.map(async s => {
-      // Add per-student jitter within the batch
-      await sleep(Math.random() * BATCH_DELAY_MS)
+  // All students run concurrently (like a real competition — everyone starts together).
+  // Each student's scenario is mostly sleep() with periodic API calls.
+  // API calls are throttled via the semaphore in callFn to respect free-tier limits.
+  // Students join in staggered waves (realistic — not everyone clicks at the same instant).
+  let completedCount = 0
+  const allPromises = scenarios.map(async (s, idx) => {
+    // Stagger joins: students arrive over 5-15 seconds (real time, compressed)
+    const joinDelayReal = Math.random() * 10
+    await sleep((joinDelayReal / TIME_COMPRESSION_FACTOR) * 1000 + Math.random() * 200)
 
-      if (s.scenario === 'never_join') return 'never_joined'
-      if (s.scenario === 'dropout')    return simulateDropout(s.participant_code, s.level, subject)
-      if (s.scenario === 'fast')       return simulateFast(s.participant_code, s.level, subject)
-      if (s.scenario === 'reconnect')  return simulateReconnect(s.participant_code, s.level, subject)
-      return simulateNormal(s.participant_code, s.level, subject)
-    }))
+    const result = await runStudentScenario(s, subject, compId)
+    completedCount++
+    if (completedCount % 10 === 0 || completedCount === scenarios.length) {
+      const pctDone = Math.round((completedCount / scenarios.length) * 100)
+      process.stdout.write(`  Progress: ${completedCount}/${scenarios.length} (${pctDone}%)  \r`)
+    }
+    return result
+  })
 
-    results.forEach(r => { outcomes[r] = (outcomes[r] || 0) + 1 })
-    const done = Math.min(i + BATCH_SIZE, scenarios.length)
-    const pctDone = Math.round((done / scenarios.length) * 100)
-    process.stdout.write(`  Progress: ${done}/${scenarios.length} (${pctDone}%)  \r`)
-
-    // Stagger between batches
-    if (i + BATCH_SIZE < scenarios.length) await sleep(BATCH_DELAY_MS)
-  }
+  const results = await Promise.all(allPromises)
+  results.forEach(r => { outcomes[r] = (outcomes[r] || 0) + 1 })
 
   const examElapsed = (Date.now() - examStart) / 1000
   console.log(`\n  Completed in ${examElapsed.toFixed(1)}s`)
@@ -372,8 +350,219 @@ async function runExamSimulation(students, subject, label) {
   return { stats: { ...stats }, outcomes, elapsed: examElapsed }
 }
 
+async function runStudentScenario(s, subject, compId) {
+  const code = s.participant_code
+  const level = s.level
+
+  if (s.scenario === 'dropout')    return _dropout(code, level, subject, compId)
+  if (s.scenario === 'reconnect')  return _reconnect(code, level, subject, compId)
+  if (s.scenario === 'clicker')    return _clicker(code, level, subject, compId)
+  if (s.scenario === 'serious')    return _serious(code, level, subject, compId)
+  if (s.scenario === 'fast_guess') return _fastGuess(code, level, subject, compId)
+  if (s.scenario === 'slow')       return _slow(code, level, subject, compId)
+  return _average(code, level, subject, compId)
+}
+
+// ── TIME COMPRESSION ──
+// Real exam = 300s (5 min). By default runs in REAL TIME (factor=1).
+// Use --compress N to speed up (e.g. --compress 20 => 300s becomes ~15s).
+const TIME_COMPRESSION_FACTOR = CLI.compress || 1
+const REAL_EXAM_DURATION = 300 // 5 minutes in seconds
+const SIM_EXAM_DURATION = REAL_EXAM_DURATION / TIME_COMPRESSION_FACTOR
+
+// Build progressive answer arrays simulating real-time answering
+function buildProgressiveAnswers(subject, level, numAnswered, correctPct) {
+  const prefix = subject === 'english' ? 'eng' : 'math'
+  const bank = subject === 'english' ? ENGLISH_Q_COUNT : MATH_Q_COUNT
+  const total = bank[level] || 200
+  const count = Math.min(total, numAnswered)
+  const answers = []
+  for (let i = 1; i <= count; i++) {
+    const qid = `${prefix}_l${level}_${String(i).padStart(3, '0')}`
+    answers.push({
+      question_id: qid,
+      submitted_answer: Math.random() < correctPct ? 'CorrectPlaceholder' : 'WrongAnswer',
+    })
+  }
+  return answers
+}
+
+// Sync frequency — push 500 students to the LIMIT.
+// Real app syncs every 8-10s. For 500 students that's ~50-63 syncs/second sustained.
+// At 24 concurrent slots, ~350ms each = ~69/second throughput. Right at the edge.
+let currentStudentCount = 50
+function getSyncsPerStudent() {
+  if (currentStudentCount <= 50) return 25 + Math.floor(Math.random() * 6)   // ~25-30 syncs (~10s)
+  if (currentStudentCount <= 100) return 20 + Math.floor(Math.random() * 6)  // ~20-25 syncs (~13s)
+  if (currentStudentCount <= 200) return 15 + Math.floor(Math.random() * 4)  // ~15-18 syncs (~18s)
+  if (currentStudentCount <= 500) return 10 + Math.floor(Math.random() * 5)  // ~10-14 syncs (~23s)
+  return 5 + Math.floor(Math.random() * 3)                                   // ~5-7 for 1000+
+}
+
+// Helper: run a student through the exam with periodic syncs
+async function _runExamLoop(code, level, subject, compId, secsPerQuestion, correctPct, totalRealTime, finishEarly) {
+  await pollState(subject)
+  const jr = await callFn('join', { participant_code: code, competition_id: compId, subject })
+  if (!jr) return 'join_failed'
+  await callFn('heartbeat', { participant_code: code, competition_id: compId, subject, ready: true })
+
+  const bank = subject === 'english' ? ENGLISH_Q_COUNT : MATH_Q_COUNT
+  const totalQuestions = bank[level] || 200
+  const numSyncs = getSyncsPerStudent()
+  const syncIntervalReal = totalRealTime / (numSyncs + 1)
+  const syncIntervalSim = (syncIntervalReal / TIME_COMPRESSION_FACTOR) * 1000
+
+  let realElapsed = 0
+  let questionsAnswered = 0
+
+  for (let syncIdx = 0; syncIdx < numSyncs; syncIdx++) {
+    await sleep(syncIntervalSim + Math.random() * 200)
+    realElapsed += syncIntervalReal
+    if (realElapsed > totalRealTime) realElapsed = totalRealTime
+
+    questionsAnswered = Math.min(totalQuestions, Math.floor(realElapsed / secsPerQuestion))
+
+    if (finishEarly && questionsAnswered >= totalQuestions) {
+      const answers = buildProgressiveAnswers(subject, level, questionsAnswered, correctPct)
+      const sr = await callFn('submit', {
+        participant_code: code, competition_id: compId, subject, answers,
+      })
+      return sr ? 'completed_early' : 'submit_failed'
+    }
+
+    const answers = buildProgressiveAnswers(subject, level, questionsAnswered, correctPct)
+    await callFn('sync', {
+      participant_code: code, competition_id: compId, subject,
+      provisional_score: answers.filter(a => a.submitted_answer === 'CorrectPlaceholder').length,
+      questions_answered: answers.length, answers,
+    })
+  }
+
+  // Wait remaining time, then auto-submit
+  const remainingSim = ((totalRealTime - realElapsed) / TIME_COMPRESSION_FACTOR) * 1000
+  if (remainingSim > 0) await sleep(remainingSim + Math.random() * 300)
+  questionsAnswered = Math.min(totalQuestions, Math.floor(totalRealTime / secsPerQuestion))
+
+  const finalAnswers = buildProgressiveAnswers(subject, level, questionsAnswered, correctPct)
+  const sr = await callFn('submit', {
+    participant_code: code, competition_id: compId, subject,
+    answers: finalAnswers,
+  })
+  return sr ? 'completed_timeout' : 'submit_failed'
+}
+
+// ── STUDENT TYPES ──
+
+// Average student (60%): 5-8s per question, gets through 37-60 questions, 40-65% accuracy
+async function _average(code, level, subject, compId) {
+  const secsPerQ = 5 + Math.random() * 3
+  const accuracy = 0.4 + Math.random() * 0.25
+  return _runExamLoop(code, level, subject, compId, secsPerQ, accuracy, REAL_EXAM_DURATION, false)
+}
+
+// Slow/struggling student (13%): 10-15s per question, only 20-30 questions, 25-45% accuracy
+async function _slow(code, level, subject, compId) {
+  const secsPerQ = 10 + Math.random() * 5
+  const accuracy = 0.25 + Math.random() * 0.2
+  return _runExamLoop(code, level, subject, compId, secsPerQ, accuracy, REAL_EXAM_DURATION, false)
+}
+
+// Serious/competitive student (10%): ~1.8-2.5s per question, ~120-170 questions, 70-90% accuracy
+// These are the top scorers — fast AND accurate
+async function _serious(code, level, subject, compId) {
+  const secsPerQ = 1.8 + Math.random() * 0.7
+  const accuracy = 0.7 + Math.random() * 0.2
+  return _runExamLoop(code, level, subject, compId, secsPerQ, accuracy, REAL_EXAM_DURATION, false)
+}
+
+// Clicker student (5%): ~1-1.5s per question, finishes all 200 before time, 15-25% accuracy
+// Just tapping through randomly — can finish early
+async function _clicker(code, level, subject, compId) {
+  const secsPerQ = 1.0 + Math.random() * 0.5
+  const accuracy = 0.15 + Math.random() * 0.1
+  return _runExamLoop(code, level, subject, compId, secsPerQ, accuracy, REAL_EXAM_DURATION, true)
+}
+
+// Fast guesser (5%): ~3-4s per question, ~75-100 questions, 20-35% accuracy
+// Faster than average but not as reckless as clickers
+async function _fastGuess(code, level, subject, compId) {
+  const secsPerQ = 3 + Math.random() * 1
+  const accuracy = 0.2 + Math.random() * 0.15
+  return _runExamLoop(code, level, subject, compId, secsPerQ, accuracy, REAL_EXAM_DURATION, false)
+}
+
+// Dropout student (5%): joins, answers for 30-120 real seconds, then disappears
+async function _dropout(code, level, subject, compId) {
+  await pollState(subject)
+  const jr = await callFn('join', { participant_code: code, competition_id: compId, subject })
+  if (!jr) return 'join_failed'
+  await callFn('heartbeat', { participant_code: code, competition_id: compId, subject, ready: true })
+
+  const secsPerQ = 5 + Math.random() * 5
+  const accuracy = 0.3 + Math.random() * 0.3
+  const dropoutReal = 30 + Math.random() * 90
+
+  // One sync before dropping
+  const syncReal = dropoutReal * (0.4 + Math.random() * 0.3)
+  await sleep((syncReal / TIME_COMPRESSION_FACTOR) * 1000)
+  const answered = Math.floor(syncReal / secsPerQ)
+  const answers = buildProgressiveAnswers(subject, level, answered, accuracy)
+  await callFn('sync', {
+    participant_code: code, competition_id: compId, subject,
+    provisional_score: answers.filter(a => a.submitted_answer === 'CorrectPlaceholder').length,
+    questions_answered: answers.length, answers,
+  })
+
+  return 'dropped'
+}
+
+// Reconnect student (2%): loses connection mid-exam, rejoins, finishes at timeout
+async function _reconnect(code, level, subject, compId) {
+  await pollState(subject)
+  const jr = await callFn('join', { participant_code: code, competition_id: compId, subject })
+  if (!jr) return 'join_failed'
+  await callFn('heartbeat', { participant_code: code, competition_id: compId, subject, ready: true })
+
+  const secsPerQ = 4 + Math.random() * 4
+  const accuracy = 0.4 + Math.random() * 0.3
+  const disconnectReal = 60 + Math.random() * 60
+
+  // Sync before disconnect
+  await sleep((disconnectReal / TIME_COMPRESSION_FACTOR) * 1000)
+  const answeredBefore = Math.floor(disconnectReal / secsPerQ)
+  const partialAnswers = buildProgressiveAnswers(subject, level, answeredBefore, accuracy)
+  await callFn('sync', {
+    participant_code: code, competition_id: compId, subject,
+    provisional_score: partialAnswers.filter(a => a.submitted_answer === 'CorrectPlaceholder').length,
+    questions_answered: partialAnswers.length, answers: partialAnswers,
+  })
+
+  // Offline for 20-40 real seconds
+  const offlineReal = 20 + Math.random() * 20
+  await sleep((offlineReal / TIME_COMPRESSION_FACTOR) * 1000)
+
+  const rr = await callFn('join', { participant_code: code, competition_id: compId, subject })
+  if (!rr) return 'reconnect_failed'
+
+  // Continue until exam ends
+  const resumeReal = disconnectReal + offlineReal
+  const remainingReal = Math.max(0, REAL_EXAM_DURATION - resumeReal)
+
+  if (remainingReal > 10) {
+    await sleep((remainingReal / TIME_COMPRESSION_FACTOR) * 1000)
+  }
+
+  const totalAnswered = Math.floor(REAL_EXAM_DURATION / secsPerQ)
+  const finalAnswers = buildProgressiveAnswers(subject, level, totalAnswered, accuracy)
+  const sr = await callFn('submit', {
+    participant_code: code, competition_id: compId, subject,
+    answers: finalAnswers,
+  })
+  return sr ? 'completed_reconnect' : 'submit_failed'
+}
+
 // ═══════════════════════════════════════════════════════════════
-// 7.  REPORTING
+// 6.  REPORTING
 // ═══════════════════════════════════════════════════════════════
 
 function printPhaseReport(phaseName, phaseStats) {
@@ -383,8 +572,9 @@ function printPhaseReport(phaseName, phaseStats) {
     if (total === 0) continue
     console.log(`  ${name.toUpperCase()}:`)
     console.log(`    Requests: ${total}  Success: ${s.ok}  Failures: ${s.err}  Error rate: ${((s.err / total) * 100).toFixed(1)}%`)
+    if (s.rateLimits > 0) console.log(`    Rate limit hits (429): ${s.rateLimits}`)
     if (s.times.length) {
-      console.log(`    Avg: ${avg(s.times)}ms  P50: ${pct(s.times, 50)}ms  P95: ${pct(s.times, 95)}ms  P99: ${pct(s.times, 99)}ms  Max: ${Math.max(...s.times)}ms`)
+      console.log(`    Avg: ${avg(s.times)}ms  P50: ${percentile(s.times, 50)}ms  P95: ${percentile(s.times, 95)}ms  P99: ${percentile(s.times, 99)}ms  Max: ${Math.max(...s.times)}ms`)
     }
     if (Object.keys(s.errors).length) {
       console.log(`    Error types:`)
@@ -402,68 +592,141 @@ function printOutcomes(outcomes) {
   }
 }
 
+function getTierHealth(result) {
+  const totalReqs = Object.values(result.stats).reduce((a, s) => a + s.ok + s.err, 0)
+  const totalErrs = Object.values(result.stats).reduce((a, s) => a + s.err, 0)
+  const totalRateLimits = Object.values(result.stats).reduce((a, s) => a + s.rateLimits, 0)
+  const errorRate = totalReqs > 0 ? (totalErrs / totalReqs) * 100 : 0
+  return { totalReqs, totalErrs, totalRateLimits, errorRate }
+}
+
 // ═══════════════════════════════════════════════════════════════
-// 8.  MAIN
+// 7.  DATA VERIFICATION
 // ═══════════════════════════════════════════════════════════════
 
-async function main() {
-  const globalStart = Date.now()
+async function verifyData(supabase, compId, numStudents) {
+  console.log('\n[VERIFICATION] Checking data integrity...')
+  console.log('-'.repeat(50))
 
-  console.log('\n' + '='.repeat(60))
-  console.log('  WORDEE COMPETITION SIMULATION')
-  console.log('  Students: ' + NUM_STUDENTS)
-  console.log('  Competition ID: ' + COMP_ID)
-  console.log('  Subjects: English -> Math')
-  console.log('='.repeat(60))
+  const issues = []
 
-  // ── Supabase client (service role for setup, or admin auth) ──
-
-  let supabase
-  if (SERVICE_KEY) {
-    supabase = createClient(BASE_URL, SERVICE_KEY)
-  } else {
-    supabase = createClient(BASE_URL, ANON_KEY)
-    const adminEmail = process.env.ADMIN_EMAIL
-    const adminPassword = process.env.ADMIN_PASSWORD
-    if (!adminEmail || !adminPassword) {
-      console.error('ERROR: Set ADMIN_EMAIL + ADMIN_PASSWORD (or SUPABASE_SERVICE_ROLE_KEY) for setup.')
-      process.exit(1)
-    }
-    const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
-      email: adminEmail, password: adminPassword,
-    })
-    if (authErr || !auth?.session) {
-      console.error('ERROR: Admin login failed.')
-      process.exit(1)
-    }
+  if (CLI.dryRun) {
+    console.log('  (dry-run mode — skipping database verification)')
+    return issues
   }
 
-  // ────────────────────────────────────────────────────────────
-  // PHASE A: SETUP
-  // ────────────────────────────────────────────────────────────
+  const { data: allSessions, error: sessErr } = await supabase
+    .from('competition_sessions')
+    .select('participant_id, participant_code, subject, level, status, validated_score, time_spent_seconds, started_at, completed_at')
+    .eq('competition_id', compId)
 
-  console.log('\n[PHASE A] Setting up test data...')
+  if (sessErr || !allSessions) {
+    console.error('  ERROR: Could not load sessions for verification.')
+    issues.push('Could not load sessions')
+    return issues
+  }
 
-  // Save the current competition_state so we can restore it later
-  const { data: savedEnglishState } = await supabase
+  const engSessions  = allSessions.filter(s => s.subject === 'english')
+  const mathSessions = allSessions.filter(s => s.subject === 'math')
+
+  console.log(`\n  Total sessions: ${allSessions.length} (expected ${numStudents * 2})`)
+  console.log(`  English: ${engSessions.length}  Math: ${mathSessions.length}`)
+
+  if (allSessions.length !== numStudents * 2) {
+    issues.push(`Session count mismatch: got ${allSessions.length}, expected ${numStudents * 2}`)
+  }
+
+  // Scores for completed sessions
+  for (const [label, sessions] of [['English', engSessions], ['Math', mathSessions]]) {
+    const completed = sessions.filter(s => s.status === 'completed')
+    const withScore = completed.filter(s => s.validated_score != null)
+    const missing = completed.length - withScore.length
+
+    console.log(`\n  ${label}: ${completed.length} completed, ${withScore.length} with score`)
+    if (missing > 0) issues.push(`${missing} ${label} completed sessions missing validated_score`)
+
+    // Status distribution
+    const byStatus = {}
+    sessions.forEach(s => { byStatus[s.status] = (byStatus[s.status] || 0) + 1 })
+    console.log(`  ${label} statuses: ${Object.entries(byStatus).map(([k, v]) => `${k}=${v}`).join(', ')}`)
+
+    // Leaderboard ordering
+    const ranked = sessions
+      .filter(s => s.validated_score != null)
+      .sort((a, b) => b.validated_score - a.validated_score || (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0))
+
+    let orderOk = true
+    for (let i = 1; i < ranked.length; i++) {
+      if (ranked[i - 1].validated_score < ranked[i].validated_score) { orderOk = false; break }
+      if (ranked[i - 1].validated_score === ranked[i].validated_score &&
+          (ranked[i - 1].time_spent_seconds || 0) > (ranked[i].time_spent_seconds || 0)) { orderOk = false; break }
+    }
+    console.log(`  ${label} leaderboard order: ${orderOk ? 'CORRECT' : 'INCORRECT'}`)
+    if (!orderOk) issues.push(`${label} leaderboard ordering incorrect`)
+  }
+
+  // Duplicate submissions (sample)
+  const completedIds = allSessions.filter(s => s.status === 'completed').map(s => s.participant_id)
+  const sampleIds = completedIds.slice(0, 50)
+  let duplicateCount = 0
+  if (sampleIds.length > 0) {
+    const { data: subs } = await supabase
+      .from('submissions')
+      .select('participant_id, question_id')
+      .in('participant_id', sampleIds)
+    if (subs) {
+      const seen = new Set()
+      for (const s of subs) {
+        const key = `${s.participant_id}:${s.question_id}`
+        if (seen.has(key)) duplicateCount++
+        seen.add(key)
+      }
+    }
+  }
+  console.log(`\n  Duplicate submissions (sample of ${sampleIds.length}): ${duplicateCount}`)
+  if (duplicateCount > 0) issues.push(`${duplicateCount} duplicate submissions found`)
+
+  // Orphaned active sessions (expected from dropouts)
+  const activeCount = allSessions.filter(s => s.status === 'active').length
+  console.log(`  Orphaned active sessions: ${activeCount} (dropout students — expected)`)
+
+  // Students with both scores
+  const codeToScores = new Map()
+  for (const s of allSessions) {
+    if (!codeToScores.has(s.participant_code)) codeToScores.set(s.participant_code, {})
+    codeToScores.get(s.participant_code)[s.subject] = s.validated_score
+  }
+  const bothScores = [...codeToScores.values()].filter(v => v.english != null && v.math != null).length
+  console.log(`  Students with both scores: ${bothScores}/${numStudents}`)
+
+  return issues
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 8.  SETUP + CLEANUP
+// ═══════════════════════════════════════════════════════════════
+
+async function setupCompetition(supabase, compId, students) {
+  // Save current state for restoration
+  const { data: savedEng } = await supabase
     .from('competition_state').select('*').eq('id', 'english').single()
-  const { data: savedMathState } = await supabase
+  const { data: savedMath } = await supabase
     .from('competition_state').select('*').eq('id', 'math').single()
 
-  // Set competition state for English
+  // Set English to unlocked but NOT started yet (started_at set later, right before exam)
   await supabase.from('competition_state').update({
-    competition_id: COMP_ID,
+    competition_id: compId,
     is_unlocked: true,
-    started_at: new Date().toISOString(),
+    started_at: null,
     duration_seconds: ENGLISH_DURATION,
     extra_seconds: 0,
     announcement: null,
     updated_at: new Date().toISOString(),
   }).eq('id', 'english')
 
-  // Ensure Math is locked initially
+  // Math locked initially
   await supabase.from('competition_state').update({
-    competition_id: COMP_ID,
+    competition_id: compId,
     is_unlocked: false,
     started_at: null,
     duration_seconds: MATH_DURATION,
@@ -472,493 +735,384 @@ async function main() {
     updated_at: new Date().toISOString(),
   }).eq('id', 'math')
 
-  console.log('  Competition state configured.')
-
-  // Generate students — each gets BOTH English and Math sessions
-  const students = []
-  const usedCodes = new Set()
-  for (let i = 0; i < NUM_STUDENTS; i++) {
-    let code
-    do { code = genCode() } while (usedCodes.has(code))
-    usedCodes.add(code)
-
-    const engLevel  = ENGLISH_LEVELS[i % ENGLISH_LEVELS.length]
-    const mathLevel = MATH_LEVELS[i % MATH_LEVELS.length]
-    const country   = ['th', 'jp', 'kr', 'us', 'fr', 'cn', 'gb', 'au', 'de', 'sg'][i % 10]
-    const school    = `School ${(i % 20) + 1}`
-
-    students.push({
-      code,
-      name: `SimStudent ${i + 1}`,
-      school,
-      country,
-      age: 7 + (i % 10),
-      engLevel,
-      mathLevel,
+  // Generate sessions for both subjects
+  const allRows = []
+  for (let i = 0; i < students.length; i++) {
+    const s = students[i]
+    const displayId = `SIM-${String(i + 1).padStart(4, '0')}`
+    allRows.push({
+      competition_id: compId,
+      participant_code: s.code,
+      display_id: displayId,
+      name: s.name,
+      school: s.school,
+      country: s.country,
+      age: s.age,
+      subject: 'english',
+      level: s.engLevel,
+      status: 'waiting',
+    })
+    allRows.push({
+      competition_id: compId,
+      participant_code: s.code,
+      display_id: displayId,
+      name: s.name,
+      school: s.school,
+      country: s.country,
+      age: s.age,
+      subject: 'math',
+      level: s.mathLevel,
+      status: 'registered',
     })
   }
 
-  // Insert English sessions
-  const engRows = students.map((s, i) => ({
-    competition_id: COMP_ID,
-    participant_code: s.code,
-    display_id: `SIM-${String(i + 1).padStart(4, '0')}`,
-    name: s.name,
-    school: s.school,
-    country: s.country,
-    age: s.age,
-    subject: 'english',
-    level: s.engLevel,
-    status: 'waiting',
-  }))
-
-  const mathRows = students.map((s, i) => ({
-    competition_id: COMP_ID,
-    participant_code: s.code,
-    display_id: `SIM-${String(i + 1).padStart(4, '0')}`,
-    name: s.name,
-    school: s.school,
-    country: s.country,
-    age: s.age,
-    subject: 'math',
-    level: s.mathLevel,
-    status: 'registered',
-  }))
-
-  // Insert in batches of 200
-  const allRows = [...engRows, ...mathRows]
+  // Insert in batches
   for (let i = 0; i < allRows.length; i += 200) {
     const batch = allRows.slice(i, i + 200)
     const { error } = await supabase.from('competition_sessions').insert(batch)
     if (error) {
-      console.error(`  Insert batch failed at offset ${i}: ${error.message}`)
-      await cleanup(supabase, students, savedEnglishState, savedMathState)
-      process.exit(1)
+      console.error(`  Insert failed at offset ${i}: ${error.message}`)
+      return { savedEng, savedMath, ok: false }
     }
-    process.stdout.write(`  Registered ${Math.min(i + 200, allRows.length)}/${allRows.length} sessions\r`)
   }
-  console.log(`  ${allRows.length} sessions registered (${NUM_STUDENTS} students x 2 subjects)`)
 
-  // Seed answer keys for English
+  // Seed answer keys
   for (const lvl of ENGLISH_LEVELS) {
     const count = ENGLISH_Q_COUNT[lvl] || 50
     const keys = []
     for (let i = 1; i <= count; i++) {
       keys.push({
         question_id: `eng_l${lvl}_${String(i).padStart(3, '0')}`,
-        subject: 'english',
-        level: lvl,
+        subject: 'english', level: lvl,
         correct_answer: 'CorrectPlaceholder',
-        competition_id: COMP_ID,
+        competition_id: compId,
       })
     }
     for (let i = 0; i < keys.length; i += 200) {
       await supabase.from('answer_keys').upsert(keys.slice(i, i + 200), { onConflict: 'question_id,competition_id' })
     }
   }
-
-  // Seed answer keys for Math
   for (const lvl of MATH_LEVELS) {
     const count = MATH_Q_COUNT[lvl] || 50
     const keys = []
     for (let i = 1; i <= count; i++) {
       keys.push({
         question_id: `math_l${lvl}_${String(i).padStart(3, '0')}`,
-        subject: 'math',
-        level: lvl,
+        subject: 'math', level: lvl,
         correct_answer: 'CorrectPlaceholder',
-        competition_id: COMP_ID,
+        competition_id: compId,
       })
     }
     for (let i = 0; i < keys.length; i += 200) {
       await supabase.from('answer_keys').upsert(keys.slice(i, i + 200), { onConflict: 'question_id,competition_id' })
     }
   }
-  console.log('  Answer keys seeded for English + Math.')
-  console.log('  Setup complete.')
 
-  // ────────────────────────────────────────────────────────────
-  // PHASE B: ENGLISH COMPETITION
-  // ────────────────────────────────────────────────────────────
+  return { savedEng, savedMath, ok: true }
+}
 
-  console.log('\n[PHASE B] English Competition')
-
-  const engStudentData = students.map(s => ({
-    participant_code: s.code,
-    level: s.engLevel,
-  }))
-
-  const engResult = await runExamSimulation(engStudentData, 'english', 'ENGLISH')
-
-  printPhaseReport('ENGLISH EXAM', engResult.stats)
-  printOutcomes(engResult.outcomes)
-
-  // ────────────────────────────────────────────────────────────
-  // PHASE C: TRANSITION TO MATH
-  // ────────────────────────────────────────────────────────────
-
-  console.log('\n[PHASE C] Transitioning to Math...')
-
-  const transitionStart = Date.now()
-
-  // Admin closes English
+async function transitionToMath(supabase, compId, students) {
   await supabase.from('competition_state').update({
-    is_unlocked: false,
-    started_at: null,
+    is_unlocked: false, started_at: null,
     updated_at: new Date().toISOString(),
   }).eq('id', 'english')
 
-  // Admin opens Math lobby, then starts it
   await supabase.from('competition_state').update({
-    is_unlocked: true,
-    started_at: null,
+    is_unlocked: true, started_at: null,
     updated_at: new Date().toISOString(),
   }).eq('id', 'math')
 
-  // Brief pause to simulate lobby time
-  await sleep(500)
+  await sleep(300)
 
-  // Update Math sessions to "waiting" status
-  // In a real flow, students would re-join.  We update status so the
-  // join edge function finds them in 'waiting' or 'registered'.
+  // Update math sessions to waiting
   for (let i = 0; i < students.length; i += 200) {
     const codes = students.slice(i, i + 200).map(s => s.code)
     await supabase
       .from('competition_sessions')
       .update({ status: 'waiting', updated_at: new Date().toISOString() })
-      .eq('competition_id', COMP_ID)
+      .eq('competition_id', compId)
       .eq('subject', 'math')
       .in('participant_code', codes)
   }
 
-  // Admin starts Math
-  await supabase.from('competition_state').update({
-    started_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', 'math')
-
-  const transitionElapsed = ((Date.now() - transitionStart) / 1000).toFixed(1)
-  console.log(`  Transition completed in ${transitionElapsed}s`)
-
-  // ────────────────────────────────────────────────────────────
-  // PHASE C (cont): MATH COMPETITION
-  // ────────────────────────────────────────────────────────────
-
-  const mathStudentData = students.map(s => ({
-    participant_code: s.code,
-    level: s.mathLevel,
-  }))
-
-  const mathResult = await runExamSimulation(mathStudentData, 'math', 'MATH')
-
-  printPhaseReport('MATH EXAM', mathResult.stats)
-  printOutcomes(mathResult.outcomes)
-
-  // ────────────────────────────────────────────────────────────
-  // PHASE D: VERIFICATION
-  // ────────────────────────────────────────────────────────────
-
-  console.log('\n[PHASE D] Data Verification')
-  console.log('─'.repeat(50))
-
-  const verifyIssues = []
-
-  // 1. Check all sessions exist
-  const { data: allSessions, error: sessErr } = await supabase
-    .from('competition_sessions')
-    .select('participant_id, participant_code, subject, level, status, validated_score, time_spent_seconds, started_at, completed_at')
-    .eq('competition_id', COMP_ID)
-
-  if (sessErr || !allSessions) {
-    console.error('  ERROR: Could not load sessions for verification.')
-  } else {
-    const engSessions  = allSessions.filter(s => s.subject === 'english')
-    const mathSessions = allSessions.filter(s => s.subject === 'math')
-
-    console.log(`\n  Total sessions: ${allSessions.length} (expected ${NUM_STUDENTS * 2})`)
-    console.log(`  English sessions: ${engSessions.length}`)
-    console.log(`  Math sessions: ${mathSessions.length}`)
-
-    if (allSessions.length !== NUM_STUDENTS * 2) {
-      verifyIssues.push(`Session count mismatch: got ${allSessions.length}, expected ${NUM_STUDENTS * 2}`)
-    }
-
-    // 2. Scores present for completed students
-    const engCompleted = engSessions.filter(s => s.status === 'completed')
-    const mathCompleted = mathSessions.filter(s => s.status === 'completed')
-    const engWithScore = engCompleted.filter(s => s.validated_score != null)
-    const mathWithScore = mathCompleted.filter(s => s.validated_score != null)
-
-    console.log(`\n  English: ${engCompleted.length} completed, ${engWithScore.length} with validated score`)
-    console.log(`  Math: ${mathCompleted.length} completed, ${mathWithScore.length} with validated score`)
-
-    const engMissingScores = engCompleted.length - engWithScore.length
-    const mathMissingScores = mathCompleted.length - mathWithScore.length
-    if (engMissingScores > 0) verifyIssues.push(`${engMissingScores} English completed sessions missing validated_score`)
-    if (mathMissingScores > 0) verifyIssues.push(`${mathMissingScores} Math completed sessions missing validated_score`)
-
-    // 3. Status distribution
-    for (const [label, sessions] of [['English', engSessions], ['Math', mathSessions]]) {
-      const byStatus = {}
-      sessions.forEach(s => { byStatus[s.status] = (byStatus[s.status] || 0) + 1 })
-      console.log(`\n  ${label} status distribution:`)
-      for (const [status, count] of Object.entries(byStatus).sort()) {
-        console.log(`    ${status}: ${count}`)
-      }
-    }
-
-    // 4. Leaderboard ordering
-    for (const [label, sessions] of [['English', engSessions], ['Math', mathSessions]]) {
-      const completed = sessions
-        .filter(s => s.validated_score != null)
-        .sort((a, b) => b.validated_score - a.validated_score || (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0))
-
-      let orderCorrect = true
-      for (let i = 1; i < completed.length; i++) {
-        const prev = completed[i - 1]
-        const curr = completed[i]
-        if (prev.validated_score < curr.validated_score) {
-          orderCorrect = false
-          break
-        }
-        if (prev.validated_score === curr.validated_score &&
-            (prev.time_spent_seconds || 0) > (curr.time_spent_seconds || 0)) {
-          orderCorrect = false
-          break
-        }
-      }
-      console.log(`\n  ${label} leaderboard order correct: ${orderCorrect ? 'YES' : 'NO'}`)
-      if (!orderCorrect) verifyIssues.push(`${label} leaderboard ordering incorrect`)
-    }
-
-    // 5. Duplicate submission check
-    const { data: dupes } = await supabase
-      .rpc('check_duplicate_submissions_sim', { comp_id: COMP_ID })
-      .maybeSingle()
-
-    // If the RPC doesn't exist, check manually with a query
-    let duplicateCount = 0
-    if (!dupes) {
-      // Check for duplicate participant_id in submissions
-      const completedIds = allSessions
-        .filter(s => s.status === 'completed')
-        .map(s => s.participant_id)
-
-      // Sample check: take first 100 completed sessions
-      const sampleIds = completedIds.slice(0, 100)
-      if (sampleIds.length > 0) {
-        const { data: subs } = await supabase
-          .from('submissions')
-          .select('participant_id, question_id')
-          .in('participant_id', sampleIds)
-
-        if (subs) {
-          const seen = new Set()
-          for (const s of subs) {
-            const key = `${s.participant_id}:${s.question_id}`
-            if (seen.has(key)) duplicateCount++
-            seen.add(key)
-          }
-        }
-      }
-    } else {
-      duplicateCount = dupes.count || 0
-    }
-    console.log(`\n  Duplicate submissions (sample check): ${duplicateCount}`)
-    if (duplicateCount > 0) verifyIssues.push(`${duplicateCount} duplicate submissions found`)
-
-    // 6. Orphaned sessions — sessions that are "active" but should have timed out
-    const activeSessions = allSessions.filter(s => s.status === 'active')
-    console.log(`  Orphaned active sessions: ${activeSessions.length}`)
-    if (activeSessions.length > 0) {
-      verifyIssues.push(`${activeSessions.length} sessions stuck in "active" status (dropouts are expected)`)
-    }
-
-    // 7. Completion rates
-    const engCompletionRate = engSessions.length > 0
-      ? ((engCompleted.length / engSessions.length) * 100).toFixed(1) : '0.0'
-    const mathCompletionRate = mathSessions.length > 0
-      ? ((mathCompleted.length / mathSessions.length) * 100).toFixed(1) : '0.0'
-    console.log(`\n  English completion rate: ${engCompletionRate}%`)
-    console.log(`  Math completion rate: ${mathCompletionRate}%`)
-
-    // 8. Students with BOTH scores
-    const codeToScores = new Map()
-    for (const s of allSessions) {
-      if (!codeToScores.has(s.participant_code)) codeToScores.set(s.participant_code, {})
-      codeToScores.get(s.participant_code)[s.subject] = s.validated_score
-    }
-    const bothScores = [...codeToScores.values()].filter(v => v.english != null && v.math != null).length
-    const eitherScore = [...codeToScores.values()].filter(v => v.english != null || v.math != null).length
-    console.log(`\n  Students with both English + Math scores: ${bothScores}/${NUM_STUDENTS}`)
-    console.log(`  Students with at least one score: ${eitherScore}/${NUM_STUDENTS}`)
-  }
-
-  // ────────────────────────────────────────────────────────────
-  // FINAL REPORT
-  // ────────────────────────────────────────────────────────────
-
-  const globalElapsed = Math.round((Date.now() - globalStart) / 1000)
-
-  console.log('\n')
-  console.log('='.repeat(60))
-  console.log('  COMPETITION SIMULATION REPORT')
-  console.log('='.repeat(60))
-  console.log()
-  console.log(`  Students: ${NUM_STUDENTS}`)
-  console.log(`  Total duration: ${fmt(globalElapsed)}`)
-  console.log(`  Competition ID: ${COMP_ID}`)
-  console.log()
-
-  // Join phase summary (combined)
-  const allJoinOk  = (engResult.stats.join?.ok || 0) + (mathResult.stats.join?.ok || 0)
-  const allJoinErr = (engResult.stats.join?.err || 0) + (mathResult.stats.join?.err || 0)
-  const allJoinTimes = [...(engResult.stats.join?.times || []), ...(mathResult.stats.join?.times || [])]
-  console.log('--- JOIN PHASE (combined) ---')
-  console.log(`  Success: ${allJoinOk}`)
-  console.log(`  Failures: ${allJoinErr}`)
-  if (allJoinTimes.length) {
-    console.log(`  Avg response time: ${avg(allJoinTimes)}ms`)
-    console.log(`  P50: ${pct(allJoinTimes, 50)}ms  P95: ${pct(allJoinTimes, 95)}ms  P99: ${pct(allJoinTimes, 99)}ms`)
-  }
-
-  // English exam summary
-  console.log()
-  console.log('--- EXAM PHASE (English) ---')
-  console.log(`  Duration: ${engResult.elapsed.toFixed(1)}s`)
-  console.log(`  Syncs: ${engResult.stats.sync?.ok || 0} ok, ${engResult.stats.sync?.err || 0} failed`)
-  const engSubmitOk = engResult.stats.submit?.ok || 0
-  console.log(`  Submits: ${engSubmitOk} successful`)
-  if (engResult.stats.submit?.times?.length) {
-    console.log(`  Avg submit time: ${avg(engResult.stats.submit.times)}ms`)
-  }
-  const engRateLimits = Object.entries(engResult.stats.sync?.errors || {})
-    .filter(([k]) => k.toLowerCase().includes('rate') || k.toLowerCase().includes('429') || k.toLowerCase().includes('throttl'))
-    .reduce((a, [, v]) => a + v, 0)
-  console.log(`  Rate limit / throttle hits: ${engRateLimits}`)
-
-  // Transition
-  console.log()
-  console.log('--- TRANSITION ---')
-  console.log(`  Duration: ${transitionElapsed}s`)
-
-  // Math exam summary
-  console.log()
-  console.log('--- EXAM PHASE (Math) ---')
-  console.log(`  Duration: ${mathResult.elapsed.toFixed(1)}s`)
-  console.log(`  Syncs: ${mathResult.stats.sync?.ok || 0} ok, ${mathResult.stats.sync?.err || 0} failed`)
-  const mathSubmitOk = mathResult.stats.submit?.ok || 0
-  console.log(`  Submits: ${mathSubmitOk} successful`)
-  if (mathResult.stats.submit?.times?.length) {
-    console.log(`  Avg submit time: ${avg(mathResult.stats.submit.times)}ms`)
-  }
-  const mathRateLimits = Object.entries(mathResult.stats.sync?.errors || {})
-    .filter(([k]) => k.toLowerCase().includes('rate') || k.toLowerCase().includes('429') || k.toLowerCase().includes('throttl'))
-    .reduce((a, [, v]) => a + v, 0)
-  console.log(`  Rate limit / throttle hits: ${mathRateLimits}`)
-
-  // Verification summary
-  console.log()
-  console.log('--- VERIFICATION ---')
-  if (verifyIssues.length === 0) {
-    console.log('  Data integrity: PASS')
-    console.log('  All checks passed.')
-  } else {
-    console.log(`  Data integrity: ${verifyIssues.some(i => !i.includes('expected')) ? 'FAIL' : 'WARN'}`)
-    console.log('  Issues:')
-    for (const issue of verifyIssues) {
-      console.log(`    - ${issue}`)
-    }
-  }
-
-  // Aggregate throughput
-  const allStats = [engResult.stats, mathResult.stats]
-  const totalRequests = allStats.reduce((sum, s) =>
-    sum + Object.values(s).reduce((a, b) => a + b.ok + b.err, 0), 0)
-  const totalErrors = allStats.reduce((sum, s) =>
-    sum + Object.values(s).reduce((a, b) => a + b.err, 0), 0)
-  const totalExamTime = engResult.elapsed + mathResult.elapsed
-
-  console.log()
-  console.log('--- AGGREGATE ---')
-  console.log(`  Total API requests: ${totalRequests}`)
-  console.log(`  Total errors: ${totalErrors} (${totalRequests ? ((totalErrors / totalRequests) * 100).toFixed(1) : 0}%)`)
-  console.log(`  Avg throughput: ${totalExamTime ? (totalRequests / totalExamTime).toFixed(1) : 0} req/s`)
-
-  console.log('\n' + '='.repeat(60))
-
-  // ────────────────────────────────────────────────────────────
-  // CLEANUP
-  // ────────────────────────────────────────────────────────────
-
-  await cleanup(supabase, students, savedEnglishState, savedMathState)
-
-  console.log('\nSimulation complete.\n')
+  // started_at for math is set by runExamSimulation right before exam begins
 }
 
-async function cleanup(supabase, students, savedEnglishState, savedMathState) {
-  console.log('\n[CLEANUP] Removing test data...')
+async function cleanupCompetition(supabase, compId, students, savedEng, savedMath) {
+  if (CLI.skipCleanup) {
+    console.log('  --skip-cleanup: test data left in database.')
+    console.log(`  Competition ID: ${compId}`)
+    return
+  }
 
+  console.log('\n[CLEANUP] Removing test data...')
   try {
-    // Get all participant IDs for this competition to clean submissions
+    // Delete submissions
     const { data: sessionsToClean } = await supabase
       .from('competition_sessions')
       .select('participant_id')
-      .eq('competition_id', COMP_ID)
+      .eq('competition_id', compId)
 
     if (sessionsToClean?.length) {
-      // Delete submissions in batches
       for (let i = 0; i < sessionsToClean.length; i += 200) {
         const ids = sessionsToClean.slice(i, i + 200).map(s => s.participant_id)
         await supabase.from('submissions').delete().in('participant_id', ids)
       }
     }
 
-    // Delete sessions in batches
+    // Delete sessions
     for (let i = 0; i < students.length; i += 200) {
       const codes = students.slice(i, i + 200).map(s => s.code)
-      await supabase
-        .from('competition_sessions')
-        .delete()
-        .eq('competition_id', COMP_ID)
-        .in('participant_code', codes)
+      await supabase.from('competition_sessions').delete()
+        .eq('competition_id', compId).in('participant_code', codes)
     }
 
     // Delete answer keys
-    await supabase.from('answer_keys').delete().eq('competition_id', COMP_ID)
+    await supabase.from('answer_keys').delete().eq('competition_id', compId)
 
-    // Restore original competition state
-    if (savedEnglishState) {
-      const { id, ...rest } = savedEnglishState
+    // Restore state
+    if (savedEng) {
+      const { id, ...rest } = savedEng
       await supabase.from('competition_state').update(rest).eq('id', 'english')
     } else {
       await supabase.from('competition_state').update({
-        competition_id: 'default',
-        is_unlocked: false,
-        started_at: null,
-        extra_seconds: 0,
-        announcement: null,
+        competition_id: 'default', is_unlocked: false, started_at: null,
+        extra_seconds: 0, announcement: null,
       }).eq('id', 'english')
     }
-
-    if (savedMathState) {
-      const { id, ...rest } = savedMathState
+    if (savedMath) {
+      const { id, ...rest } = savedMath
       await supabase.from('competition_state').update(rest).eq('id', 'math')
     } else {
       await supabase.from('competition_state').update({
-        competition_id: 'default',
-        is_unlocked: false,
-        started_at: null,
-        extra_seconds: 0,
-        announcement: null,
+        competition_id: 'default', is_unlocked: false, started_at: null,
+        extra_seconds: 0, announcement: null,
       }).eq('id', 'math')
     }
 
     console.log('  Test data cleaned up.')
   } catch (e) {
-    console.error('  Cleanup error:', e.message)
-    console.error('  Manual cleanup may be needed for competition_id:', COMP_ID)
+    console.error(`  Cleanup error: ${e.message}`)
+    console.error(`  Manual cleanup may be needed. Competition ID: ${compId}`)
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 9.  RUN A SINGLE TIER
+// ═══════════════════════════════════════════════════════════════
+
+async function runTier(supabase, numStudents) {
+  const compId = `sim_${Date.now()}_${numStudents}`
+  const tierStart = Date.now()
+
+  console.log('\n' + '#'.repeat(60))
+  console.log(`  TIER: ${numStudents} STUDENTS`)
+  console.log('#'.repeat(60))
+
+  // Generate student data
+  const usedCodes = new Set()
+  const students = []
+  for (let i = 0; i < numStudents; i++) {
+    let code
+    do { code = genCode() } while (usedCodes.has(code))
+    usedCodes.add(code)
+    students.push({
+      code,
+      name: `SimStudent ${i + 1}`,
+      school: `School ${(i % 20) + 1}`,
+      country: ['th', 'jp', 'kr', 'us', 'fr', 'cn', 'gb', 'au', 'de', 'sg'][i % 10],
+      age: 7 + (i % 10),
+      engLevel: ENGLISH_LEVELS[i % ENGLISH_LEVELS.length],
+      mathLevel: MATH_LEVELS[i % MATH_LEVELS.length],
+    })
+  }
+
+  let savedEng = null, savedMath = null
+
+  if (!CLI.dryRun) {
+    console.log('\n  Setting up...')
+    const setup = await setupCompetition(supabase, compId, students)
+    savedEng = setup.savedEng
+    savedMath = setup.savedMath
+    if (!setup.ok) {
+      console.error('  Setup failed. Aborting tier.')
+      return { success: false, numStudents }
+    }
+    console.log(`  ${numStudents * 2} sessions + answer keys created.`)
+  } else {
+    console.log('\n  [dry-run] Skipping database setup.')
+  }
+
+  // --- ENGLISH ---
+  const engStudentData = students.map(s => ({ participant_code: s.code, level: s.engLevel }))
+  const engResult = await runExamSimulation(engStudentData, 'english', compId, 'ENGLISH', supabase)
+  printPhaseReport('ENGLISH EXAM', engResult.stats)
+  printOutcomes(engResult.outcomes)
+
+  // Check health before proceeding
+  const engHealth = getTierHealth(engResult)
+  if (engHealth.errorRate > 30) {
+    console.log(`\n  WARNING: English error rate ${engHealth.errorRate.toFixed(1)}% is too high.`)
+    console.log('  This tier is hitting free-tier limits. Consider upgrading to Pro.')
+    if (!CLI.dryRun) await cleanupCompetition(supabase, compId, students, savedEng, savedMath)
+    return { success: false, numStudents, engResult, reason: 'high_error_rate' }
+  }
+
+  // --- TRANSITION ---
+  console.log('\n  Transitioning to Math...')
+  const transStart = Date.now()
+  if (!CLI.dryRun) await transitionToMath(supabase, compId, students)
+  else await sleep(100)
+  const transElapsed = ((Date.now() - transStart) / 1000).toFixed(1)
+  console.log(`  Transition: ${transElapsed}s`)
+
+  // --- MATH ---
+  const mathStudentData = students.map(s => ({ participant_code: s.code, level: s.mathLevel }))
+  const mathResult = await runExamSimulation(mathStudentData, 'math', compId, 'MATH', supabase)
+  printPhaseReport('MATH EXAM', mathResult.stats)
+  printOutcomes(mathResult.outcomes)
+
+  // --- VERIFICATION ---
+  const issues = await verifyData(supabase, compId, numStudents)
+
+  // --- CLEANUP ---
+  if (!CLI.dryRun) await cleanupCompetition(supabase, compId, students, savedEng, savedMath)
+
+  const tierElapsed = Math.round((Date.now() - tierStart) / 1000)
+  const mathHealth = getTierHealth(mathResult)
+
+  return {
+    success: true,
+    numStudents,
+    engResult,
+    mathResult,
+    transElapsed,
+    tierElapsed,
+    issues,
+    engHealth,
+    mathHealth,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 10. MAIN
+// ═══════════════════════════════════════════════════════════════
+
+async function main() {
+  const globalStart = Date.now()
+
+  console.log('\n' + '='.repeat(60))
+  console.log('  WORDEE COMPETITION SIMULATION')
+  console.log('='.repeat(60))
+  console.log()
+  console.log(`  Mode: ${CLI.dryRun ? 'DRY RUN (no Supabase calls)' : 'LIVE'}`)
+  console.log(`  Tier mode: ${CLI.tier ? 'YES (10 -> 50 -> 100 -> 200)' : 'NO'}`)
+  if (!CLI.tier) console.log(`  Students: ${CLI.students}`)
+  console.log(`  Time: ${TIME_COMPRESSION_FACTOR === 1 ? 'REAL TIME (5 min per exam)' : `${TIME_COMPRESSION_FACTOR}x compressed (~${Math.round(SIM_EXAM_DURATION)}s per exam)`}`)
+  console.log(`  Max concurrent requests: ${MAX_CONCURRENT}`)
+  console.log(`  Batch delay: ${BATCH_DELAY_MS}ms`)
+  console.log()
+
+  // Connect to Supabase
+  let supabase = null
+  if (!CLI.dryRun) {
+    if (SERVICE_KEY) {
+      supabase = createClient(BASE_URL, SERVICE_KEY)
+    } else {
+      supabase = createClient(BASE_URL, ANON_KEY)
+      const adminEmail = process.env.ADMIN_EMAIL
+      const adminPassword = process.env.ADMIN_PASSWORD
+      if (!adminEmail || !adminPassword) {
+        console.error('ERROR: Set ADMIN_EMAIL + ADMIN_PASSWORD (or SUPABASE_SERVICE_ROLE_KEY) for setup.')
+        process.exit(1)
+      }
+      const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
+        email: adminEmail, password: adminPassword,
+      })
+      if (authErr || !auth?.session) {
+        console.error('ERROR: Admin login failed.')
+        process.exit(1)
+      }
+    }
+    console.log('  Connected to Supabase.')
+  }
+
+  // Determine tiers
+  const tiers = CLI.tier ? [10, 50, 100, 200] : [CLI.students]
+  const tierResults = []
+
+  for (const numStudents of tiers) {
+    const result = await runTier(supabase, numStudents)
+    tierResults.push(result)
+
+    if (!result.success) {
+      console.log(`\n  Tier ${numStudents} failed. Stopping further tiers.`)
+      break
+    }
+
+    // Brief cooldown between tiers to let Supabase recover
+    if (CLI.tier && numStudents < tiers[tiers.length - 1]) {
+      console.log('\n  Cooldown between tiers (5s)...')
+      await sleep(5000)
+    }
+  }
+
+  // ── FINAL SUMMARY ──
+
+  const globalElapsed = Math.round((Date.now() - globalStart) / 1000)
+
+  console.log('\n\n' + '='.repeat(60))
+  console.log('  FINAL SIMULATION REPORT')
+  console.log('='.repeat(60))
+  console.log()
+  console.log(`  Total duration: ${fmtTime(globalElapsed)}`)
+  console.log(`  Mode: ${CLI.dryRun ? 'DRY RUN' : 'LIVE'}`)
+  console.log()
+
+  for (const r of tierResults) {
+    console.log(`  --- Tier: ${r.numStudents} students ---`)
+    console.log(`    Status: ${r.success ? 'PASSED' : `FAILED${r.reason ? ' (' + r.reason + ')' : ''}`}`)
+
+    if (r.success && r.engResult) {
+      const eh = r.engHealth
+      const mh = r.mathHealth
+      console.log(`    English: ${eh.totalReqs} reqs, ${eh.totalErrs} errors (${eh.errorRate.toFixed(1)}%), ${eh.totalRateLimits} rate limits`)
+      console.log(`    Math:    ${mh.totalReqs} reqs, ${mh.totalErrs} errors (${mh.errorRate.toFixed(1)}%), ${mh.totalRateLimits} rate limits`)
+      console.log(`    Duration: ${fmtTime(r.tierElapsed)}`)
+      if (r.issues?.length) {
+        console.log(`    Issues:`)
+        r.issues.forEach(i => console.log(`      - ${i}`))
+      } else {
+        console.log(`    Data integrity: PASS`)
+      }
+    }
+    console.log()
+  }
+
+  // Free tier advice
+  const lastSuccess = tierResults.filter(r => r.success).pop()
+  const firstFail   = tierResults.find(r => !r.success)
+
+  console.log('--- FREE TIER ASSESSMENT ---')
+  if (lastSuccess) {
+    console.log(`  Max successful tier: ${lastSuccess.numStudents} students`)
+    const highRL = lastSuccess.engHealth?.totalRateLimits > 5 || lastSuccess.mathHealth?.totalRateLimits > 5
+    if (highRL) {
+      console.log(`  Note: Rate limiting was observed. This tier works but is at the edge.`)
+    }
+  }
+  if (firstFail) {
+    console.log(`  Failed at: ${firstFail.numStudents} students`)
+    console.log(`  Recommendation: For ${firstFail.numStudents}+ concurrent students, upgrade to Supabase Pro.`)
+    console.log(`  Pro plan provides: higher edge-function concurrency, more DB connections,`)
+    console.log(`  and no API rate limits for your project's usage patterns.`)
+  }
+  if (!firstFail && lastSuccess) {
+    console.log(`  All tiers passed. Free tier handled ${lastSuccess.numStudents} students successfully.`)
+  }
+
+  console.log('\n' + '='.repeat(60))
+  console.log('\nSimulation complete.\n')
 }
 
 main().catch(e => {

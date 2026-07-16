@@ -21,6 +21,11 @@ This project uses Supabase **free tier**. All code, queries, and architecture de
 - Auto-submit jitter is 15s to spread load
 - Competition max tested capacity: ~200 concurrent students on free tier
 
+### Supabase CLI Deployment
+- Project is under **Karen Go Brrr Company Limited** org on user's second Supabase account
+- If CLI gives 403 or project not found, prompt user to re-login: `npx supabase login`
+- Deploy edge functions: `npx supabase functions deploy <name> --no-verify-jwt --project-ref rlsuwlvzeaioanudtmxp`
+
 ## Security
 - NEVER log, echo, print, or expose .env keys (SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY)
 - Don't ask user to run SQL manually

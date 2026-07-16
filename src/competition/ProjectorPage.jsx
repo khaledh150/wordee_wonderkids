@@ -93,8 +93,18 @@ export default function ProjectorPage() {
     if (error) { console.warn('Failed to load competition states:', error.message); return }
     if (data) {
       for (const d of data) {
-        if (d.id === 'english') setEngState(d)
-        if (d.id === 'math') setMathState(d)
+        const setter = d.id === 'english' ? setEngState : d.id === 'math' ? setMathState : null
+        if (setter) setter(prev => {
+          if (prev && prev.competition_id === d.competition_id
+            && prev.is_unlocked === d.is_unlocked
+            && prev.started_at === d.started_at
+            && prev.podium_visible === d.podium_visible
+            && prev.podium_level === d.podium_level
+            && prev.extra_seconds === d.extra_seconds
+            && prev.announcement === d.announcement
+            && prev.theme === d.theme) return prev
+          return d
+        })
       }
     }
   }, [])
@@ -103,7 +113,7 @@ export default function ProjectorPage() {
     if (!competitionId) return
     const { data, error } = await supabase
       .from('competition_sessions')
-      .select('participant_id, participant_code, display_id, competition_id, name, nickname, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
+      .select('participant_id, participant_code, display_id, name, nickname, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, completed_at, last_seen_at, photo_url')
       .eq('competition_id', competitionId)
     if (error) { console.warn('Failed to load sessions:', error.message); return }
     if (data) setSessions(data)
@@ -114,7 +124,7 @@ export default function ProjectorPage() {
 
   useEffect(() => {
     if (!authed) return
-    const id = setInterval(loadStates, 5000)
+    const id = setInterval(loadStates, 2000)
     return () => clearInterval(id)
   }, [authed, loadStates])
 
@@ -127,12 +137,14 @@ export default function ProjectorPage() {
         table: 'competition_sessions',
         filter: `competition_id=eq.${competitionId}`,
       }, () => {
-        clearTimeout(realtimeDebounceRef.current)
-        realtimeDebounceRef.current = setTimeout(loadSessions, 1000)
+        loadSessions()
       })
       .subscribe()
+    // Polling fallback — realtime can drop under load or hit free-tier limits
+    const pollId = setInterval(loadSessions, 1000)
     return () => {
       clearTimeout(realtimeDebounceRef.current)
+      clearInterval(pollId)
       supabase.removeChannel(channel)
     }
   }, [authed, competitionId, loadSessions])
@@ -552,7 +564,6 @@ export default function ProjectorPage() {
                 <div className="mb-4 flex flex-col items-center">
                   <StudentAvatar photoUrl={student.photo_url} name={student.name} size="xl" className="mb-3 ring-4 ring-white/20 shadow-xl" />
                   <p className={`text-2xl sm:text-3xl font-black leading-tight max-w-[220px] ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}{student.nickname ? ` (${student.nickname})` : ''}</p>
-                  {student.school && <p className={`text-sm font-bold mt-1 max-w-[200px] truncate ${textMuted}`}>{student.school}</p>}
                   <p className={`text-5xl sm:text-6xl font-black mt-3 font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.validated_score}</p>
                   <p className={`text-sm font-mono font-bold mt-1 ${textDim}`}>{formatTime(cappedTime)}</p>
                 </div>
@@ -579,7 +590,6 @@ export default function ProjectorPage() {
                       <td className={`py-3 px-4 font-mono text-left font-bold w-12 text-lg ${textDim}`}>{i + 4}</td>
                       <td className="py-3 px-2 w-10"><StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" /></td>
                       <td className={`py-3 px-4 font-black text-left text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</td>
-                      <td className={`py-3 px-4 text-left truncate max-w-[200px] ${textMuted}`}>{s.school || ''}</td>
                       <td className={`py-3 px-4 font-black text-right text-xl font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score}</td>
                       <td className={`py-3 px-4 font-mono text-right font-bold ${textDim}`}>{formatTime(cappedTime)}</td>
                     </tr>
@@ -987,11 +997,10 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3rem_2.5rem_2fr_1fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span className="text-center">Rank</span>
         <span></span>
         <span>Participant</span>
-        <span>School</span>
         <span className="text-right">Score</span>
         <span className="text-right">Time</span>
         <span className="text-right">Status</span>
@@ -1035,13 +1044,12 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3rem_2.5rem_2fr_1fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
                 <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
                 <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</span>
-                <span className={`truncate text-sm ${textMuted}`}>{s.school || ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
                 <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>
                 <span className="text-right">

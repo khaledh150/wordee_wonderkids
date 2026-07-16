@@ -7,7 +7,7 @@ export default function useAdminData({ subject }) {
   const [elapsed, setElapsed] = useState(null)
   const [error, setError] = useState(null)
   const channelRef = useRef(null)
-  const debounceRef = useRef(null)
+  const stateRef = useRef(null)
 
   const loadState = useCallback(async () => {
     const { data, error: fetchError } = await supabase
@@ -17,61 +17,81 @@ export default function useAdminData({ subject }) {
       .single()
     if (fetchError) { setError(fetchError.message); return null }
     setError(null)
-    if (data) setState(data)
+    if (data) {
+      stateRef.current = data
+      setState(prev => {
+        if (prev && prev.competition_id === data.competition_id
+          && prev.is_unlocked === data.is_unlocked
+          && prev.started_at === data.started_at
+          && prev.podium_visible === data.podium_visible
+          && prev.podium_level === data.podium_level
+          && prev.extra_seconds === data.extra_seconds
+          && prev.announcement === data.announcement
+          && prev.theme === data.theme) return prev
+        return data
+      })
+    }
     return data
   }, [subject])
 
   const loadSessions = useCallback(async (levelFilter) => {
-    if (!state) return
+    const s = stateRef.current
+    if (!s) return
     let q = supabase
       .from('competition_sessions')
       .select('participant_id, participant_code, display_id, competition_id, name, nickname, school, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, started_at, completed_at, updated_at, last_seen_at, photo_url')
-      .eq('competition_id', state.competition_id)
+      .eq('competition_id', s.competition_id)
       .eq('subject', subject)
     if (levelFilter) q = q.eq('level', levelFilter)
     const { data, error: fetchError } = await q
     if (fetchError) { setError(fetchError.message); return }
     setError(null)
     if (data) setSessions(data)
-  }, [state, subject])
+  }, [subject])
 
   const updateState = useCallback(async (fields) => {
-    if (!state) return
+    if (!stateRef.current) return
     const { error } = await supabase
       .from('competition_state')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', subject)
     if (error) throw error
     await loadState()
-  }, [state, subject, loadState])
+  }, [subject, loadState])
 
   useEffect(() => { loadState() }, [loadState])
-  useEffect(() => { loadSessions() }, [loadSessions])
 
-  // Poll state every 10 seconds
+  // Once state loads, start session polling immediately
+  const compId = state?.competition_id
+  useEffect(() => { if (compId) loadSessions() }, [compId, loadSessions])
+
+  // Poll state every 2 seconds
   useEffect(() => {
-    const id = setInterval(loadState, 10_000)
+    const id = setInterval(loadState, 2000)
     return () => clearInterval(id)
   }, [loadState])
 
-  // Realtime subscription on competition_sessions, debounced
+  // Realtime subscription on competition_sessions + polling fallback
   useEffect(() => {
-    if (!state) return
+    if (!compId) return
     const ch = supabase
       .channel('admin-sessions')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'competition_sessions',
-        filter: `competition_id=eq.${state.competition_id}`
+        filter: `competition_id=eq.${compId}`
       }, () => {
-        clearTimeout(debounceRef.current)
-        debounceRef.current = setTimeout(loadSessions, 1000)
+        loadSessions()
       })
       .subscribe()
     channelRef.current = ch
-    return () => supabase.removeChannel(ch)
-  }, [state?.competition_id, loadSessions])
+    const pollId = setInterval(loadSessions, 1000)
+    return () => {
+      clearInterval(pollId)
+      supabase.removeChannel(ch)
+    }
+  }, [compId, loadSessions])
 
   // Elapsed timer
   useEffect(() => {
