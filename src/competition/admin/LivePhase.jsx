@@ -9,13 +9,14 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
   const [announcementText, setAnnouncementText] = useState('')
   const [timeExtOpen, setTimeExtOpen] = useState(false)
   const autoTransitionRef = useRef(false)
+  const autoTransitionTimerRef = useRef(null)
 
   const totalDuration = (state.duration_seconds || 0) + (state.extra_seconds || 0)
   const remaining = elapsed != null ? totalDuration - elapsed : totalDuration
 
   const activeCount = sessions.filter(s => s.status === 'active').length
-  const participantSessions = sessions.filter(s => s.status !== 'waiting' || s.ready)
-  const allDone = participantSessions.length > 0 && participantSessions.every(s => s.status === 'completed')
+  const activeSessions = sessions.filter(s => s.status === 'active' || s.status === 'completed')
+  const allDone = activeSessions.length > 0 && activeSessions.every(s => s.status === 'completed')
 
   const formattedRemaining = remaining <= 0
     ? activeCount > 0 ? `TIME'S UP · ${activeCount} submitting` : "TIME'S UP"
@@ -26,7 +27,10 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
   useEffect(() => {
     if (!allDone || autoTransitionRef.current) return
     autoTransitionRef.current = true
-    const timeout = setTimeout(async () => {
+    const currentSubject = subject
+    const currentCompId = state.competition_id
+    autoTransitionTimerRef.current = setTimeout(async () => {
+      autoTransitionTimerRef.current = null
       try {
         const token = (await supabase.auth.getSession()).data.session?.access_token
         if (token) {
@@ -34,15 +38,15 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
           await fetch(`${FUNC_BASE}/finalize-stragglers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ competition_id: state.competition_id, subject }),
+            body: JSON.stringify({ competition_id: currentCompId, subject: currentSubject }),
           }).catch(() => {})
         }
       } catch {}
       await updateState({ is_unlocked: false, started_at: null })
       await loadSessions()
     }, 3000)
-    return () => clearTimeout(timeout)
-  }, [allDone])
+    return () => { clearTimeout(autoTransitionTimerRef.current); autoTransitionTimerRef.current = null }
+  }, [allDone, subject, state.competition_id, updateState, loadSessions])
 
   const timerColor = remaining <= 0
     ? 'text-rose-500'
@@ -92,6 +96,9 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
 
   const handleEmergencyStop = async () => {
     if (!window.confirm('End the competition immediately? Students still playing will be scored on their current answers.')) return
+    clearTimeout(autoTransitionTimerRef.current)
+    autoTransitionTimerRef.current = null
+    autoTransitionRef.current = true
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token
       if (token) {

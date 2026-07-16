@@ -35,7 +35,8 @@ export default function ProjectorPage() {
   const [elapsed, setElapsed] = useState(null)
   const [projectorCountdown, setProjectorCountdown] = useState(null) // null | 'COMPETITION STARTING...' | 'GET READY!' | 3 | 2 | 1 | 'GO!'
   const [liveBadge, setLiveBadge] = useState(null) // null | 'live' | 'done'
-  const realtimeDebounceRef = useRef(null)
+  const fetchingSessionsRef = useRef(false)
+  const fetchingStatesRef = useRef(false)
   const prevPodiumRef = useRef({ visible: false, level: null, initialized: false })
   const prevStartedRef = useRef('__uninitialized__')
 
@@ -89,34 +90,41 @@ export default function ProjectorPage() {
   }
 
   const loadStates = useCallback(async () => {
-    const { data, error } = await supabase.from('competition_state').select('*').in('id', ['english', 'math'])
-    if (error) { console.warn('Failed to load competition states:', error.message); return }
-    if (data) {
-      for (const d of data) {
-        const setter = d.id === 'english' ? setEngState : d.id === 'math' ? setMathState : null
-        if (setter) setter(prev => {
-          if (prev && prev.competition_id === d.competition_id
-            && prev.is_unlocked === d.is_unlocked
-            && prev.started_at === d.started_at
-            && prev.podium_visible === d.podium_visible
-            && prev.podium_level === d.podium_level
-            && prev.extra_seconds === d.extra_seconds
-            && prev.announcement === d.announcement
-            && prev.theme === d.theme) return prev
-          return d
-        })
+    if (fetchingStatesRef.current) return
+    fetchingStatesRef.current = true
+    try {
+      const { data, error } = await supabase.from('competition_state').select('*').in('id', ['english', 'math'])
+      if (error) { console.warn('Failed to load competition states:', error.message); return }
+      if (data) {
+        for (const d of data) {
+          const setter = d.id === 'english' ? setEngState : d.id === 'math' ? setMathState : null
+          if (setter) setter(prev => {
+            if (prev && prev.competition_id === d.competition_id
+              && prev.is_unlocked === d.is_unlocked
+              && prev.started_at === d.started_at
+              && prev.podium_visible === d.podium_visible
+              && prev.podium_level === d.podium_level
+              && prev.extra_seconds === d.extra_seconds
+              && prev.announcement === d.announcement
+              && prev.theme === d.theme) return prev
+            return d
+          })
+        }
       }
-    }
+    } finally { fetchingStatesRef.current = false }
   }, [])
 
   const loadSessions = useCallback(async () => {
-    if (!competitionId) return
-    const { data, error } = await supabase
-      .from('competition_sessions')
-      .select('participant_id, participant_code, display_id, name, nickname, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, completed_at, last_seen_at, photo_url')
-      .eq('competition_id', competitionId)
-    if (error) { console.warn('Failed to load sessions:', error.message); return }
-    if (data) setSessions(data)
+    if (!competitionId || fetchingSessionsRef.current) return
+    fetchingSessionsRef.current = true
+    try {
+      const { data, error } = await supabase
+        .from('competition_sessions')
+        .select('participant_id, participant_code, display_id, name, nickname, country, age, subject, level, status, provisional_score, validated_score, questions_answered, time_spent_seconds, ready, completed_at, last_seen_at, photo_url')
+        .eq('competition_id', competitionId)
+      if (error) { console.warn('Failed to load sessions:', error.message); return }
+      if (data) setSessions(data)
+    } finally { fetchingSessionsRef.current = false }
   }, [competitionId])
 
   useEffect(() => { if (authed) loadStates() }, [authed, loadStates])
@@ -143,7 +151,6 @@ export default function ProjectorPage() {
     // Polling fallback — realtime can drop under load or hit free-tier limits
     const pollId = setInterval(loadSessions, 1000)
     return () => {
-      clearTimeout(realtimeDebounceRef.current)
       clearInterval(pollId)
       supabase.removeChannel(channel)
     }
@@ -514,7 +521,7 @@ export default function ProjectorPage() {
 
   // ── PODIUM ──
   if (showPodium && podiumSorted.length > 0) {
-    const maxTime = activeState?.duration_seconds ?? 300
+    const maxTime = (activeState?.duration_seconds ?? 300) + (activeState?.extra_seconds ?? 0)
 
     const podiumColors = isDark
       ? [
@@ -1051,7 +1058,7 @@ export default function ProjectorPage() {
                 <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
                 <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
-                <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, activeState?.duration_seconds ?? 300)) : '—'}</span>
+                <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, (activeState?.duration_seconds ?? 300) + (activeState?.extra_seconds ?? 0))) : '—'}</span>
                 <span className="text-right">
                   {(() => {
                     const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 60000
