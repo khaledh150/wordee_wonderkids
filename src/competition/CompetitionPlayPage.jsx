@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
@@ -99,7 +99,23 @@ function loadPlayState(competitionId) {
   return null
 }
 
-export default function CompetitionPlayPage() {
+class CompetitionErrorBoundary extends React.Component {
+  state = { error: null }
+  static getDerivedStateFromError(e) { return { error: e } }
+  render() {
+    if (this.state.error) return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFF5F0] gap-4 p-6 text-center">
+        <AlertCircle className="w-14 h-14 text-red-400" />
+        <p className="text-lg font-bold text-gray-700">Something went wrong</p>
+        <p className="text-sm text-gray-500 max-w-xs">{this.state.error?.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-2 px-6 py-2 rounded-xl bg-indigo-500 text-white font-bold shadow-lg">Reload</button>
+      </div>
+    )
+    return this.props.children
+  }
+}
+
+function CompetitionPlayPageInner() {
   const [step, setStep] = useState('code') // code | subject | waiting | countdown | active
   const [selectedSubject, setSelectedSubject] = useState(null) // 'english' | 'math'
   const [availableSubjects, setAvailableSubjects] = useState([])
@@ -222,7 +238,7 @@ export default function CompetitionPlayPage() {
 
   useEffect(() => {
     if (session && questions == null) {
-      getQuestionsForSession(selectedSubject, session.level, session.participant_id).then(setQuestions)
+      getQuestionsForSession(selectedSubject, session.level, session.participant_id).then(setQuestions).catch(() => setError('Failed to load questions. Please reload.'))
     }
     if (phase === 'completed' && session) {
       if (step === 'code' && !verifiedCode) return
@@ -840,4 +856,8 @@ export default function CompetitionPlayPage() {
       <span className="text-sm font-black">Loading arena...</span>
     </div>
   )
+}
+
+export default function CompetitionPlayPage() {
+  return <CompetitionErrorBoundary><CompetitionPlayPageInner /></CompetitionErrorBoundary>
 }

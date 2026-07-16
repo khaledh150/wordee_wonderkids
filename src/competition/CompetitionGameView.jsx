@@ -76,8 +76,8 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
   // Play audio upon mounting/changing words
   useEffect(() => {
     if (current && phase === 'active') {
-      const audioFile = current.audio.split('/').pop()
-      playWordVO(audioFile)
+      const audioFile = current.audio?.split('/').pop()
+      if (audioFile) playWordVO(audioFile)
     }
   }, [currentIndex, current, phase])
 
@@ -120,8 +120,8 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
   // Re-play spelling pronunciation
   const handleSpeaker = useCallback(() => {
     if (current) {
-      const audioFile = current.audio.split('/').pop()
-      playWordVO(audioFile)
+      const audioFile = current.audio?.split('/').pop()
+      if (audioFile) playWordVO(audioFile)
     }
   }, [current])
 
