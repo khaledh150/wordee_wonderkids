@@ -35,8 +35,13 @@ export function LanguageProvider({ children }) {
   )
 }
 
+const fallbackT = (path) => {
+  const key = path.split('.').pop()
+  return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+}
+const fallbackCtx = { lang: 'en', setLang: () => {}, t: fallbackT, toggleLang: () => {} }
+
 export function useLang() {
   const ctx = useContext(LanguageContext)
-  if (!ctx) throw new Error('useLang must be used within LanguageProvider')
-  return ctx
+  return ctx || fallbackCtx
 }
