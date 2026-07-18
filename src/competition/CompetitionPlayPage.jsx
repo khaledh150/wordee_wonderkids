@@ -108,7 +108,8 @@ class CompetitionErrorBoundary extends React.Component {
         <AlertCircle className="w-14 h-14 text-red-400" />
         <p className="text-lg font-bold text-gray-700">Something went wrong</p>
         <p className="text-sm text-gray-500 max-w-xs">{this.state.error?.message}</p>
-        <button onClick={() => window.location.reload()} className="mt-2 px-6 py-2 rounded-xl bg-indigo-500 text-white font-bold shadow-lg">Reload</button>
+        <button onClick={() => window.location.reload()} className="mt-2 px-8 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg text-lg" style={{ animation: 'error-btn-pulse 1.5s ease-in-out infinite' }}>Reload</button>
+        <style>{`@keyframes error-btn-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(139,92,246,0.4); } 50% { transform: scale(1.08); box-shadow: 0 6px 25px rgba(139,92,246,0.6); } }`}</style>
       </div>
     )
     return this.props.children

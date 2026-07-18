@@ -28,7 +28,7 @@ export default function MathResults({ examData, onBackToHome, onTryAgain }) {
   const seconds = timeTaken % 60
 
   return (
-    <div className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-auto">
+    <div className="w-full min-h-screen-safe flex items-center justify-center p-3 md:p-6 overflow-auto">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
