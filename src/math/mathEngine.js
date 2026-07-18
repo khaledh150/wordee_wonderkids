@@ -22,6 +22,7 @@ export function generateExam(level, questionCount = 200) {
       selectedAnswer: null,
     }
     if (q.questionEn) out.questionEn = q.questionEn
+    if (q.answerDisplay) out.answerDisplay = q.answerDisplay
     return out
   })
 }

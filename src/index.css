@@ -145,11 +145,12 @@ input[type="number"].dark-spinner::-webkit-outer-spin-button {
 .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 .animate-pulse-glow { animation: pulse-glow 2s infinite; }
 
-.print-title { font-size: 16px; }
-.print-subtitle { font-size: 13px; }
-.print-small { font-size: 11px; }
+.print-title { font-size: 14px; }
+.print-subtitle { font-size: 12px; }
+.print-small { font-size: 10px; }
 .print-questions { font-size: 13px; }
-.print-q-row { display: flex; align-items: center; gap: 4px; line-height: 1.4; }
+.print-q-row { display: flex; align-items: center; gap: 4px; line-height: 1.35; }
+.print-q-row .inline-flex { font-size: 0.85em; line-height: 1; margin: 0 1px; }
 .print-q-num { font-weight: 700; text-align: right; min-width: 24px; flex-shrink: 0; }
 
 /* Custom premium cross-browser thin scrollbars */
@@ -210,8 +211,10 @@ input[type="number"].dark-spinner::-webkit-outer-spin-button {
 }
 
 @media print {
-  @page { size: A4; margin: 4mm 8mm; }
-  body {
+  @page { size: A4 portrait; margin: 5mm 6mm; }
+  * { box-sizing: border-box !important; }
+  html, body {
+    width: 100% !important;
     background: white !important;
     color: black !important;
     font-family: 'Segoe UI', Arial, sans-serif !important;
@@ -219,12 +222,15 @@ input[type="number"].dark-spinner::-webkit-outer-spin-button {
     padding: 0 !important;
   }
   .no-print { display: none !important; }
-  .print-page { width: 100% !important; max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; }
-  .print-title { font-size: 14pt !important; }
-  .print-subtitle { font-size: 11pt !important; }
+  .print-page { width: 100% !important; max-width: 100% !important; height: 100vh !important; min-height: 0 !important; padding: 2mm 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; display: flex !important; flex-direction: column !important; background: white !important; }
+  .print-questions { width: 100% !important; font-size: 9.5pt !important; gap: 2mm !important; }
+  .print-questions-fill { flex: 1 !important; }
+  .print-questions > div { flex: 1 1 0 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; }
+  .print-title { font-size: 11pt !important; }
   .print-small { font-size: 8pt !important; }
-  .print-questions { font-size: 10pt !important; }
-  .print-q-row { line-height: 1.25 !important; padding: 0.5mm 0 !important; }
+  .print-q-row { line-height: 1.15 !important; padding: 0 !important; gap: 3px !important; }
+  .print-q-row .inline-flex { font-size: 0.85em !important; line-height: 0.95 !important; margin: 0 0.5px !important; border-color: black !important; }
+  .print-q-num { min-width: 18px !important; font-size: 9.5pt !important; }
   table { width: 100% !important; border-collapse: collapse !important; }
   tr { page-break-inside: avoid !important; }
   th, td { border-bottom: 1px solid #ccc !important; padding: 4px 8px !important; }

@@ -3824,13 +3824,13 @@ export const questionBank = {
     },
     {
       "id": 148,
-      "question": "4 - 9 + 6 = ?",
-      "answer": 1,
-      "answerDisplay": "1",
+      "question": "9 - 4 + 3 = ?",
+      "answer": 8,
+      "answerDisplay": "8",
       "distractors": [
-        2,
-        0,
-        3
+        9,
+        7,
+        10
       ]
     },
     {
@@ -4088,13 +4088,13 @@ export const questionBank = {
     },
     {
       "id": 172,
-      "question": "5 - 6 + 2 = ?",
-      "answer": 1,
-      "answerDisplay": "1",
+      "question": "8 - 3 + 2 = ?",
+      "answer": 7,
+      "answerDisplay": "7",
       "distractors": [
-        2,
-        0,
-        3
+        8,
+        6,
+        9
       ]
     },
     {
@@ -4385,13 +4385,13 @@ export const questionBank = {
     },
     {
       "id": 199,
-      "question": "5 - 8 + 6 = ?",
-      "answer": 3,
-      "answerDisplay": "3",
+      "question": "12 - 5 + 4 = ?",
+      "answer": 11,
+      "answerDisplay": "11",
       "distractors": [
-        4,
-        2,
-        5
+        12,
+        10,
+        13
       ]
     },
     {

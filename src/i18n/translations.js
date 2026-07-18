@@ -94,7 +94,7 @@ export const translations = {
       },
       print: {
         title: 'Printable Exam',
-        subtitle: 'Emergency Paper Exam',
+        subtitle: 'Select a level to generate an exam',
         answerKey: 'Answer Key',
         studentName: 'Student Name:',
         date: 'Date:',
@@ -207,7 +207,7 @@ export const translations = {
       },
       print: {
         title: 'ข้อสอบพิมพ์',
-        subtitle: 'ข้อสอบกระดาษฉุกเฉิน',
+        subtitle: 'เลือกระดับเพื่อสร้างข้อสอบ',
         answerKey: 'เฉลย',
         studentName: 'ชื่อนักเรียน:',
         date: 'วันที่:',
