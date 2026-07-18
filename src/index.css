@@ -222,7 +222,9 @@ input[type="number"].dark-spinner::-webkit-outer-spin-button {
     padding: 0 !important;
   }
   .no-print { display: none !important; }
+  #root, #root > *, #root > * > * { padding: 0 !important; margin: 0 !important; }
   .print-page { width: 100% !important; max-width: 100% !important; height: 100vh !important; min-height: 0 !important; padding: 2mm 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; display: flex !important; flex-direction: column !important; background: white !important; }
+  .print-page:last-of-type { page-break-after: auto !important; }
   .print-questions { width: 100% !important; font-size: 9.5pt !important; gap: 2mm !important; }
   .print-questions-fill { flex: 1 !important; }
   .print-questions > div { flex: 1 1 0 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; }
