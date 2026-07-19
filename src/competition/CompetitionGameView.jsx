@@ -36,7 +36,7 @@ const QuestionArea = memo(function QuestionArea({ current, level, allVocab, answ
         </button>
       </div>
       <div className="min-w-0 flex flex-col items-center justify-center">
-        {level <= 2 ? (
+        {level === 1 ? (
           <MultipleChoice current={current} allVocab={allVocab} onCorrect={onCorrect} onWrong={onWrong} answered={answered} />
         ) : (
           <LetterDragDrop current={current} level={level} onCorrect={onCorrect} onWrong={onWrong} answered={answered} />
@@ -244,6 +244,11 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
                 {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
               </motion.div>
 
+              <span className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 landscape:mb-1 ${
+                isDark ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                English Spelling
+              </span>
               {session?.name && (
                 <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
               )}

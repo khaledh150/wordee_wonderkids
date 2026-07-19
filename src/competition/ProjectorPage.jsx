@@ -224,11 +224,13 @@ export default function ProjectorPage() {
     }
   }, [activeState, subjectSessions, projectorCountdown])
 
-  // Podium sound effects — fire on visibility/level changes (skip initial load)
+  // Podium sound effects — fire on visibility/level changes (skip initial load), check both subjects
+  const anyPodiumVisible = engState?.podium_visible || mathState?.podium_visible
+  const anyPodiumLevel = (engState?.podium_visible ? engState?.podium_level : mathState?.podium_level) ?? 1
   useEffect(() => {
     const prev = prevPodiumRef.current
-    const visible = activeState?.podium_visible
-    const level = activeState?.podium_level
+    const visible = anyPodiumVisible
+    const level = anyPodiumLevel
     if (!prev.initialized) {
       prevPodiumRef.current = { visible: !!visible, level, initialized: true }
       return
@@ -244,10 +246,10 @@ export default function ProjectorPage() {
       setTimeout(() => { try { fireConfetti() } catch {} }, 800)
     }
     prevPodiumRef.current = { visible: !!visible, level, initialized: true }
-  }, [activeState?.podium_visible, activeState?.podium_level])
+  }, [anyPodiumVisible, anyPodiumLevel])
 
   useEffect(() => {
-    if (!activeState?.started_at || !activeState?.is_unlocked) { setElapsed(null); return }
+    if (!activeState?.started_at) { setElapsed(null); return }
     const start = new Date(activeState.started_at).getTime()
     const activeSessions = subjectSessions.filter(s => s.status === 'active' || s.status === 'completed')
     const allDone = activeSessions.length > 0 && activeSessions.every(s => s.status === 'completed')
@@ -322,10 +324,12 @@ export default function ProjectorPage() {
 
   const allCompleted = levelSessions.length > 0 && levelSessions.every(s => s.status === 'completed')
 
-  // DB-driven podium
-  const showPodium = !!activeState?.podium_visible
-  const podiumLevel = activeState?.podium_level ?? 1
-  const podiumLevelSessions = subjectSessions.filter(s => s.level === podiumLevel)
+  // DB-driven podium — check BOTH subjects so podium works even when activeSubject has switched
+  const podiumState = engState?.podium_visible ? engState : mathState?.podium_visible ? mathState : null
+  const showPodium = !!podiumState
+  const podiumLevel = podiumState?.podium_level ?? 1
+  const podiumSubject = podiumState === engState ? 'english' : podiumState === mathState ? 'math' : activeSubject
+  const podiumLevelSessions = sessions.filter(s => s.subject === podiumSubject && s.level === podiumLevel)
   const podiumSorted = [...podiumLevelSessions]
     .filter(s => s.validated_score != null)
     .sort((a, b) => {

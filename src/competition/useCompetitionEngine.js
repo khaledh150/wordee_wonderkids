@@ -246,6 +246,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setValidatedScore(null)
       setRank(null)
       setSubmitError(false)
+      setIsSubmitting(false)
       setOrderedQuestions([])
       subjectRef.current = subjectOverride
     }
@@ -456,6 +457,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
           answers: answersRef.current, session: sess,
         })
         submittingRef.current = false
+        setIsSubmitting(false)
       } catch {
         retryCount++
         if (unmountedRef.current) { submittingRef.current = false; return }

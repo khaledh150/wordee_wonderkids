@@ -1,14 +1,28 @@
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Calendar, Users } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, Download, FileText, Table } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import ResultsPhase from './ResultsPhase'
+import { getVocabForLevel } from '../../data/vocabulary'
+
+const mathQuestionCountCache = {}
+
+function fmt(sec) {
+  if (sec == null) return '-'
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
+}
+
+function getEnglishTotal(level) {
+  return getVocabForLevel(level).length
+}
 
 export default function HistoryPhase({ isDark, onBack }) {
   const [history, setHistory] = useState(null)
   const [selected, setSelected] = useState(null)
   const [detailSubject, setDetailSubject] = useState('english')
   const [detailSessions, setDetailSessions] = useState([])
-  const [detailState, setDetailState] = useState(null)
+  const [levelFilter, setLevelFilter] = useState(null)
+  const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
+  const [excelExporting, setExcelExporting] = useState(false)
+  const [batchProgress, setBatchProgress] = useState(null)
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
   const text = isDark ? 'text-white' : 'text-slate-900'
@@ -22,11 +36,23 @@ export default function HistoryPhase({ isDark, onBack }) {
       .then(({ data }) => {
         if (!data) return setHistory([])
         Promise.all(data.map(async h => {
-          const { count } = await supabase
+          const { data: sessions } = await supabase
             .from('competition_sessions')
-            .select('*', { count: 'exact', head: true })
+            .select('subject, status, validated_score')
             .eq('competition_id', h.competition_id)
-          return { ...h, participantCount: count || 0 }
+          const all = sessions || []
+          const engSessions = all.filter(s => s.subject === 'english')
+          const mathSessions = all.filter(s => s.subject === 'math')
+          return {
+            ...h,
+            totalCount: all.length,
+            engCount: engSessions.length,
+            mathCount: mathSessions.length,
+            engPlayed: engSessions.filter(s => s.status === 'completed').length,
+            mathPlayed: mathSessions.filter(s => s.status === 'completed').length,
+            hasEnglish: engSessions.length > 0,
+            hasMath: mathSessions.length > 0,
+          }
         })).then(setHistory)
       })
   }, [])
@@ -39,12 +65,236 @@ export default function HistoryPhase({ isDark, onBack }) {
       .eq('competition_id', selected.competition_id)
       .eq('subject', detailSubject)
       .then(({ data }) => setDetailSessions(data || []))
-    setDetailState({
-      competition_id: selected.competition_id,
-      round_label: selected.round_label,
-    })
   }, [selected, detailSubject])
 
+  useEffect(() => {
+    if (Object.keys(mathQuestionCountCache).length > 0) return
+    import('../../data/mathQuestionBank').then(({ getExamQuestions }) => {
+      for (let l = 1; l <= 8; l++) {
+        try { mathQuestionCountCache[l] = getExamQuestions(l).length } catch {}
+      }
+      setMathCounts({ ...mathQuestionCountCache })
+    }).catch(() => {})
+  }, [])
+
+  function getTotalQuestions(level) {
+    if (detailSubject === 'math') return mathCounts[level] || 20
+    return getEnglishTotal(level)
+  }
+
+  const officialSorted = useMemo(() => {
+    let list = detailSessions.filter(s => s.validated_score != null)
+    if (levelFilter) list = list.filter(s => s.level === levelFilter)
+    return list.sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
+  }, [detailSessions, levelFilter])
+
+  const levels = useMemo(() =>
+    [...new Set(detailSessions.filter(s => s.validated_score != null).map(s => s.level))].sort((a, b) => a - b),
+    [detailSessions]
+  )
+
+  const participantCount = detailSessions.filter(s => s.validated_score != null).length
+  const avgScore = participantCount > 0
+    ? (detailSessions.filter(s => s.validated_score != null).reduce((sum, s) => sum + s.validated_score, 0) / participantCount).toFixed(1)
+    : '0.0'
+  const topScore = participantCount > 0
+    ? Math.max(...detailSessions.filter(s => s.validated_score != null).map(s => s.validated_score))
+    : 0
+
+  const subjectLabel = detailSubject === 'math' ? 'Mathematics' : 'English Spelling'
+
+  function exportCSV() {
+    const h = ['Rank', 'Name', 'Display ID', 'School', 'Country', 'Level', 'Score', 'Total', 'Time (s)']
+    const r = officialSorted.map((s, i) => [
+      i + 1, s.name, s.display_id, s.school || '', s.country || '', s.level,
+      s.validated_score, getTotalQuestions(s.level), s.time_spent_seconds
+    ])
+    const csv = [h, ...r].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    a.download = `history-${detailSubject}-${selected.competition_id.slice(0, 8)}.csv`
+    a.click()
+  }
+
+  async function exportExcelResults() {
+    if (excelExporting || !selected) return
+    setExcelExporting(true)
+    try {
+      const ExcelJS = await import('exceljs')
+      const { data: allSessions } = await supabase
+        .from('competition_sessions')
+        .select('*')
+        .eq('competition_id', selected.competition_id)
+      if (!allSessions) { setExcelExporting(false); return }
+
+      let mathTotals = { ...mathCounts }
+      if (Object.keys(mathTotals).length === 0) {
+        try {
+          const { getExamQuestions } = await import('../../data/mathQuestionBank')
+          for (let l = 1; l <= 8; l++) {
+            try { mathTotals[l] = getExamQuestions(l).length } catch {}
+          }
+        } catch {}
+      }
+
+      const getTotal = (subj, lvl) => {
+        if (subj === 'math') return mathTotals[lvl] || 20
+        return getVocabForLevel(lvl).length
+      }
+
+      const HEADER_FONT = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }
+      const THIN_BORDER = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' },
+      }
+      const GOLD_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } }
+      const SILVER_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } }
+      const BRONZE_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE8D0' } }
+      const GREEN_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }
+
+      const allSubjectDefs = [
+        { key: 'english', label: 'English Spelling', maxLevel: 4, color: { argb: 'FFCC0000' } },
+        { key: 'math', label: 'Mathematics', maxLevel: 8, color: { argb: 'FF3333CC' } },
+      ]
+      const subjects = allSubjectDefs.filter(s => s.key === detailSubject)
+
+      const wb = new ExcelJS.Workbook()
+      wb.creator = 'Wonderkids Championship'
+
+      for (const subj of subjects) {
+        for (let lvl = 1; lvl <= subj.maxLevel; lvl++) {
+          const lvlSessions = allSessions
+            .filter(s => s.subject === subj.key && s.level === lvl)
+          if (lvlSessions.length === 0) continue
+
+          const participated = lvlSessions
+            .filter(s => s.validated_score != null)
+            .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
+          const notParticipated = lvlSessions.filter(s => s.validated_score == null)
+          const sorted = [...participated, ...notParticipated]
+
+          const sheetName = `${subj.key === 'english' ? 'English' : 'Math'} L${lvl}`
+          const ws = wb.addWorksheet(sheetName)
+
+          ws.columns = [
+            { width: 6 }, { width: 30 }, { width: 12 }, { width: 20 },
+            { width: 10 }, { width: 6 }, { width: 8 }, { width: 8 }, { width: 10 },
+          ]
+
+          ws.mergeCells('A1:I1')
+          const titleCell = ws.getCell('A1')
+          titleCell.value = `${selected.round_label || 'International Championship'} — ${subj.label} — Level ${lvl}`
+          titleCell.font = { bold: true, size: 16 }
+          titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+          ws.getRow(1).height = 38
+
+          ws.mergeCells('A2:I2')
+          const infoCell = ws.getCell('A2')
+          infoCell.value = `Session: ${selected.competition_id} | Date: ${new Date(selected.created_at).toLocaleDateString()} | Exported: ${new Date().toLocaleDateString()}`
+          infoCell.font = { size: 9, color: { argb: 'FF888888' } }
+          infoCell.alignment = { horizontal: 'center', vertical: 'middle' }
+          ws.getRow(2).height = 20
+
+          ws.views = [{ state: 'frozen', ySplit: 3 }]
+          ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } }
+
+          const headers = ['No.', 'Name', 'Display ID', 'School', 'Country', 'Age', 'Score', 'Total', 'Time']
+          const headerRow = ws.getRow(3)
+          headerRow.height = 26
+          headers.forEach((h, i) => {
+            const cell = headerRow.getCell(i + 1)
+            cell.value = h
+            cell.font = HEADER_FONT
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: subj.color }
+            cell.alignment = { horizontal: i >= 6 ? 'center' : 'left', vertical: 'middle' }
+            cell.border = THIN_BORDER
+          })
+
+          let rankCounter = 1
+          sorted.forEach((s, i) => {
+            const row = ws.getRow(i + 4)
+            row.height = 22
+            const hasScore = s.validated_score != null
+            const rank = hasScore ? rankCounter++ : ''
+            const totalQ = getTotal(subj.key, lvl)
+            const timeFmt = hasScore && s.time_spent_seconds != null
+              ? `${Math.floor(s.time_spent_seconds / 60)}:${String(s.time_spent_seconds % 60).padStart(2, '0')}`
+              : ''
+
+            const values = [
+              rank, s.name || '', s.display_id || '', s.school || '',
+              s.country ? s.country.toUpperCase() : '', s.age || '',
+              hasScore ? s.validated_score : '', hasScore ? totalQ : '', timeFmt,
+            ]
+
+            values.forEach((v, ci) => {
+              const cell = row.getCell(ci + 1)
+              cell.value = v
+              cell.border = THIN_BORDER
+              cell.alignment = { horizontal: ci >= 6 ? 'center' : 'left', vertical: 'middle' }
+              if (ci <= 1) cell.font = { bold: true }
+            })
+
+            if (hasScore && rank <= 3) {
+              const bg = rank === 1 ? GOLD_BG : rank === 2 ? SILVER_BG : BRONZE_BG
+              for (let c = 1; c <= 9; c++) row.getCell(c).fill = bg
+            } else if (hasScore) {
+              for (let c = 1; c <= 9; c++) row.getCell(c).fill = GREEN_BG
+            }
+          })
+
+          const sumRowIdx = sorted.length + 5
+          ws.getRow(sumRowIdx).height = 24
+          ws.mergeCells(`A${sumRowIdx}:F${sumRowIdx}`)
+          const sumCell = ws.getCell(`A${sumRowIdx}`)
+          sumCell.value = `Total Participants: ${participated.length} / ${sorted.length} registered`
+          sumCell.font = { bold: true, size: 10, italic: true }
+          sumCell.alignment = { horizontal: 'left', vertical: 'middle' }
+
+          if (participated.length > 0) {
+            const avg = (participated.reduce((sum, s) => sum + s.validated_score, 0) / participated.length).toFixed(1)
+            const avgCell = ws.getCell(`G${sumRowIdx}`)
+            avgCell.value = `Avg: ${avg}`
+            avgCell.font = { bold: true, size: 10 }
+            avgCell.alignment = { horizontal: 'center', vertical: 'middle' }
+          }
+        }
+      }
+
+      const buffer = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `history-${detailSubject}-${selected.competition_id.slice(0, 8)}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Excel export failed:', err)
+    } finally {
+      setExcelExporting(false)
+    }
+  }
+
+  async function handleBatchDownload() {
+    if (!officialSorted.length || batchProgress) return
+    const { downloadBatchCertificates } = await import('../generateCertificate')
+    const students = officialSorted.map((s, i) => ({
+      ...s,
+      rank: i + 1,
+      totalQuestions: getTotalQuestions(s.level),
+    }))
+    setBatchProgress({ done: 0, total: students.length })
+    await downloadBatchCertificates(
+      students,
+      selected.round_label || 'International English Spelling & Math Championship',
+      selected.competition_id,
+      (done, total) => setBatchProgress({ done, total })
+    )
+    setBatchProgress(null)
+  }
+
+  // --- Loading state ---
   if (!history) {
     return (
       <div className="flex justify-center py-12">
@@ -53,48 +303,275 @@ export default function HistoryPhase({ isDark, onBack }) {
     )
   }
 
+  // --- Detail view: scores for a selected session ---
   if (selected) {
+    const sessionName = selected.round_label || formatSessionName(selected)
+    const sessionDate = new Date(selected.created_at)
+
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={() => { setSelected(null); setDetailSessions([]) }}
+            onClick={() => { setSelected(null); setDetailSessions([]); setLevelFilter(null) }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
               isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <ArrowLeft className="w-4 h-4" /> Back to History
+            <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          <div className={`flex rounded-xl p-1 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-            {['english', 'math'].map(s => (
+        </div>
+
+        {/* Session info banner */}
+        <div className={`rounded-2xl border p-4 ${card}`}>
+          <p className={`font-black text-lg ${text}`}>{sessionName}</p>
+          <p className={`text-xs mt-1 ${textMuted}`}>
+            {sessionDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+            {' at '}
+            {sessionDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+            <span className="mx-2">·</span>
+            <span className="font-mono">{selected.competition_id.slice(0, 8)}</span>
+          </p>
+        </div>
+
+        {/* Subject tabs - large and clear */}
+        <div className={`flex rounded-xl p-1 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
+          {[
+            { key: 'english', label: 'English Spelling', icon: BookOpen, color: 'bg-blue-600', available: selected.hasEnglish },
+            { key: 'math', label: 'Mathematics', icon: Calculator, color: 'bg-teal-600', available: selected.hasMath },
+          ].map(s => (
+            <button
+              key={s.key}
+              onClick={() => { setDetailSubject(s.key); setLevelFilter(null) }}
+              disabled={!s.available}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                detailSubject === s.key
+                  ? `${s.color} text-white shadow-md`
+                  : isDark ? 'text-slate-400 hover:text-white/80' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <s.icon className="w-4 h-4" />
+              {s.label}
+              {s.available && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  detailSubject === s.key ? 'bg-white/20' : isDark ? 'bg-white/10' : 'bg-slate-200'
+                }`}>
+                  {s.key === 'english' ? selected.engPlayed : selected.mathPlayed}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Participants', value: participantCount, border: isDark ? 'border-slate-600' : 'border-slate-300' },
+            { label: 'Average Score', value: avgScore, border: isDark ? 'border-purple-500/40' : 'border-purple-300' },
+            { label: 'Top Score', value: topScore, border: isDark ? 'border-amber-500/40' : 'border-amber-300' },
+          ].map(c => (
+            <div key={c.label} className={`rounded-2xl border-2 p-4 text-center ${card} ${c.border}`}>
+              <p className={`text-2xl font-black ${text}`}>{c.value}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${textMuted}`}>{c.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Level filter + export buttons */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={() => setLevelFilter(null)}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                !levelFilter
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
+            >
+              All
+            </button>
+            {levels.map(lvl => (
               <button
-                key={s}
-                onClick={() => setDetailSubject(s)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  detailSubject === s
+                key={lvl}
+                onClick={() => setLevelFilter(lvl)}
+                className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  levelFilter === lvl
                     ? 'bg-blue-600 text-white shadow-md'
-                    : isDark ? 'text-slate-400 hover:text-white/80' : 'text-slate-500 hover:text-slate-800'
+                    : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
-                {s}
+                L{lvl}
               </button>
             ))}
           </div>
-          <span className={`text-sm font-bold ${textMuted}`}>
-            {selected.round_label || selected.competition_id}
-          </span>
+
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={exportExcelResults}
+              disabled={excelExporting}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+            >
+              <Table className="w-4 h-4" />
+              {excelExporting ? 'Exporting...' : 'Excel'}
+            </button>
+            <button
+              onClick={exportCSV}
+              className={`px-4 py-2.5 border font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              <Download className="w-4 h-4" /> CSV
+            </button>
+            <button
+              onClick={() => window.print()}
+              className={`px-4 py-2.5 border font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              Print
+            </button>
+            <button
+              onClick={handleBatchDownload}
+              disabled={batchProgress != null || !officialSorted.length}
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+            >
+              <FileText className="w-4 h-4" />
+              {batchProgress ? `${batchProgress.done}/${batchProgress.total}...` : 'Certificates'}
+            </button>
+          </div>
         </div>
-        <ResultsPhase
-          state={detailState}
-          sessions={detailSessions}
-          subject={detailSubject}
-          isDark={isDark}
-          readOnly
-        />
+
+        {/* Score table */}
+        <div className={`border rounded-3xl overflow-hidden shadow-lg transition-all duration-300 ${
+          isDark ? 'bg-[#0e1224]/20 border-white/5' : 'bg-white border-slate-200'
+        }`}>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className={`text-[10px] font-black uppercase tracking-widest border-b transition-colors ${
+                isDark ? 'text-slate-400 bg-slate-950/20 border-white/5' : 'text-slate-500 bg-slate-100/80 border-slate-200'
+              }`}>
+                <th className="px-5 py-4">Rank</th>
+                <th className="px-4 py-4">Name</th>
+                <th className="px-4 py-4">School</th>
+                <th className="px-4 py-4 text-center">Level</th>
+                <th className="px-4 py-4 text-right">Score</th>
+                <th className="px-4 py-4 text-right">Time</th>
+                <th className="px-5 py-4 text-center">Certificate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y font-semibold text-sm transition-colors divide-white/5">
+              {officialSorted.map((s, i) => (
+                <tr
+                  key={s.participant_id}
+                  className={`transition-colors border-b ${
+                    isDark ? 'border-white/5' : 'border-slate-100'
+                  } ${
+                    i === 0 ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                      : i === 1 ? 'bg-slate-400/5 hover:bg-slate-400/10'
+                      : i === 2 ? 'bg-amber-700/5 hover:bg-amber-700/10'
+                      : isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50/50'
+                  }`}
+                >
+                  <td className="px-5 py-4 font-black text-base">
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                  </td>
+                  <td className={`px-4 py-4 font-bold ${text}`}>{s.name}</td>
+                  <td className={`px-4 py-4 text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{s.school || '-'}</td>
+                  <td className="px-4 py-4 text-center text-xs font-black">
+                    <span className={`px-2 py-0.5 rounded border ${
+                      isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      L{s.level}
+                    </span>
+                  </td>
+                  <td className={`px-4 py-4 text-right font-black text-base ${text}`}>
+                    {s.validated_score}
+                    <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {getTotalQuestions(s.level)}</span>
+                  </td>
+                  <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {fmt(s.time_spent_seconds)}
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <button
+                      onClick={async () => {
+                        const { downloadCertificate } = await import('../generateCertificate')
+                        await downloadCertificate({
+                          name: s.name,
+                          rank: i + 1,
+                          score: s.validated_score,
+                          totalQuestions: getTotalQuestions(s.level),
+                          level: s.level,
+                          school: s.school,
+                          country: s.country,
+                          eventName: selected.round_label || 'International English Spelling & Math Championship',
+                          competitionId: selected.competition_id,
+                        })
+                      }}
+                      className={`text-xs font-black uppercase px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                        isDark
+                          ? 'text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border-indigo-500/20'
+                          : 'text-indigo-600 hover:text-white hover:bg-indigo-500 bg-indigo-50 border-indigo-200 hover:border-indigo-500 shadow-sm'
+                      }`}
+                    >
+                      Download
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!officialSorted.length && (
+                <tr>
+                  <td colSpan={7} className={`px-6 py-12 text-center font-bold ${textMuted}`}>
+                    No {subjectLabel} results for this session.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Print view */}
+        <div className="hidden print:block bg-white text-black">
+          {[...new Set(officialSorted.map(s => s.level))].sort((a, b) => a - b).map(lvl => {
+            const lvlResults = officialSorted.filter(s => s.level === lvl)
+            return (
+              <div key={lvl} className="break-before-page first:break-before-auto p-8">
+                <h1 className="text-2xl font-bold mb-1">Session History — {subjectLabel} — Level {lvl}</h1>
+                <p className="text-sm text-gray-500 mb-4">
+                  {selected.competition_id} · {sessionDate.toLocaleDateString()} {selected.round_label ? `— ${selected.round_label}` : ''}
+                </p>
+                <table className="w-full text-base border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-black text-sm uppercase font-bold">
+                      <th className="px-3 py-2 text-left">Rank</th>
+                      <th className="px-3 py-2 text-left">Name</th>
+                      <th className="px-3 py-2 text-center">Display ID</th>
+                      <th className="px-3 py-2 text-left">School</th>
+                      <th className="px-3 py-2 text-right">Score</th>
+                      <th className="px-3 py-2 text-right">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lvlResults.map((s, i) => (
+                      <tr key={s.participant_id} className="border-b border-gray-300">
+                        <td className="px-3 py-2 font-bold">{i + 1}</td>
+                        <td className="px-3 py-2 font-semibold">{s.name}</td>
+                        <td className="px-3 py-2 text-center font-mono text-gray-500">{s.display_id}</td>
+                        <td className="px-3 py-2 text-gray-600">{s.school || '-'}</td>
+                        <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {getTotalQuestions(s.level)}</td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(s.time_spent_seconds)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          })}
+        </div>
       </div>
     )
   }
 
+  // --- Session list view ---
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -113,36 +590,72 @@ export default function HistoryPhase({ isDark, onBack }) {
         <p className={`text-center py-12 font-bold ${textMuted}`}>No sessions recorded yet.</p>
       ) : (
         <div className="grid gap-3">
-          {history.map(h => (
-            <button
-              key={h.competition_id}
-              onClick={() => { setSelected(h); setDetailSubject('english') }}
-              className={`w-full text-left border rounded-2xl p-5 transition-all cursor-pointer ${card} hover:shadow-lg ${
-                isDark ? 'hover:border-blue-500/30' : 'hover:border-blue-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={`font-black text-base ${text}`}>
-                    {h.round_label || 'Untitled Session'}
-                  </p>
-                  <p className={`text-xs font-mono mt-1 ${textMuted}`}>{h.competition_id}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
-                    <Users className="w-4 h-4" />
-                    {h.participantCount}
+          {history.map(h => {
+            const subjects = []
+            if (h.hasEnglish) subjects.push('English')
+            if (h.hasMath) subjects.push('Math')
+            const subjectName = subjects.join(' + ') || 'No subjects'
+
+            return (
+              <button
+                key={h.competition_id}
+                onClick={() => { setSelected(h); setDetailSubject(h.hasEnglish ? 'english' : 'math') }}
+                className={`w-full text-left border rounded-2xl p-5 transition-all cursor-pointer ${card} hover:shadow-lg ${
+                  isDark ? 'hover:border-blue-500/30' : 'hover:border-blue-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className={`font-black text-base ${text}`}>
+                      {h.round_label || subjectName + ' Competition'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      {h.hasEnglish && (
+                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                          isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                        }`}>
+                          <BookOpen className="w-3 h-3" />
+                          English {h.engPlayed > 0 ? `(${h.engPlayed}/${h.engCount})` : `(${h.engCount})`}
+                        </span>
+                      )}
+                      {h.hasMath && (
+                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                          isDark ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' : 'bg-teal-50 border-teal-200 text-teal-700'
+                        }`}>
+                          <Calculator className="w-3 h-3" />
+                          Math {h.mathPlayed > 0 ? `(${h.mathPlayed}/${h.mathCount})` : `(${h.mathCount})`}
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[10px] font-mono mt-2 ${textMuted}`}>{h.competition_id}</p>
                   </div>
-                  <div className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
-                    <Calendar className="w-4 h-4" />
-                    {new Date(h.created_at).toLocaleDateString()}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
+                      <Users className="w-4 h-4" />
+                      {h.totalCount}
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs font-bold ${textMuted}`}>
+                      <Calendar className="w-3.5 h-3.5" />
+                      {new Date(h.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs font-bold ${textMuted}`}>
+                      <Clock className="w-3.5 h-3.5" />
+                      {new Date(h.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
   )
+}
+
+function formatSessionName(h) {
+  const subjects = []
+  if (h.hasEnglish) subjects.push('English')
+  if (h.hasMath) subjects.push('Math')
+  return (subjects.join(' + ') || 'Session') + ' Competition'
 }

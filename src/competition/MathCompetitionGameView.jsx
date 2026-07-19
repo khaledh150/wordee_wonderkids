@@ -182,6 +182,11 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                 {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
               </motion.div>
 
+              <span className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 landscape:mb-1 ${
+                isDark ? 'bg-teal-500/15 text-teal-400 border border-teal-500/20' : 'bg-teal-50 text-teal-700 border border-teal-200'
+              }`}>
+                Mathematics
+              </span>
               {session?.name && (
                 <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}{session.nickname ? ` (${session.nickname})` : ''}</p>
               )}

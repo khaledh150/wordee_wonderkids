@@ -37,6 +37,9 @@ export default function MathResults({ examData, onBackToHome, onTryAgain }) {
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 items-center sm:items-start">
           {/* Left: Score circle + grade */}
           <div className="text-center shrink-0">
+            <span className="inline-flex items-center text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 bg-teal-50 text-teal-700 border border-teal-200">
+              Mathematics
+            </span>
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}

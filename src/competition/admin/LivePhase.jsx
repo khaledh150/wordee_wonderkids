@@ -42,7 +42,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
           }).catch(() => {})
         }
       } catch {}
-      await updateState({ is_unlocked: false, started_at: null })
+      await updateState({ is_unlocked: false })
       await loadSessions()
     }, 3000)
     return () => { clearTimeout(autoTransitionTimerRef.current); autoTransitionTimerRef.current = null }
@@ -110,7 +110,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
         }).catch(() => {})
       }
     } catch {}
-    await updateState({ is_unlocked: false, started_at: null })
+    await updateState({ is_unlocked: false })
     await loadSessions()
   }
 

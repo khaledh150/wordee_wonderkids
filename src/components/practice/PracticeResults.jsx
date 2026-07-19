@@ -32,6 +32,9 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      <span className="inline-flex items-center text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 bg-blue-50 text-blue-700 border border-blue-200">
+        English Spelling
+      </span>
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
