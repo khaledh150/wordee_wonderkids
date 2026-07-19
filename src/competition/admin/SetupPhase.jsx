@@ -37,7 +37,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       if (s.nickname && !entry.nickname) entry.nickname = s.nickname
       if (s.photo_url && !entry.photo_url) entry.photo_url = s.photo_url
     }
-    return [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+    return [...map.values()].sort((a, b) => {
+      const aNick = a.nickname ? 0 : 1
+      const bNick = b.nickname ? 0 : 1
+      if (aNick !== bNick) return aNick - bNick
+      return a.code.localeCompare(b.code, undefined, { numeric: true })
+    })
   }, [sessions])
 
   const filteredGrouped = useMemo(() => {
