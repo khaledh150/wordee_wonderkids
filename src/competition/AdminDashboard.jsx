@@ -173,15 +173,17 @@ export default function AdminDashboard() {
 
   return (
     <div className={`min-h-screen transition-colors ${isDark ? 'bg-[#060814] text-white' : 'bg-slate-50 text-slate-900'}`}>
-      <AdminHeader
-        subject={subject}
-        setSubject={(s) => { setSubject(s); setPhaseOverride(null) }}
-        phase={phase}
-        isDark={isDark}
-        setTheme={setTheme}
-        onLogout={handleLogout}
-        onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
-      />
+      {phase !== 'history' && (
+        <AdminHeader
+          subject={subject}
+          setSubject={(s) => { setSubject(s); setPhaseOverride(null) }}
+          phase={phase}
+          isDark={isDark}
+          setTheme={setTheme}
+          onLogout={handleLogout}
+          onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
+        />
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {adminError && (

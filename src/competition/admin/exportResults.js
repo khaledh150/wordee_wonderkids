@@ -11,6 +11,13 @@ const MATH_LEVEL_LABELS = {
   8: 'High-school 1-3',
 }
 
+const ENG_LEVEL_LABELS = {
+  1: 'English Level 1',
+  2: 'English Level 2',
+  3: 'English Level 3',
+  4: 'English Level 4',
+}
+
 function getAward(rank, totalParticipants) {
   if (totalParticipants <= 3) return `อันดับที่ ${rank}`
   if (rank <= 3) return 'ถ้วยรางวัล'
@@ -20,131 +27,112 @@ function getAward(rank, totalParticipants) {
   return 'เกียรติบัตร'
 }
 
-function normalizeForMatch(name) {
-  return (name || '').trim().replace(/\s+/g, ' ')
+const CYAN_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FFFF' }, bgColor: { argb: 'FF00FFFF' } }
+const THIN_BORDER = {
+  top: { style: 'thin' }, bottom: { style: 'thin' },
+  left: { style: 'thin' }, right: { style: 'thin' },
 }
+const HEADER_FONT = { bold: true, size: 14, name: 'Angsana New' }
+const HEADER_FONT_SM = { bold: true, size: 12, name: 'Angsana New' }
+const DATA_FONT = { size: 14, name: 'Angsana New' }
+const TITLE_FONT = { bold: true, size: 18, name: 'Angsana New' }
+
+const COL_WIDTHS = [11, 44.25, 12.25, 8.88, 8.88, 7.13, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 17.75]
+
+const THAI_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ข้อถูก', 'นาที', 'ข้อผิด/ปรับ', 'ข้อผิด/ปรับ', 'เวลาปรับ', 'เวลาปรับ', 'วินาที', 'วินาที', 'รางวัลที่ได้']
 
 export async function exportFromTemplate(subject, competitionId) {
-  const templateUrl = subject === 'math'
-    ? '/templates/math-template.xlsx'
-    : '/templates/english-template.xlsx'
+  const { data: allSessions } = await supabase
+    .from('competition_sessions')
+    .select('*')
+    .eq('competition_id', competitionId)
+    .eq('subject', subject)
 
-  const [templateResp, sessionsResp] = await Promise.all([
-    fetch(templateUrl),
-    supabase
-      .from('competition_sessions')
-      .select('*')
-      .eq('competition_id', competitionId)
-      .eq('subject', subject),
-  ])
-
-  if (!templateResp.ok) throw new Error('Template not found')
-  const sessions = sessionsResp.data || []
+  if (!allSessions) throw new Error('No sessions found')
 
   const ExcelJS = await import('exceljs')
   const wb = new ExcelJS.Workbook()
-  const buffer = await templateResp.arrayBuffer()
-  await wb.xlsx.load(buffer)
+  wb.creator = 'Wonderkids Championship'
 
-  const ws = wb.worksheets[0]
+  const levelLabels = subject === 'math' ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
+  const ws = wb.addWorksheet('E')
 
-  const sections = []
-  for (let r = 1; r <= ws.rowCount; r++) {
-    const val = ws.getRow(r).getCell(1).value
-    if (typeof val === 'string' && val.trim().length > 0) {
-      const row = ws.getRow(r)
-      const c2 = row.getCell(2).value
-      if (c2 && typeof c2 === 'string' && c2.trim() === val.trim()) {
-        sections.push({ row: r, title: val.trim() })
-      }
-    }
-  }
+  ws.columns = COL_WIDTHS.map(w => ({ width: w }))
 
-  const levelMap = {}
-  if (subject === 'math') {
-    for (const [lvl, label] of Object.entries(MATH_LEVEL_LABELS)) {
-      levelMap[label] = parseInt(lvl)
-    }
-  } else {
-    for (let i = 1; i <= 10; i++) {
-      levelMap[`English Level ${i}`] = i
-    }
-  }
+  let currentRow = 1
 
-  for (let si = 0; si < sections.length; si++) {
-    const section = sections[si]
-    const level = levelMap[section.title]
-    if (level == null) continue
+  const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
 
-    const headerRow = section.row + 1
-    const nextSectionRow = si < sections.length - 1 ? sections[si + 1].row : ws.rowCount + 1
+  for (const level of levels) {
+    const title = levelLabels[level] || `Level ${level}`
 
-    const dataRows = []
-    for (let r = headerRow + 1; r < nextSectionRow; r++) {
-      const name = ws.getRow(r).getCell(2).value
-      if (!name || (typeof name === 'string' && !name.trim())) continue
-      dataRows.push(r)
-    }
-
-    const levelSessions = sessions
-      .filter(s => s.level === level && s.validated_score != null)
+    const levelSessions = allSessions.filter(s => s.level === level)
+    const participated = levelSessions
+      .filter(s => s.validated_score != null)
       .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
+    const notParticipated = levelSessions.filter(s => s.validated_score == null)
+    const sorted = [...participated, ...notParticipated]
 
-    const sessionByName = new Map()
-    for (const s of levelSessions) {
-      sessionByName.set(normalizeForMatch(s.name), s)
+    // Title row
+    ws.mergeCells(`A${currentRow}:M${currentRow}`)
+    const titleCell = ws.getCell(`A${currentRow}`)
+    titleCell.value = title
+    titleCell.font = TITLE_FONT
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.getRow(currentRow).height = 32.25
+    currentRow++
+
+    // Header row
+    const headerRow = ws.getRow(currentRow)
+    headerRow.height = 18.75
+    ws.mergeCells(`G${currentRow}:H${currentRow}`)
+    ws.mergeCells(`I${currentRow}:J${currentRow}`)
+    for (let c = 1; c <= 13; c++) {
+      const cell = headerRow.getCell(c)
+      cell.value = THAI_HEADERS[c - 1]
+      cell.font = c >= 7 && c <= 12 ? HEADER_FONT_SM : HEADER_FONT
+      cell.fill = CYAN_FILL
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      cell.border = THIN_BORDER
     }
+    currentRow++
 
-    const matched = []
-    const unmatched = []
+    // Data rows
+    let rankCounter = 1
+    for (const s of sorted) {
+      const row = ws.getRow(currentRow)
+      row.height = 18.75
+      const hasScore = s.validated_score != null
+      const rank = hasScore ? rankCounter++ : null
 
-    for (const rowIdx of dataRows) {
-      const row = ws.getRow(rowIdx)
-      const cellName = normalizeForMatch(row.getCell(2).value)
-      const s = sessionByName.get(cellName)
-      if (s) {
-        matched.push({ rowIdx, session: s })
-        sessionByName.delete(cellName)
-      } else {
-        unmatched.push({ rowIdx, name: cellName })
+      row.getCell(1).value = rank || ''
+      row.getCell(2).value = s.name || ''
+      row.getCell(3).value = s.school || ''
+      row.getCell(4).value = s.nickname || ''
+      row.getCell(5).value = hasScore ? s.validated_score : ''
+      row.getCell(6).value = hasScore ? '5:00' : ''
+      row.getCell(13).value = hasScore ? getAward(rank, participated.length) : ''
+
+      for (let c = 1; c <= 13; c++) {
+        const cell = row.getCell(c)
+        cell.font = DATA_FONT
+        cell.border = THIN_BORDER
+        if (c === 1 || c === 5 || c === 6 || c === 13) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        } else {
+          cell.alignment = { vertical: 'middle' }
+        }
       }
+
+      currentRow++
     }
 
-    matched.sort((a, b) =>
-      b.session.validated_score - a.session.validated_score ||
-      a.session.time_spent_seconds - b.session.time_spent_seconds
-    )
-
-    const totalParticipants = matched.length
-    const allEntries = [...matched, ...unmatched]
-
-    for (let i = 0; i < allEntries.length; i++) {
-      const templateRowIdx = dataRows[i]
-      if (!templateRowIdx) continue
-      const row = ws.getRow(templateRowIdx)
-      const entry = allEntries[i]
-
-      if (entry.session) {
-        const rank = matched.indexOf(entry) + 1
-        row.getCell(1).value = rank
-        row.getCell(2).value = entry.session.name
-        row.getCell(3).value = entry.session.school || ''
-        row.getCell(4).value = entry.session.nickname || ''
-        row.getCell(5).value = entry.session.validated_score
-        row.getCell(6).value = '5:00'
-        row.getCell(13).value = getAward(rank, totalParticipants)
-      } else {
-        row.getCell(1).value = ''
-        row.getCell(2).value = entry.name || ''
-        row.getCell(5).value = ''
-        row.getCell(6).value = ''
-        row.getCell(13).value = ''
-      }
-    }
+    // Gap between sections
+    currentRow += 3
   }
 
-  const outBuffer = await wb.xlsx.writeBuffer()
-  const blob = new Blob([outBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

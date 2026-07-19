@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, Download, FileText, Table } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Table } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 
@@ -102,19 +102,6 @@ export default function HistoryPhase({ isDark, onBack }) {
     : 0
 
   const subjectLabel = detailSubject === 'math' ? 'Mathematics' : 'English Spelling'
-
-  function exportCSV() {
-    const h = ['Rank', 'Name', 'Display ID', 'School', 'Country', 'Level', 'Score', 'Total', 'Time (s)']
-    const r = officialSorted.map((s, i) => [
-      i + 1, s.name, s.display_id, s.school || '', s.country || '', s.level,
-      s.validated_score, getTotalQuestions(s.level), s.time_spent_seconds
-    ])
-    const csv = [h, ...r].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
-    a.download = `history-${detailSubject}-${selected.competition_id.slice(0, 8)}.csv`
-    a.click()
-  }
 
   async function exportExcelResults() {
     if (excelExporting || !selected) return
@@ -266,22 +253,6 @@ export default function HistoryPhase({ isDark, onBack }) {
             >
               <Table className="w-4 h-4" />
               {excelExporting ? 'Exporting...' : 'Excel'}
-            </button>
-            <button
-              onClick={exportCSV}
-              className={`px-4 py-2.5 border font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
-              }`}
-            >
-              <Download className="w-4 h-4" /> CSV
-            </button>
-            <button
-              onClick={() => window.print()}
-              className={`px-4 py-2.5 border font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-                isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
-              }`}
-            >
-              Print
             </button>
             <button
               onClick={handleBatchDownload}
