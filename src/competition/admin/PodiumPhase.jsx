@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, Eye, EyeOff } from 'lucide-react'
+import { Trophy, Eye, EyeOff, XCircle } from 'lucide-react'
 import StudentAvatar from './StudentAvatar'
 import { fmt } from './shared'
 
-export default function PodiumPhase({ state, sessions, subject, isDark, updateState }) {
+export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition }) {
   const [selectedLevel, setSelectedLevel] = useState(state?.podium_level || 1)
 
   useEffect(() => {
@@ -147,6 +147,57 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
           </div>
         </motion.div>
       )}
+
+      {/* End Competition button */}
+      {onEndCompetition && (
+        <EndCompetitionButton subject={subject} isDark={isDark} onEndCompetition={onEndCompetition} />
+      )}
     </div>
+  )
+}
+
+function EndCompetitionButton({ subject, isDark, onEndCompetition }) {
+  const [confirming, setConfirming] = useState(false)
+  const subjectLabel = subject === 'math' ? 'Mathematics' : 'English Spelling'
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+      className="flex flex-col items-center gap-3 pt-2">
+      {confirming ? (
+        <div className={`w-full max-w-md rounded-2xl border p-5 text-center ${isDark ? 'bg-rose-500/5 border-rose-500/20' : 'bg-rose-50 border-rose-200'}`}>
+          <p className={`font-bold text-sm mb-4 ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+            End the {subjectLabel} competition? This will show "Competition Ended" on the projector.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => { setConfirming(false); onEndCompetition() }}
+              className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md"
+            >
+              Yes, End It
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className={`px-6 py-3 font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer border ${
+                isDark ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirming(true)}
+          className={`w-full max-w-md flex items-center justify-center gap-2 py-4 rounded-xl font-black text-base uppercase tracking-wider transition-all cursor-pointer border-2 ${
+            isDark
+              ? 'text-rose-400 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10'
+              : 'text-rose-600 border-rose-300 bg-rose-50 hover:bg-rose-100'
+          }`}
+        >
+          <XCircle className="w-5 h-5" />
+          End {subjectLabel} Competition
+        </button>
+      )}
+    </motion.div>
   )
 }

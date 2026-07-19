@@ -78,6 +78,7 @@ export default function AdminDashboard() {
         school: row.school || null,
         country: row.country || null,
         age: row.age || null,
+        nickname: row.nickname || null,
       }
       if (row.english_level > 0) {
         const key = `${row.name}|english|${row.english_level}`
@@ -262,7 +263,6 @@ export default function AdminDashboard() {
                   setPhaseOverride(null)
                   setSubject(sub)
                 }}
-                onNewSession={handleNewSession}
               />
             </motion.div>
           )}
@@ -274,6 +274,10 @@ export default function AdminDashboard() {
                 subject={subject}
                 isDark={isDark}
                 updateState={updateState}
+                onEndCompetition={async () => {
+                  await updateState({ is_unlocked: false, started_at: null, podium_visible: false })
+                  setPhaseOverride('setup')
+                }}
               />
             </motion.div>
           )}

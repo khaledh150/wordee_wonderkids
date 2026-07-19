@@ -193,11 +193,87 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
     URL.revokeObjectURL(url)
   }
 
+  function detectTemplateFormat(sheet, XLSX) {
+    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1')
+    for (let r = range.s.r; r <= Math.min(range.e.r, 3); r++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r, c: 0 })]
+      if (!cell) continue
+      const v = String(cell.v).trim()
+      if (v.match(/^(English Level|Kindergarten|Grade \d|High-school|Mathematics)/i)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  function parseTemplateFormat(sheet, XLSX, fileName) {
+    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1')
+    const isMathFile = fileName.toLowerCase().includes('math')
+
+    const MATH_GRADE_TO_LEVEL = {
+      'kindergarten': 1, 'grade 1': 2, 'grade 2': 3, 'grade 3': 4,
+      'grade 4': 5, 'grade 5': 6, 'grade 6': 7, 'high-school 1-3': 8,
+    }
+
+    const sections = []
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r, c: 0 })]
+      if (!cell) continue
+      const v = String(cell.v).trim()
+      if (v.match(/^(English Level \d|Kindergarten|Grade \d|High-school)/i)) {
+        let level
+        if (isMathFile) {
+          level = MATH_GRADE_TO_LEVEL[v.toLowerCase()] || MATH_GRADE_TO_LEVEL[v]
+        } else {
+          const m = v.match(/Level\s*(\d+)/i)
+          level = m ? parseInt(m[1]) : null
+        }
+        if (level != null) sections.push({ row: r, level, title: v })
+      }
+    }
+
+    const results = []
+    for (let si = 0; si < sections.length; si++) {
+      const sec = sections[si]
+      const headerRow = sec.row + 1
+      const nextRow = si < sections.length - 1 ? sections[si + 1].row : range.e.r + 1
+
+      for (let r = headerRow + 1; r < nextRow; r++) {
+        const nameCell = sheet[XLSX.utils.encode_cell({ r, c: 1 })]
+        if (!nameCell || !String(nameCell.v).trim()) continue
+        const name = String(nameCell.v).trim()
+
+        const schoolCell = sheet[XLSX.utils.encode_cell({ r, c: 2 })]
+        const nicknameCell = sheet[XLSX.utils.encode_cell({ r, c: 3 })]
+
+        results.push({
+          name,
+          school: schoolCell ? String(schoolCell.v).trim() : '',
+          nickname: nicknameCell ? String(nicknameCell.v).trim() : '',
+          country: 'th',
+          age: null,
+          english_level: isMathFile ? 0 : sec.level,
+          math_level: isMathFile ? sec.level : 0,
+          _index: r + 1,
+          _errors: name ? [] : ['Name is required'],
+          _valid: !!name,
+        })
+      }
+    }
+    return results
+  }
+
   async function parseFile(file) {
     const XLSX = await import('xlsx')
     const buffer = await file.arrayBuffer()
     const wb = XLSX.read(buffer)
     const sheet = wb.Sheets[wb.SheetNames[0]]
+
+    if (detectTemplateFormat(sheet, XLSX)) {
+      const parsed = parseTemplateFormat(sheet, XLSX, file.name)
+      setRows(parsed)
+      return
+    }
 
     // Detect header row: find the row containing "No." or name-like header
     const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1')
@@ -220,7 +296,6 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
 
     const parsed = json.map((raw, i) => {
       const mapped = mapColumns(raw)
-      // Skip empty/number-only rows (the "No." column)
       if (!mapped.name && !mapped.school) return null
 
       const row = {

@@ -284,12 +284,36 @@ function CompetitionPlayPageInner() {
     return () => timers.forEach(clearTimeout)
   }, [step, triggerStart])
 
-  // Auto-transition: when student is on completed screen and admin opens a new lobby
+  const transitioningRef = useRef(false)
+
+  // Auto-transition: when student is on completed screen and admin opens a new lobby or new session
   useEffect(() => {
     if (phase !== 'completed' || !verifiedCode) return
     let cancelled = false
     const check = async () => {
+      if (transitioningRef.current) return
       try {
+        // Check if competition_id changed (new session created)
+        const { data: freshState } = await supabase
+          .from('competition_state')
+          .select('competition_id')
+          .limit(1)
+          .single()
+        if (cancelled) return
+        if (freshState && freshState.competition_id !== competitionId) {
+          transitioningRef.current = true
+          try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
+          setCompetitionId(freshState.competition_id)
+          setQuestions(null)
+          setPreloadDone(false)
+          setPreloadProgress({ loaded: 0, total: 0 })
+          restoredRef.current = false
+          setStep('code')
+          setCode(verifiedCode)
+          transitioningRef.current = false
+          return
+        }
+
         const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
         const res = await fetch(`${FUNC_BASE}/verify`, {
           method: 'POST',
@@ -301,13 +325,15 @@ function CompetitionPlayPageInner() {
         const data = await res.json()
         const subjects = data.subjects || []
         const otherSubjects = subjects.filter(s => s !== selectedSubject)
-        if (otherSubjects.length > 0 && !cancelled) {
+        if (otherSubjects.length > 0 && !cancelled && !transitioningRef.current) {
+          transitioningRef.current = true
           const nextSubject = otherSubjects[0]
           setQuestions(null)
           setPreloadDone(false)
           setPreloadProgress({ loaded: 0, total: 0 })
           try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
           handleSubjectSelect(nextSubject, verifiedCode)
+          transitioningRef.current = false
         }
       } catch {}
     }
@@ -675,22 +701,31 @@ function CompetitionPlayPageInner() {
           transition={{ type: 'spring', duration: 0.6 }}
           className="w-full max-w-full landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center justify-center flex-1 landscape:gap-[6vw]"
         >
-          <div className="flex flex-col items-center gap-[2.5vh] landscape:gap-[2.5vh]">
-            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl !w-[22vmin] !h-[22vmin] landscape:!w-[28vh] landscape:!h-[28vh]" />
+          <div className="flex flex-col items-center gap-[2vh] landscape:gap-[2vh]">
+            {/* Subject & Level — prominent */}
+            <div className={`inline-flex items-center gap-2.5 px-[clamp(1.5rem,5vmin,3rem)] landscape:px-[clamp(1.2rem,4vh,2.5rem)] py-[clamp(0.6rem,2vmin,1.2rem)] landscape:py-[clamp(0.5rem,2vh,1rem)] rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
+              {isMath
+                ? <Calculator className="w-[clamp(1.2rem,3.5vmin,2rem)] h-[clamp(1.2rem,3.5vmin,2rem)] text-white/90" />
+                : <BookOpen className="w-[clamp(1.2rem,3.5vmin,2rem)] h-[clamp(1.2rem,3.5vmin,2rem)] text-white/90" />
+              }
+              <span className="text-white font-black text-[clamp(1.1rem,3.5vmin,2rem)] landscape:text-[clamp(1rem,4vh,1.6rem)] uppercase tracking-widest">
+                {isMath ? 'Mathematics' : 'English Spelling'}
+              </span>
+              <span className="text-white/80 font-black text-[clamp(1.1rem,3.5vmin,2rem)] landscape:text-[clamp(1rem,4vh,1.6rem)]">
+                — Level {session.level}
+              </span>
+            </div>
 
+            <StudentAvatar photoUrl={session.photo_url} name={session.name} size="xl" className="shadow-xl !w-[18vmin] !h-[18vmin] landscape:!w-[24vh] landscape:!h-[24vh]" />
+
+            {/* Student name & nickname — secondary */}
             <div className="text-center px-4">
-              <h1 className={`text-[clamp(1.8rem,6vmin,4rem)] landscape:text-[clamp(1.6rem,6vh,3rem)] font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              <h1 className={`text-[clamp(1.4rem,4.5vmin,2.8rem)] landscape:text-[clamp(1.2rem,5vh,2.2rem)] font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 {session.name}
               </h1>
               {session.nickname && (
-                <p className={`text-[clamp(1rem,3.5vmin,2rem)] landscape:text-[clamp(1rem,4vh,1.8rem)] font-bold mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>({session.nickname})</p>
+                <p className={`text-[clamp(0.9rem,3vmin,1.6rem)] landscape:text-[clamp(0.85rem,3.5vh,1.4rem)] font-bold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>({session.nickname})</p>
               )}
-            </div>
-
-            <div className={`inline-flex items-center gap-2 px-[clamp(1.2rem,4vmin,2.5rem)] landscape:px-[clamp(1rem,3vh,2rem)] py-[clamp(0.5rem,1.5vmin,1rem)] landscape:py-[clamp(0.4rem,1.5vh,0.8rem)] rounded-full bg-gradient-to-r ${accentFrom} ${accentTo} shadow-lg`}>
-              <span className="text-white font-black text-[clamp(0.8rem,2.5vmin,1.5rem)] landscape:text-[clamp(0.75rem,3vh,1.2rem)] uppercase tracking-widest">
-                {isMath ? 'Math' : 'English Spelling'} — Level {session.level}
-              </span>
             </div>
           </div>
 

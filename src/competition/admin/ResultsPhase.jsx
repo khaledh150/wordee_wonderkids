@@ -11,10 +11,9 @@ function getEnglishTotal(level) {
   return getVocabForLevel(level).length
 }
 
-export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onNewSession, onShowPodium, readOnly }) {
+export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onShowPodium, readOnly }) {
   const [levelFilter, setLevelFilter] = useState(null)
   const maxTime = (state.duration_seconds || 300) + (state.extra_seconds || 0)
-  const [confirmNew, setConfirmNew] = useState(null)
   const [batchProgress, setBatchProgress] = useState(null)
   const [excelExporting, setExcelExporting] = useState(false)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
@@ -100,178 +99,8 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     if (excelExporting || !state) return
     setExcelExporting(true)
     try {
-      const ExcelJS = await import('exceljs')
-      const { data: allSessions } = await supabase
-        .from('competition_sessions')
-        .select('*')
-        .eq('competition_id', state.competition_id)
-      if (!allSessions) { setExcelExporting(false); return }
-
-      let mathTotals = { ...mathCounts }
-      if (Object.keys(mathTotals).length === 0) {
-        try {
-          const { getExamQuestions } = await import('../../data/mathQuestionBank')
-          for (let l = 1; l <= 8; l++) {
-            try { mathTotals[l] = getExamQuestions(l).length } catch {}
-          }
-        } catch {}
-      }
-
-      const getTotal = (subj, lvl) => {
-        if (subj === 'math') return mathTotals[lvl] || 20
-        return getVocabForLevel(lvl).length
-      }
-
-      const NAVY = { argb: 'FF1B1464' }
-      const WHITE_FONT = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-      const HEADER_FONT = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }
-      const THIN_BORDER = {
-        top: { style: 'thin' }, bottom: { style: 'thin' },
-        left: { style: 'thin' }, right: { style: 'thin' },
-      }
-      const GOLD_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } }
-      const SILVER_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } }
-      const BRONZE_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE8D0' } }
-      const GREEN_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }
-
-      const allSubjectDefs = [
-        { key: 'english', label: 'English Spelling', maxLevel: 4, color: { argb: 'FFCC0000' } },
-        { key: 'math', label: 'Mathematics', maxLevel: 8, color: { argb: 'FF3333CC' } },
-      ]
-      const subjects = allSubjectDefs.filter(s => s.key === subject)
-
-      const wb = new ExcelJS.Workbook()
-      wb.creator = 'Wonderkids Championship'
-
-      for (const subj of subjects) {
-        for (let lvl = 1; lvl <= subj.maxLevel; lvl++) {
-          const lvlSessions = allSessions
-            .filter(s => s.subject === subj.key && s.level === lvl)
-          if (lvlSessions.length === 0) continue
-
-          const participated = lvlSessions
-            .filter(s => s.validated_score != null)
-            .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
-          const notParticipated = lvlSessions.filter(s => s.validated_score == null)
-          const sorted = [...participated, ...notParticipated]
-
-          const sheetName = `${subj.key === 'english' ? 'English' : 'Math'} L${lvl}`
-          const ws = wb.addWorksheet(sheetName)
-
-          ws.columns = [
-            { width: 6 },   // A: No.
-            { width: 30 },  // B: Name
-            { width: 12 },  // C: Display ID
-            { width: 20 },  // D: School
-            { width: 10 },  // E: Country
-            { width: 6 },   // F: Age
-            { width: 8 },   // G: Score
-            { width: 8 },   // H: Total
-            { width: 10 },  // I: Time
-          ]
-
-          // Row 1: Title
-          ws.mergeCells('A1:I1')
-          const titleCell = ws.getCell('A1')
-          titleCell.value = `${state.round_label || 'International Championship'} — ${subj.label} — Level ${lvl}`
-          titleCell.font = { bold: true, size: 16 }
-          titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-          ws.getRow(1).height = 38
-
-          // Row 2: Competition ID + date
-          ws.mergeCells('A2:I2')
-          const infoCell = ws.getCell('A2')
-          infoCell.value = `Session: ${state.competition_id} | Exported: ${new Date().toLocaleDateString()}`
-          infoCell.font = { size: 9, color: { argb: 'FF888888' } }
-          infoCell.alignment = { horizontal: 'center', vertical: 'middle' }
-          ws.getRow(2).height = 20
-
-          ws.views = [{ state: 'frozen', ySplit: 3 }]
-          ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } }
-
-          // Row 3: Column headers
-          const headers = ['No.', 'Name', 'Display ID', 'School', 'Country', 'Age', 'Score', 'Total', 'Time']
-          const headerRow = ws.getRow(3)
-          headerRow.height = 26
-          headers.forEach((h, i) => {
-            const cell = headerRow.getCell(i + 1)
-            cell.value = h
-            cell.font = HEADER_FONT
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: subj.color }
-            cell.alignment = { horizontal: i >= 6 ? 'center' : 'left', vertical: 'middle' }
-            cell.border = THIN_BORDER
-          })
-
-          // Data rows
-          let rankCounter = 1
-          sorted.forEach((s, i) => {
-            const row = ws.getRow(i + 4)
-            row.height = 22
-            const hasScore = s.validated_score != null
-            const rank = hasScore ? rankCounter++ : ''
-            const totalQ = getTotal(subj.key, lvl)
-            const cappedTime = Math.min(s.time_spent_seconds || 0, (state.duration_seconds || 300) + (state.extra_seconds || 0))
-            const timeFmt = hasScore && s.time_spent_seconds != null
-              ? `${Math.floor(cappedTime / 60)}:${String(cappedTime % 60).padStart(2, '0')}`
-              : ''
-
-            const values = [
-              rank,
-              s.name || '',
-              s.display_id || '',
-              s.school || '',
-              s.country ? s.country.toUpperCase() : '',
-              s.age || '',
-              hasScore ? s.validated_score : '',
-              hasScore ? totalQ : '',
-              timeFmt,
-            ]
-
-            values.forEach((v, ci) => {
-              const cell = row.getCell(ci + 1)
-              cell.value = v
-              cell.border = THIN_BORDER
-              cell.alignment = { horizontal: ci >= 6 ? 'center' : 'left', vertical: 'middle' }
-              if (ci === 0) cell.font = { bold: true }
-              if (ci === 1) cell.font = { bold: true }
-            })
-
-            // Highlight top 3
-            if (hasScore && rank <= 3) {
-              const bg = rank === 1 ? GOLD_BG : rank === 2 ? SILVER_BG : BRONZE_BG
-              for (let c = 1; c <= 9; c++) row.getCell(c).fill = bg
-            } else if (hasScore) {
-              for (let c = 1; c <= 9; c++) row.getCell(c).fill = GREEN_BG
-            }
-          })
-
-          // Summary row
-          const sumRowIdx = sorted.length + 5
-          ws.getRow(sumRowIdx).height = 24
-          ws.mergeCells(`A${sumRowIdx}:F${sumRowIdx}`)
-          const sumCell = ws.getCell(`A${sumRowIdx}`)
-          sumCell.value = `Total Participants: ${participated.length} / ${sorted.length} registered`
-          sumCell.font = { bold: true, size: 10, italic: true }
-          sumCell.alignment = { horizontal: 'left', vertical: 'middle' }
-
-          if (participated.length > 0) {
-            const avg = (participated.reduce((sum, s) => sum + s.validated_score, 0) / participated.length).toFixed(1)
-            const avgCell = ws.getCell(`G${sumRowIdx}`)
-            avgCell.value = `Avg: ${avg}`
-            avgCell.font = { bold: true, size: 10 }
-            avgCell.alignment = { horizontal: 'center', vertical: 'middle' }
-          }
-        }
-      }
-
-      const buffer = await wb.xlsx.writeBuffer()
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `results-${state.competition_id}.xlsx`
-      a.click()
-      URL.revokeObjectURL(url)
+      const { exportFromTemplate } = await import('./exportResults')
+      await exportFromTemplate(subject, state.competition_id)
     } catch (err) {
       console.error('Excel export failed:', err)
     } finally {
@@ -295,15 +124,6 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
       (done, total) => setBatchProgress({ done, total })
     )
     setBatchProgress(null)
-  }
-
-  async function handleNewSession(copyRoster) {
-    if (confirmNew !== copyRoster) {
-      setConfirmNew(copyRoster)
-      return
-    }
-    setConfirmNew(null)
-    await onNewSession(copyRoster)
   }
 
   const summaryCards = [
@@ -498,41 +318,6 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
             </motion.button>
           )}
 
-          {onNewSession && (
-            <>
-              <div className="flex items-center gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleNewSession(true)}
-                  className={`px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white transition-all cursor-pointer ${
-                    confirmNew === true ? 'bg-red-600 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'
-                  }`}
-                >
-                  {confirmNew === true ? 'TAP TO CONFIRM' : 'New Session (Keep Roster)'}
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleNewSession(false)}
-                  className={`px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white transition-all cursor-pointer ${
-                    confirmNew === false ? 'bg-red-600 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'
-                  }`}
-                >
-                  {confirmNew === false ? 'TAP TO CONFIRM' : 'New Session (Fresh)'}
-                </motion.button>
-                {confirmNew != null && (
-                  <button
-                    onClick={() => setConfirmNew(null)}
-                    className={`text-xs font-bold underline cursor-pointer ${textMuted}`}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-              <p className={`text-xs ${textMuted}`}>
-                Previous results are preserved in session history.
-              </p>
-            </>
-          )}
         </div>
       )}
 
