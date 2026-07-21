@@ -15,6 +15,7 @@ import ModuleBoundary from '../components/ModuleBoundary'
 
 const HistoryPhase = lazy(() => import('./admin/HistoryPhase'))
 const DiagnosticsPanel = lazy(() => import('./admin/DiagnosticsPanel'))
+const ModeLauncher = lazy(() => import('./admin/ModeLauncher'))
 
 
 export default function AdminDashboard() {
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
   const [subject, setSubject] = useState(SUBJECTS.ENGLISH)
   const [showUpload, setShowUpload] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [showModeLauncher, setShowModeLauncher] = useState(false)
   const [dialog, setDialog] = useState(null)
 
   const isDark = theme === 'dark'
@@ -187,6 +189,7 @@ export default function AdminDashboard() {
           onLogout={handleLogout}
           onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
           onDiagnostics={() => setShowDiagnostics(true)}
+          onModeLauncher={() => setShowModeLauncher(true)}
         />
       )}
 
@@ -328,6 +331,14 @@ export default function AdminDashboard() {
         <Suspense fallback={null}>
           <ModuleBoundary label="Diagnostics">
             <DiagnosticsPanel isDark={isDark} onClose={() => setShowDiagnostics(false)} />
+          </ModuleBoundary>
+        </Suspense>
+      )}
+
+      {showModeLauncher && (
+        <Suspense fallback={null}>
+          <ModuleBoundary label="Mode Launcher">
+            <ModeLauncher isDark={isDark} onClose={() => setShowModeLauncher(false)} />
           </ModuleBoundary>
         </Suspense>
       )}

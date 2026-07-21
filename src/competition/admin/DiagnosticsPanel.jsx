@@ -106,7 +106,7 @@ const CHECKS = [
         resolve({ status: 'ok', detail: `Audio ready (${ms}ms)` })
       }
       audio.onerror = () => resolve({ status: 'fail', detail: 'Failed to load test audio' })
-      audio.src = '/audio/common/sfx/correct.wav?t=' + Date.now()
+      audio.src = '/audio/sfx/correct.wav?t=' + Date.now()
     }),
   },
   {

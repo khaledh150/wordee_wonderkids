@@ -18,14 +18,20 @@ const ENG_LEVEL_LABELS = {
   4: 'English Level 4',
 }
 
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
 function getAward(rank, tiers) {
   const t = tiers || { trophy: 3, gold: 3, silver: 3, bronze: 3 }
   let cutoff = 0
-  cutoff += t.trophy; if (rank <= cutoff) return `Rank ${rank} (Trophy)`
-  cutoff += t.gold; if (rank <= cutoff) return `Rank ${rank} (Gold Medal)`
-  cutoff += t.silver; if (rank <= cutoff) return `Rank ${rank} (Silver Medal)`
-  cutoff += t.bronze; if (rank <= cutoff) return `Rank ${rank} (Bronze Medal)`
-  return `Rank ${rank} (Certificate)`
+  cutoff += t.trophy; if (rank <= cutoff) return `${ordinal(rank)} Place Award`
+  cutoff += t.gold; if (rank <= cutoff) return 'Gold Medal Award'
+  cutoff += t.silver; if (rank <= cutoff) return 'Silver Medal Award'
+  cutoff += t.bronze; if (rank <= cutoff) return 'Bronze Medal Award'
+  return ''
 }
 
 const THIN_BORDER_ALL = {
@@ -45,15 +51,8 @@ const CYAN_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FFF
 const YELLOW_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' }, bgColor: { argb: 'FFFFFF00' } }
 const GRAY_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5A5A5' }, bgColor: { argb: 'FFA5A5A5' } }
 
-function measureCol(allSessions, key, minWidth) {
-  let max = minWidth
-  for (const s of allSessions) {
-    const val = s[key] || ''
-    const len = val.length * 1.3 + 2
-    if (len > max) max = len
-  }
-  return Math.min(max, 50)
-}
+// A4 landscape ~143 chars printable. Visible cols: A,B,C,D,E,F,M
+const COL_WIDTHS = [5, 50, 22, 16, 8, 7, 4, 2.5, 8.5, 3, 5.5, 5.5, 35]
 
 export async function exportFromTemplate(subject, competitionId, tiers) {
   const { data: allSessions } = await supabase
@@ -73,13 +72,8 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
   const headerMainFill = isMath ? YELLOW_FILL : CYAN_FILL
   const headerSmallFill = isMath ? GRAY_FILL : CYAN_FILL
 
-  const nameW = measureCol(allSessions, 'name', 20)
-  const schoolW = measureCol(allSessions, 'school', 10)
-  const nickW = measureCol(allSessions, 'nickname', 8)
-  const colWidths = [5, nameW, schoolW, nickW, 7, 6, 4, 2.5, 8.5, 3, 5.5, 5.5, 16]
-
   const ws = wb.addWorksheet('E')
-  ws.columns = colWidths.map(w => ({ width: w }))
+  ws.columns = COL_WIDTHS.map(w => ({ width: w }))
   ws.pageSetup = { orientation: 'landscape', paperSize: 9 }
 
   for (let c = 7; c <= 12; c++) {
@@ -110,7 +104,7 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
 
     // Header row
     const headerRow = ws.getRow(currentRow)
-    headerRow.height = 28
+    headerRow.height = 30
     ws.mergeCells(`G${currentRow}:H${currentRow}`)
     ws.mergeCells(`I${currentRow}:J${currentRow}`)
 
@@ -125,12 +119,12 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
     }
     currentRow++
 
-    // Data rows — number ALL students sequentially
+    // Data rows
     let rowNum = 1
     let scoreRank = 1
     for (const s of sorted) {
       const row = ws.getRow(currentRow)
-      row.height = 26
+      row.height = 30
       const hasScore = s.validated_score != null
       const rank = hasScore ? scoreRank++ : null
       const fontSize = 20
@@ -166,7 +160,7 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
       cellE.border = THIN_BORDER_ALL
 
       const cellF = row.getCell(6)
-      cellF.value = hasScore ? '5:00' : ''
+      cellF.value = ''
       cellF.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellF.alignment = { horizontal: 'center', vertical: 'middle' }
       cellF.border = THIN_BORDER_ALL
@@ -214,7 +208,7 @@ export async function exportCSVForCanva(subject, competitionId, tiers) {
   const isMath = subject === 'math'
   const levelLabels = isMath ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
 
-  const CSV_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ระดับ', 'ข้อถูก', 'นาที', 'รางวัลที่ได้']
+  const CSV_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ระดับ', 'ข้อถูก', 'รางวัลที่ได้']
 
   const rows = []
   const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
@@ -235,7 +229,6 @@ export async function exportCSVForCanva(subject, competitionId, tiers) {
         s.nickname || '',
         levelLabels[level] || `Level ${level}`,
         s.validated_score,
-        '5:00',
         getAward(rank, tiers),
       ])
     }
