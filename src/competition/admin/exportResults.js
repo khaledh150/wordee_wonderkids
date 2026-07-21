@@ -18,14 +18,14 @@ const ENG_LEVEL_LABELS = {
   4: 'English Level 4',
 }
 
-function getAward(rank) {
-  let prize
-  if (rank <= 3) prize = 'Trophy'
-  else if (rank <= 6) prize = 'Gold Medal'
-  else if (rank <= 9) prize = 'Silver Medal'
-  else if (rank <= 12) prize = 'Bronze Medal'
-  else prize = 'Certificate'
-  return `Rank ${rank} (${prize})`
+function getAward(rank, tiers) {
+  const t = tiers || { trophy: 3, gold: 3, silver: 3, bronze: 3 }
+  let cutoff = 0
+  cutoff += t.trophy; if (rank <= cutoff) return `Rank ${rank} (Trophy)`
+  cutoff += t.gold; if (rank <= cutoff) return `Rank ${rank} (Gold Medal)`
+  cutoff += t.silver; if (rank <= cutoff) return `Rank ${rank} (Silver Medal)`
+  cutoff += t.bronze; if (rank <= cutoff) return `Rank ${rank} (Bronze Medal)`
+  return `Rank ${rank} (Certificate)`
 }
 
 const THIN_BORDER_ALL = {
@@ -55,7 +55,7 @@ function measureCol(allSessions, key, minWidth) {
   return Math.min(max, 50)
 }
 
-export async function exportFromTemplate(subject, competitionId) {
+export async function exportFromTemplate(subject, competitionId, tiers) {
   const { data: allSessions } = await supabase
     .from('competition_sessions')
     .select('*')
@@ -180,7 +180,7 @@ export async function exportFromTemplate(subject, competitionId) {
       }
 
       const cellM = row.getCell(13)
-      cellM.value = hasScore ? getAward(rank) : ''
+      cellM.value = hasScore ? getAward(rank, tiers) : ''
       cellM.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellM.alignment = { vertical: 'middle' }
       cellM.border = THIN_BORDER_ALL
@@ -202,7 +202,7 @@ export async function exportFromTemplate(subject, competitionId) {
   URL.revokeObjectURL(url)
 }
 
-export async function exportCSVForCanva(subject, competitionId) {
+export async function exportCSVForCanva(subject, competitionId, tiers) {
   const { data: allSessions } = await supabase
     .from('competition_sessions')
     .select('*')
@@ -236,7 +236,7 @@ export async function exportCSVForCanva(subject, competitionId) {
         levelLabels[level] || `Level ${level}`,
         s.validated_score,
         '5:00',
-        getAward(rank),
+        getAward(rank, tiers),
       ])
     }
   }

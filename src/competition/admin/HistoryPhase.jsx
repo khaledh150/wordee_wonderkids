@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Table } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
+import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
 
 const mathQuestionCountCache = {}
 
@@ -23,6 +24,8 @@ export default function HistoryPhase({ isDark, onBack }) {
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
   const [excelExporting, setExcelExporting] = useState(false)
   const [csvExporting, setCsvExporting] = useState(false)
+  const [awardTiers, setAwardTiers] = useState(loadTiers)
+  const [showAwardConfig, setShowAwardConfig] = useState(false)
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
   const text = isDark ? 'text-white' : 'text-slate-900'
@@ -108,7 +111,7 @@ export default function HistoryPhase({ isDark, onBack }) {
     setExcelExporting(true)
     try {
       const { exportFromTemplate } = await import('./exportResults')
-      await exportFromTemplate(detailSubject, selected.competition_id)
+      await exportFromTemplate(detailSubject, selected.competition_id, awardTiers)
     } catch (err) {
       console.error('Excel export failed:', err)
     } finally {
@@ -121,7 +124,7 @@ export default function HistoryPhase({ isDark, onBack }) {
     setCsvExporting(true)
     try {
       const { exportCSVForCanva } = await import('./exportResults')
-      await exportCSVForCanva(detailSubject, selected.competition_id)
+      await exportCSVForCanva(detailSubject, selected.competition_id, awardTiers)
     } catch (err) {
       console.error('CSV export failed:', err)
     } finally {
@@ -241,7 +244,8 @@ export default function HistoryPhase({ isDark, onBack }) {
             ))}
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <AwardConfigButton onClick={() => setShowAwardConfig(true)} isDark={isDark} />
             <button
               onClick={exportExcelResults}
               disabled={excelExporting}
@@ -260,6 +264,10 @@ export default function HistoryPhase({ isDark, onBack }) {
             </button>
           </div>
         </div>
+
+        {showAwardConfig && (
+          <AwardConfigModal tiers={awardTiers} onChange={setAwardTiers} isDark={isDark} onClose={() => setShowAwardConfig(false)} />
+        )}
 
         {/* Score table */}
         <div className={`border rounded-3xl overflow-hidden shadow-lg transition-all duration-300 ${

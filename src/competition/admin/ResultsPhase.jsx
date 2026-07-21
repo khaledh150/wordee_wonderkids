@@ -4,6 +4,7 @@ import { FileText, ArrowRight, Table, Trophy } from 'lucide-react'
 import { supabase, SUBJECTS } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import { fmt } from './shared'
+import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
 
 const mathQuestionCountCache = {}
 
@@ -18,6 +19,8 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
   const [csvExporting, setCsvExporting] = useState(false)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
   const [otherSubjectDone, setOtherSubjectDone] = useState(false)
+  const [awardTiers, setAwardTiers] = useState(loadTiers)
+  const [showAwardConfig, setShowAwardConfig] = useState(false)
 
   const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
 
@@ -86,7 +89,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     setExcelExporting(true)
     try {
       const { exportFromTemplate } = await import('./exportResults')
-      await exportFromTemplate(subject, state.competition_id)
+      await exportFromTemplate(subject, state.competition_id, awardTiers)
     } catch (err) {
       console.error('Excel export failed:', err)
     } finally {
@@ -99,7 +102,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     setCsvExporting(true)
     try {
       const { exportCSVForCanva } = await import('./exportResults')
-      await exportCSVForCanva(subject, state.competition_id)
+      await exportCSVForCanva(subject, state.competition_id, awardTiers)
     } catch (err) {
       console.error('CSV export failed:', err)
     } finally {
@@ -151,7 +154,8 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
           ))}
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <AwardConfigButton onClick={() => setShowAwardConfig(true)} isDark={isDark} />
           <button
             onClick={exportExcelResults}
             disabled={excelExporting}
@@ -170,6 +174,10 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
           </button>
         </div>
       </div>
+
+      {showAwardConfig && (
+        <AwardConfigModal tiers={awardTiers} onChange={setAwardTiers} isDark={isDark} onClose={() => setShowAwardConfig(false)} />
+      )}
 
       <div className={`border rounded-3xl overflow-hidden shadow-lg print:hidden transition-all duration-300 ${
         isDark ? 'bg-[#0e1224]/20 border-white/5' : 'bg-white border-slate-200'
