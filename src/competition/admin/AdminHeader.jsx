@@ -3,7 +3,7 @@ import { Shield, LogOut, Sun, Moon, History, Activity } from 'lucide-react'
 const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results', podium: 'Podium' }
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results', 'podium']
 
-export default function AdminHeader({ subject, setSubject, phase, isDark, setTheme, onLogout, onPhaseClick, onDiagnostics }) {
+export default function AdminHeader({ subject, setSubject, phase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal }) {
   return (
     <header className={`border-b px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-40 print:hidden transition-colors ${
       isDark ? 'bg-[#0e1224]/90 border-white/5 shadow-lg' : 'bg-white border-slate-200 shadow-sm'
@@ -81,10 +81,11 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, setThe
           <Activity className="w-4 h-4" />
         </button>
         <button
-          onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          onClick={onThemeModal}
           className={`p-2 rounded-xl border cursor-pointer ${
             isDark ? 'bg-white/5 border-white/10 text-yellow-400 hover:bg-white/10' : 'bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200'
           }`}
+          title="Theme Settings"
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>

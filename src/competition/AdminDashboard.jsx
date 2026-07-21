@@ -15,24 +15,31 @@ import ModuleBoundary from '../components/ModuleBoundary'
 
 const HistoryPhase = lazy(() => import('./admin/HistoryPhase'))
 const DiagnosticsPanel = lazy(() => import('./admin/DiagnosticsPanel'))
+const ThemeModal = lazy(() => import('./admin/ThemeModal'))
 
 
 export default function AdminDashboard() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wordee_admin_theme') || 'dark')
+  const [remoteTheme, setRemoteTheme] = useState(() => localStorage.getItem('wordee_remote_theme') || 'dark')
   const [subject, setSubject] = useState(SUBJECTS.ENGLISH)
   const [showUpload, setShowUpload] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [showThemeModal, setShowThemeModal] = useState(false)
   const [dialog, setDialog] = useState(null)
 
   const isDark = theme === 'dark'
 
   useEffect(() => {
     localStorage.setItem('wordee_admin_theme', theme)
-    Promise.all([
-      supabase.from('competition_state').update({ theme }).eq('id', 'english'),
-      supabase.from('competition_state').update({ theme }).eq('id', 'math'),
-    ])
   }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem('wordee_remote_theme', remoteTheme)
+    Promise.all([
+      supabase.from('competition_state').update({ theme: remoteTheme }).eq('id', 'english'),
+      supabase.from('competition_state').update({ theme: remoteTheme }).eq('id', 'math'),
+    ])
+  }, [remoteTheme])
 
   const { state, sessions, elapsed, phase: autoPhase, error: adminError, loadState, loadSessions, updateState } = useAdminData({ subject })
   const [phaseOverride, setPhaseOverride] = useState(null)
@@ -183,10 +190,10 @@ export default function AdminDashboard() {
           setSubject={(s) => { setSubject(s); setPhaseOverride(null) }}
           phase={phase}
           isDark={isDark}
-          setTheme={setTheme}
           onLogout={handleLogout}
           onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
           onDiagnostics={() => setShowDiagnostics(true)}
+          onThemeModal={() => setShowThemeModal(true)}
         />
       )}
 
@@ -328,6 +335,20 @@ export default function AdminDashboard() {
         <Suspense fallback={null}>
           <ModuleBoundary label="Diagnostics">
             <DiagnosticsPanel isDark={isDark} onClose={() => setShowDiagnostics(false)} />
+          </ModuleBoundary>
+        </Suspense>
+      )}
+
+      {showThemeModal && (
+        <Suspense fallback={null}>
+          <ModuleBoundary label="Theme">
+            <ThemeModal
+              adminTheme={theme}
+              remoteTheme={remoteTheme}
+              onAdminTheme={setTheme}
+              onRemoteTheme={setRemoteTheme}
+              onClose={() => setShowThemeModal(false)}
+            />
           </ModuleBoundary>
         </Suspense>
       )}

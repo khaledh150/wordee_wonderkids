@@ -55,13 +55,13 @@ const GRAY_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5A5A
 const COL_WIDTHS = [5, 50, 22, 16, 8, 7, 4, 2.5, 8.5, 3, 5.5, 5.5, 35]
 
 export async function exportFromTemplate(subject, competitionId, tiers) {
-  const { data: allSessions } = await supabase
-    .from('competition_sessions')
-    .select('*')
-    .eq('competition_id', competitionId)
-    .eq('subject', subject)
+  const [{ data: allSessions }, { data: stateData }] = await Promise.all([
+    supabase.from('competition_sessions').select('*').eq('competition_id', competitionId).eq('subject', subject),
+    supabase.from('competition_state').select('duration_seconds').eq('id', subject).single(),
+  ])
 
   if (!allSessions) throw new Error('No sessions found')
+  const durationMinutes = Math.round((stateData?.duration_seconds || 300) / 60)
 
   const ExcelJS = await import('exceljs')
   const wb = new ExcelJS.Workbook()
@@ -160,7 +160,7 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
       cellE.border = THIN_BORDER_ALL
 
       const cellF = row.getCell(6)
-      cellF.value = ''
+      cellF.value = durationMinutes
       cellF.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellF.alignment = { horizontal: 'center', vertical: 'middle' }
       cellF.border = THIN_BORDER_ALL
