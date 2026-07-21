@@ -69,6 +69,7 @@ export async function exportFromTemplate(subject, competitionId) {
 
   const ws = wb.addWorksheet('E')
   ws.columns = colWidths.map(w => ({ width: w }))
+  ws.pageSetup = { fitToPage: true, fitToWidth: 1, fitToHeight: 0, orientation: 'portrait' }
 
   // Hide penalty/adjustment columns G-L (7-12) to match template
   for (let c = 7; c <= 12; c++) {
@@ -88,14 +89,14 @@ export async function exportFromTemplate(subject, competitionId) {
     const notParticipated = levelSessions.filter(s => s.validated_score == null)
     const sorted = [...participated, ...notParticipated]
 
-    // Title row — CordiaUPC 24 bold, merged A:M, center, bottom border only
-    ws.mergeCells(`A${currentRow}:M${currentRow}`)
+    // Title row — CordiaUPC 24 bold, merged across visible cols, center, bottom border only
+    ws.mergeCells(`A${currentRow}:F${currentRow}`)
     const titleCell = ws.getCell(`A${currentRow}`)
     titleCell.value = ` ${title}`
     titleCell.font = { bold: true, size: 24, name: 'CordiaUPC', color: { theme: 1 } }
-    titleCell.alignment = { horizontal: 'center' }
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
     titleCell.border = TITLE_BORDER
-    ws.getRow(currentRow).height = 38
+    ws.getRow(currentRow).height = 50
     currentRow++
 
     // Header row — Angsana New 14 bold (main), 12 bold (small), subject-specific fill
