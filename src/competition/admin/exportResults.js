@@ -18,13 +18,14 @@ const ENG_LEVEL_LABELS = {
   4: 'English Level 4',
 }
 
-function getAward(rank, totalParticipants) {
-  if (totalParticipants <= 3) return `อันดับที่ ${rank}`
-  if (rank <= 3) return 'ถ้วยรางวัล'
-  if (rank <= 6) return 'เหรียญทอง'
-  if (rank <= 9) return 'เหรียญเงิน'
-  if (rank <= 12) return 'เหรียญทองแดง'
-  return 'เกียรติบัตร'
+function getAward(rank) {
+  let prize
+  if (rank <= 3) prize = 'Trophy'
+  else if (rank <= 6) prize = 'Gold Medal'
+  else if (rank <= 9) prize = 'Silver Medal'
+  else if (rank <= 12) prize = 'Bronze Medal'
+  else prize = 'Certificate'
+  return `Rank ${rank} (${prize})`
 }
 
 const THIN_BORDER_ALL = {
@@ -40,12 +41,19 @@ const TITLE_BORDER = {
 
 const THAI_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ข้อถูก', 'นาที', 'ข้อผิด/ปรับ', 'ข้อผิด/ปรับ', 'เวลาปรับ', 'เวลาปรับ', 'วินาที', 'วินาที', 'รางวัลที่ได้']
 
-const ENG_COL_WIDTHS = [11, 52, 18, 12, 10, 8, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 22]
-const MATH_COL_WIDTHS = [8, 56, 18, 14, 10, 7, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 30]
-
 const CYAN_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FFFF' }, bgColor: { argb: 'FF00FFFF' } }
 const YELLOW_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' }, bgColor: { argb: 'FFFFFF00' } }
 const GRAY_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5A5A5' }, bgColor: { argb: 'FFA5A5A5' } }
+
+function measureCol(allSessions, key, minWidth) {
+  let max = minWidth
+  for (const s of allSessions) {
+    const val = s[key] || ''
+    const len = val.length * 1.3 + 2
+    if (len > max) max = len
+  }
+  return Math.min(max, 50)
+}
 
 export async function exportFromTemplate(subject, competitionId) {
   const { data: allSessions } = await supabase
@@ -62,23 +70,24 @@ export async function exportFromTemplate(subject, competitionId) {
 
   const isMath = subject === 'math'
   const levelLabels = isMath ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
-  const colWidths = isMath ? MATH_COL_WIDTHS : ENG_COL_WIDTHS
   const headerMainFill = isMath ? YELLOW_FILL : CYAN_FILL
   const headerSmallFill = isMath ? GRAY_FILL : CYAN_FILL
-  const dataFontSize = isMath ? 14 : 16
+
+  const nameW = measureCol(allSessions, 'name', 20)
+  const schoolW = measureCol(allSessions, 'school', 10)
+  const nickW = measureCol(allSessions, 'nickname', 8)
+  const colWidths = [5, nameW, schoolW, nickW, 7, 6, 4, 2.5, 8.5, 3, 5.5, 5.5, 16]
 
   const ws = wb.addWorksheet('E')
   ws.columns = colWidths.map(w => ({ width: w }))
-  ws.pageSetup = { fitToPage: true, fitToWidth: 1, fitToHeight: 0, orientation: 'portrait' }
+  ws.pageSetup = { orientation: 'landscape', paperSize: 9 }
 
-  // Hide penalty/adjustment columns G-L (7-12) to match template
   for (let c = 7; c <= 12; c++) {
     ws.getColumn(c).hidden = true
   }
 
   let currentRow = 1
   const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
-  let isFirstLevel = true
 
   for (const level of levels) {
     const title = levelLabels[level] || `Level ${level}`
@@ -89,19 +98,19 @@ export async function exportFromTemplate(subject, competitionId) {
     const notParticipated = levelSessions.filter(s => s.validated_score == null)
     const sorted = [...participated, ...notParticipated]
 
-    // Title row — CordiaUPC 24 bold, merged across visible cols, center, bottom border only
-    ws.mergeCells(`A${currentRow}:F${currentRow}`)
+    // Title row
+    ws.mergeCells(`A${currentRow}:M${currentRow}`)
     const titleCell = ws.getCell(`A${currentRow}`)
-    titleCell.value = ` ${title}`
-    titleCell.font = { bold: true, size: 24, name: 'CordiaUPC', color: { theme: 1 } }
+    titleCell.value = title
+    titleCell.font = { bold: true, size: 28, name: 'CordiaUPC', color: { theme: 1 } }
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
     titleCell.border = TITLE_BORDER
-    ws.getRow(currentRow).height = 50
+    ws.getRow(currentRow).height = 45
     currentRow++
 
-    // Header row — Angsana New 14 bold (main), 12 bold (small), subject-specific fill
+    // Header row
     const headerRow = ws.getRow(currentRow)
-    headerRow.height = 26
+    headerRow.height = 28
     ws.mergeCells(`G${currentRow}:H${currentRow}`)
     ws.mergeCells(`I${currentRow}:J${currentRow}`)
 
@@ -109,83 +118,76 @@ export async function exportFromTemplate(subject, competitionId) {
       const cell = headerRow.getCell(c)
       cell.value = THAI_HEADERS[c - 1]
       const isSmall = c >= 7 && c <= 12
-      cell.font = { bold: true, size: isSmall ? 12 : 14, name: 'Angsana New', color: { theme: 1 } }
+      cell.font = { bold: true, size: isSmall ? 14 : 18, name: 'Angsana New', color: { theme: 1 } }
       cell.fill = isSmall ? headerSmallFill : headerMainFill
       cell.alignment = { horizontal: 'center', vertical: 'middle' }
       cell.border = THIN_BORDER_ALL
     }
     currentRow++
 
-    // Data rows
-    let rankCounter = 1
+    // Data rows — number ALL students sequentially
+    let rowNum = 1
+    let scoreRank = 1
     for (const s of sorted) {
       const row = ws.getRow(currentRow)
-      row.height = 24
+      row.height = 26
       const hasScore = s.validated_score != null
-      const rank = hasScore ? rankCounter++ : null
+      const rank = hasScore ? scoreRank++ : null
+      const fontSize = 20
 
-      // Col A — rank (bold)
       const cellA = row.getCell(1)
-      cellA.value = rank || ''
-      cellA.font = { bold: true, size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellA.value = rowNum++
+      cellA.font = { bold: true, size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellA.alignment = { horizontal: 'center', vertical: 'middle' }
       cellA.border = THIN_BORDER_ALL
 
-      // Col B — name
       const cellB = row.getCell(2)
       cellB.value = s.name || ''
-      cellB.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellB.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellB.alignment = { horizontal: 'left', vertical: 'middle' }
       cellB.border = THIN_BORDER_ALL
 
-      // Col C — school
       const cellC = row.getCell(3)
       cellC.value = s.school || ''
-      cellC.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellC.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellC.alignment = { vertical: 'middle' }
       cellC.border = THIN_BORDER_ALL
 
-      // Col D — nickname (AngsanaUPC, not Angsana New)
       const cellD = row.getCell(4)
       cellD.value = s.nickname || ''
-      cellD.font = { size: dataFontSize, name: 'AngsanaUPC', color: { theme: 1 } }
+      cellD.font = { size: fontSize, name: 'AngsanaUPC', color: { theme: 1 } }
       cellD.alignment = { horizontal: 'center', vertical: 'middle' }
       cellD.border = THIN_BORDER_ALL
 
-      // Col E — score
       const cellE = row.getCell(5)
       cellE.value = hasScore ? s.validated_score : ''
-      cellE.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellE.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellE.alignment = { horizontal: 'center', vertical: 'middle' }
       cellE.border = THIN_BORDER_ALL
 
-      // Col F — time (always 5:00)
       const cellF = row.getCell(6)
       cellF.value = hasScore ? '5:00' : ''
-      cellF.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellF.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellF.alignment = { horizontal: 'center', vertical: 'middle' }
       cellF.border = THIN_BORDER_ALL
 
-      // Cols G-L — empty penalty/adjustment columns
       for (let c = 7; c <= 12; c++) {
         const cell = row.getCell(c)
         cell.value = ''
-        cell.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+        cell.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
         cell.alignment = { horizontal: 'center', vertical: 'middle' }
         cell.border = THIN_BORDER_ALL
       }
 
-      // Col M — award
       const cellM = row.getCell(13)
-      cellM.value = hasScore ? getAward(rank, participated.length) : ''
-      cellM.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellM.value = hasScore ? getAward(rank) : ''
+      cellM.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellM.alignment = { vertical: 'middle' }
       cellM.border = THIN_BORDER_ALL
 
       currentRow++
     }
 
-    isFirstLevel = false
     currentRow += 3
   }
 
@@ -234,7 +236,7 @@ export async function exportCSVForCanva(subject, competitionId) {
         levelLabels[level] || `Level ${level}`,
         s.validated_score,
         '5:00',
-        getAward(rank, participated.length),
+        getAward(rank),
       ])
     }
   }
