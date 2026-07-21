@@ -74,7 +74,7 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
 
   const ws = wb.addWorksheet('E')
   ws.columns = COL_WIDTHS.map(w => ({ width: w }))
-  ws.pageSetup = { orientation: 'landscape', paperSize: 9 }
+  ws.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
 
   for (let c = 7; c <= 12; c++) {
     ws.getColumn(c).hidden = true
