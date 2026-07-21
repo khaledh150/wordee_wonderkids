@@ -13,12 +13,8 @@ export default function useVersionCheck() {
         const data = await res.json()
         if (data.version && data.version !== APP_VERSION) {
           if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations()
-            await Promise.all(regs.map(r => r.unregister()))
-          }
-          if ('caches' in window) {
-            const keys = await caches.keys()
-            await Promise.all(keys.map(k => caches.delete(k)))
+            const reg = await navigator.serviceWorker.getRegistration()
+            if (reg) await reg.update()
           }
           window.location.reload()
         }

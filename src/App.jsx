@@ -7,6 +7,7 @@ import ModeSelect from './components/ModeSelect'
 import LoadingScreen from './components/LoadingScreen'
 import { stopAll, clearIdleTimer } from './utils/audioPlayer'
 import InAppBrowserGuard from './components/InAppBrowserGuard'
+import ModuleBoundary from './components/ModuleBoundary'
 import { LanguageProvider } from './i18n/LanguageContext'
 import { levelConfig } from './math/mathEngine'
 import useVersionCheck from './hooks/useVersionCheck'
@@ -23,7 +24,7 @@ const MathExam = lazy(() => import('./math/MathExam'))
 const MathResults = lazy(() => import('./math/MathResults'))
 const MathPrintExam = lazy(() => import('./math/MathPrintExam'))
 
-export const APP_VERSION = '1.8.7.2'
+export const APP_VERSION = '1.9.1.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version', 'wonderkids_language', 'mathwiz_answers', 'mathwiz_exam_progress']
 
 function writeHash(screen, level, ml) {
@@ -35,13 +36,13 @@ function writeHash(screen, level, ml) {
 
 function App() {
   if (window.location.pathname === '/admin') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense></LanguageProvider>
+    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Admin"><AdminPage /></ModuleBoundary></Suspense></LanguageProvider>
   }
   if (window.location.pathname === '/play') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><CompetitionPlayPage /></Suspense></LanguageProvider>
+    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Competition"><CompetitionPlayPage /></ModuleBoundary></Suspense></LanguageProvider>
   }
   if (window.location.pathname === '/projector') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ProjectorPage /></Suspense></LanguageProvider>
+    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Projector"><ProjectorPage /></ModuleBoundary></Suspense></LanguageProvider>
   }
 
   const [screen, setScreen] = useState('splash')
@@ -60,9 +61,6 @@ function App() {
         PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
         localStorage.clear()
         Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
-        }
       }
       localStorage.setItem('last_wordee_version', APP_VERSION)
     } catch {}
@@ -154,94 +152,112 @@ function App() {
         )}
         {screen === 'learn' && (
           <Suspense fallback={<LoadingScreen />}>
-            <LearnMode
-              key="learn"
-              level={selectedLevel}
-              onBack={goBack}
-              onHome={goHome}
-            />
+            <ModuleBoundary label="Learn Mode">
+              <LearnMode
+                key="learn"
+                level={selectedLevel}
+                onBack={goBack}
+                onHome={goHome}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'practice' && (
           <Suspense fallback={<LoadingScreen />}>
-            <PracticeMode
-              key="practice"
-              level={selectedLevel}
-              onBack={goBack}
-              onHome={goHome}
-              mode="practice"
-            />
+            <ModuleBoundary label="Practice Mode">
+              <PracticeMode
+                key="practice"
+                level={selectedLevel}
+                onBack={goBack}
+                onHome={goHome}
+                mode="practice"
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'test' && (
           <Suspense fallback={<LoadingScreen />}>
-            <PracticeMode
-              key="test"
-              level={selectedLevel}
-              onBack={goBack}
-              onHome={goHome}
-              mode="test"
-            />
+            <ModuleBoundary label="Test Mode">
+              <PracticeMode
+                key="test"
+                level={selectedLevel}
+                onBack={goBack}
+                onHome={goHome}
+                mode="test"
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathLevels' && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathLevelSelect
-              key="mathLevels"
-              onSelectLevel={(config) => { setMathLevel(config); navigate('mathMode') }}
-              onPrint={() => navigate('mathPrint')}
-              onBack={() => navigate('home')}
-            />
+            <ModuleBoundary label="Math">
+              <MathLevelSelect
+                key="mathLevels"
+                onSelectLevel={(config) => { setMathLevel(config); navigate('mathMode') }}
+                onPrint={() => navigate('mathPrint')}
+                onBack={() => navigate('home')}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathMode' && mathLevel && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathModeSelect
-              key="mathMode"
-              levelConfig={mathLevel}
-              onSelectMode={(m) => {
-                if (m === 'practice') navigate('mathPractice')
-                else { setMathExamKey(k => k + 1); navigate('mathExam') }
-              }}
-              onBack={() => navigate('mathLevels')}
-            />
+            <ModuleBoundary label="Math">
+              <MathModeSelect
+                key="mathMode"
+                levelConfig={mathLevel}
+                onSelectMode={(m) => {
+                  if (m === 'practice') navigate('mathPractice')
+                  else { setMathExamKey(k => k + 1); navigate('mathExam') }
+                }}
+                onBack={() => navigate('mathLevels')}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathPractice' && mathLevel && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathPractice
-              key={`mathPractice-${mathLevel.level}`}
-              levelConfig={mathLevel}
-              onExit={() => navigate('mathMode')}
-            />
+            <ModuleBoundary label="Math Practice">
+              <MathPractice
+                key={`mathPractice-${mathLevel.level}`}
+                levelConfig={mathLevel}
+                onExit={() => navigate('mathMode')}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathExam' && mathLevel && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathExam
-              key={`mathExam-${mathLevel.level}-${mathExamKey}`}
-              levelConfig={mathLevel}
-              onFinish={(results) => { setMathExamResults(results); navigate('mathResults') }}
-              onExit={() => navigate('mathMode')}
-            />
+            <ModuleBoundary label="Math Exam">
+              <MathExam
+                key={`mathExam-${mathLevel.level}-${mathExamKey}`}
+                levelConfig={mathLevel}
+                onFinish={(results) => { setMathExamResults(results); navigate('mathResults') }}
+                onExit={() => navigate('mathMode')}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathResults' && mathExamResults && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathResults
-              key="mathResults"
-              examData={mathExamResults}
-              onBackToHome={goHome}
-              onTryAgain={() => { setMathExamKey(k => k + 1); navigate('mathExam') }}
-            />
+            <ModuleBoundary label="Math Results">
+              <MathResults
+                key="mathResults"
+                examData={mathExamResults}
+                onBackToHome={goHome}
+                onTryAgain={() => { setMathExamKey(k => k + 1); navigate('mathExam') }}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
         {screen === 'mathPrint' && (
           <Suspense fallback={<LoadingScreen />}>
-            <MathPrintExam
-              key="mathPrint"
-              onBack={() => navigate('mathLevels')}
-            />
+            <ModuleBoundary label="Math Print">
+              <MathPrintExam
+                key="mathPrint"
+                onBack={() => navigate('mathLevels')}
+              />
+            </ModuleBoundary>
           </Suspense>
         )}
       </AnimatePresence>

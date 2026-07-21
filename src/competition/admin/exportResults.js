@@ -27,19 +27,25 @@ function getAward(rank, totalParticipants) {
   return 'เกียรติบัตร'
 }
 
-const CYAN_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FFFF' }, bgColor: { argb: 'FF00FFFF' } }
-const THIN_BORDER = {
-  top: { style: 'thin' }, bottom: { style: 'thin' },
-  left: { style: 'thin' }, right: { style: 'thin' },
+const THIN_BORDER_ALL = {
+  top: { style: 'thin', color: { argb: 'FF000000' } },
+  bottom: { style: 'thin', color: { argb: 'FF000000' } },
+  left: { style: 'thin', color: { argb: 'FF000000' } },
+  right: { style: 'thin', color: { argb: 'FF000000' } },
 }
-const HEADER_FONT = { bold: true, size: 14, name: 'Angsana New' }
-const HEADER_FONT_SM = { bold: true, size: 12, name: 'Angsana New' }
-const DATA_FONT = { size: 14, name: 'Angsana New' }
-const TITLE_FONT = { bold: true, size: 18, name: 'Angsana New' }
 
-const COL_WIDTHS = [11, 44.25, 12.25, 8.88, 8.88, 7.13, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 17.75]
+const TITLE_BORDER = {
+  bottom: { style: 'thin', color: { argb: 'FF000000' } },
+}
 
 const THAI_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ข้อถูก', 'นาที', 'ข้อผิด/ปรับ', 'ข้อผิด/ปรับ', 'เวลาปรับ', 'เวลาปรับ', 'วินาที', 'วินาที', 'รางวัลที่ได้']
+
+const ENG_COL_WIDTHS = [11, 52, 18, 12, 10, 8, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 22]
+const MATH_COL_WIDTHS = [8, 56, 18, 14, 10, 7, 4.13, 2.38, 8.38, 3.13, 5.75, 5.75, 30]
+
+const CYAN_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FFFF' }, bgColor: { argb: 'FF00FFFF' } }
+const YELLOW_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' }, bgColor: { argb: 'FFFFFF00' } }
+const GRAY_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5A5A5' }, bgColor: { argb: 'FFA5A5A5' } }
 
 export async function exportFromTemplate(subject, competitionId) {
   const { data: allSessions } = await supabase
@@ -54,18 +60,27 @@ export async function exportFromTemplate(subject, competitionId) {
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Wonderkids Championship'
 
-  const levelLabels = subject === 'math' ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
-  const ws = wb.addWorksheet('E')
+  const isMath = subject === 'math'
+  const levelLabels = isMath ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
+  const colWidths = isMath ? MATH_COL_WIDTHS : ENG_COL_WIDTHS
+  const headerMainFill = isMath ? YELLOW_FILL : CYAN_FILL
+  const headerSmallFill = isMath ? GRAY_FILL : CYAN_FILL
+  const dataFontSize = isMath ? 14 : 16
 
-  ws.columns = COL_WIDTHS.map(w => ({ width: w }))
+  const ws = wb.addWorksheet('E')
+  ws.columns = colWidths.map(w => ({ width: w }))
+
+  // Hide penalty/adjustment columns G-L (7-12) to match template
+  for (let c = 7; c <= 12; c++) {
+    ws.getColumn(c).hidden = true
+  }
 
   let currentRow = 1
-
   const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
+  let isFirstLevel = true
 
   for (const level of levels) {
     const title = levelLabels[level] || `Level ${level}`
-
     const levelSessions = allSessions.filter(s => s.level === level)
     const participated = levelSessions
       .filter(s => s.validated_score != null)
@@ -73,27 +88,30 @@ export async function exportFromTemplate(subject, competitionId) {
     const notParticipated = levelSessions.filter(s => s.validated_score == null)
     const sorted = [...participated, ...notParticipated]
 
-    // Title row
+    // Title row — CordiaUPC 24 bold, merged A:M, center, bottom border only
     ws.mergeCells(`A${currentRow}:M${currentRow}`)
     const titleCell = ws.getCell(`A${currentRow}`)
-    titleCell.value = title
-    titleCell.font = TITLE_FONT
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
-    ws.getRow(currentRow).height = 32.25
+    titleCell.value = ` ${title}`
+    titleCell.font = { bold: true, size: 24, name: 'CordiaUPC', color: { theme: 1 } }
+    titleCell.alignment = { horizontal: 'center' }
+    titleCell.border = TITLE_BORDER
+    ws.getRow(currentRow).height = 38
     currentRow++
 
-    // Header row
+    // Header row — Angsana New 14 bold (main), 12 bold (small), subject-specific fill
     const headerRow = ws.getRow(currentRow)
-    headerRow.height = 18.75
+    headerRow.height = 26
     ws.mergeCells(`G${currentRow}:H${currentRow}`)
     ws.mergeCells(`I${currentRow}:J${currentRow}`)
+
     for (let c = 1; c <= 13; c++) {
       const cell = headerRow.getCell(c)
       cell.value = THAI_HEADERS[c - 1]
-      cell.font = c >= 7 && c <= 12 ? HEADER_FONT_SM : HEADER_FONT
-      cell.fill = CYAN_FILL
+      const isSmall = c >= 7 && c <= 12
+      cell.font = { bold: true, size: isSmall ? 12 : 14, name: 'Angsana New', color: { theme: 1 } }
+      cell.fill = isSmall ? headerSmallFill : headerMainFill
       cell.alignment = { horizontal: 'center', vertical: 'middle' }
-      cell.border = THIN_BORDER
+      cell.border = THIN_BORDER_ALL
     }
     currentRow++
 
@@ -101,33 +119,72 @@ export async function exportFromTemplate(subject, competitionId) {
     let rankCounter = 1
     for (const s of sorted) {
       const row = ws.getRow(currentRow)
-      row.height = 18.75
+      row.height = 24
       const hasScore = s.validated_score != null
       const rank = hasScore ? rankCounter++ : null
 
-      row.getCell(1).value = rank || ''
-      row.getCell(2).value = s.name || ''
-      row.getCell(3).value = s.school || ''
-      row.getCell(4).value = s.nickname || ''
-      row.getCell(5).value = hasScore ? s.validated_score : ''
-      row.getCell(6).value = hasScore ? '5:00' : ''
-      row.getCell(13).value = hasScore ? getAward(rank, participated.length) : ''
+      // Col A — rank (bold)
+      const cellA = row.getCell(1)
+      cellA.value = rank || ''
+      cellA.font = { bold: true, size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellA.alignment = { horizontal: 'center', vertical: 'middle' }
+      cellA.border = THIN_BORDER_ALL
 
-      for (let c = 1; c <= 13; c++) {
+      // Col B — name
+      const cellB = row.getCell(2)
+      cellB.value = s.name || ''
+      cellB.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellB.alignment = { horizontal: 'left', vertical: 'middle' }
+      cellB.border = THIN_BORDER_ALL
+
+      // Col C — school
+      const cellC = row.getCell(3)
+      cellC.value = s.school || ''
+      cellC.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellC.alignment = { vertical: 'middle' }
+      cellC.border = THIN_BORDER_ALL
+
+      // Col D — nickname (AngsanaUPC, not Angsana New)
+      const cellD = row.getCell(4)
+      cellD.value = s.nickname || ''
+      cellD.font = { size: dataFontSize, name: 'AngsanaUPC', color: { theme: 1 } }
+      cellD.alignment = { horizontal: 'center', vertical: 'middle' }
+      cellD.border = THIN_BORDER_ALL
+
+      // Col E — score
+      const cellE = row.getCell(5)
+      cellE.value = hasScore ? s.validated_score : ''
+      cellE.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellE.alignment = { horizontal: 'center', vertical: 'middle' }
+      cellE.border = THIN_BORDER_ALL
+
+      // Col F — time (always 5:00)
+      const cellF = row.getCell(6)
+      cellF.value = hasScore ? '5:00' : ''
+      cellF.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellF.alignment = { horizontal: 'center', vertical: 'middle' }
+      cellF.border = THIN_BORDER_ALL
+
+      // Cols G-L — empty penalty/adjustment columns
+      for (let c = 7; c <= 12; c++) {
         const cell = row.getCell(c)
-        cell.font = DATA_FONT
-        cell.border = THIN_BORDER
-        if (c === 1 || c === 5 || c === 6 || c === 13) {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' }
-        } else {
-          cell.alignment = { vertical: 'middle' }
-        }
+        cell.value = ''
+        cell.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        cell.border = THIN_BORDER_ALL
       }
+
+      // Col M — award
+      const cellM = row.getCell(13)
+      cellM.value = hasScore ? getAward(rank, participated.length) : ''
+      cellM.font = { size: dataFontSize, name: 'Angsana New', color: { theme: 1 } }
+      cellM.alignment = { vertical: 'middle' }
+      cellM.border = THIN_BORDER_ALL
 
       currentRow++
     }
 
-    // Gap between sections
+    isFirstLevel = false
     currentRow += 3
   }
 
@@ -136,8 +193,65 @@ export async function exportFromTemplate(subject, competitionId) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  const label = subject === 'math' ? 'Mathematics' : 'English'
+  const label = isMath ? 'Mathematics' : 'English'
   a.download = `${label}-results-${competitionId.slice(0, 8)}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function exportCSVForCanva(subject, competitionId) {
+  const { data: allSessions } = await supabase
+    .from('competition_sessions')
+    .select('*')
+    .eq('competition_id', competitionId)
+    .eq('subject', subject)
+
+  if (!allSessions) throw new Error('No sessions found')
+
+  const isMath = subject === 'math'
+  const levelLabels = isMath ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
+
+  const CSV_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ระดับ', 'ข้อถูก', 'นาที', 'รางวัลที่ได้']
+
+  const rows = []
+  const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
+
+  for (const level of levels) {
+    const levelSessions = allSessions.filter(s => s.level === level)
+    const participated = levelSessions
+      .filter(s => s.validated_score != null)
+      .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
+
+    let rankCounter = 1
+    for (const s of participated) {
+      const rank = rankCounter++
+      rows.push([
+        rank,
+        s.name || '',
+        s.school || '',
+        s.nickname || '',
+        levelLabels[level] || `Level ${level}`,
+        s.validated_score,
+        '5:00',
+        getAward(rank, participated.length),
+      ])
+    }
+  }
+
+  const esc = v => {
+    const str = String(v ?? '')
+    return str.includes(',') || str.includes('"') || str.includes('\n')
+      ? `"${str.replace(/"/g, '""')}"`
+      : str
+  }
+
+  const csv = '﻿' + [CSV_HEADERS.map(esc).join(','), ...rows.map(r => r.map(esc).join(','))].join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const label = isMath ? 'Mathematics' : 'English'
+  a.download = `${label}-canva-${competitionId.slice(0, 8)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

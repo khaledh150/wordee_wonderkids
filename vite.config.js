@@ -13,13 +13,29 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,webp,png,mp3,wav,woff2,svg,ico}'],
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         globIgnores: ['**/version.json'],
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
             urlPattern: /\/version\.json/,
             handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /\.(?:png|webp|svg|ico)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'images',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            },
+          },
+          {
+            urlPattern: /\.(?:mp3|wav)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'audio',
+              expiration: { maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            },
           },
         ],
       },

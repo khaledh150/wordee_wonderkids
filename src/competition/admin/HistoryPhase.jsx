@@ -22,7 +22,7 @@ export default function HistoryPhase({ isDark, onBack }) {
   const [levelFilter, setLevelFilter] = useState(null)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
   const [excelExporting, setExcelExporting] = useState(false)
-  const [batchProgress, setBatchProgress] = useState(null)
+  const [csvExporting, setCsvExporting] = useState(false)
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
   const text = isDark ? 'text-white' : 'text-slate-900'
@@ -116,23 +116,19 @@ export default function HistoryPhase({ isDark, onBack }) {
     }
   }
 
-  async function handleBatchDownload() {
-    if (!officialSorted.length || batchProgress) return
-    const { downloadBatchCertificates } = await import('../generateCertificate')
-    const students = officialSorted.map((s, i) => ({
-      ...s,
-      rank: i + 1,
-      totalQuestions: getTotalQuestions(s.level),
-    }))
-    setBatchProgress({ done: 0, total: students.length })
-    await downloadBatchCertificates(
-      students,
-      selected.round_label || 'International English Spelling & Math Championship',
-      selected.competition_id,
-      (done, total) => setBatchProgress({ done, total })
-    )
-    setBatchProgress(null)
+  async function exportCSVResults() {
+    if (csvExporting || !selected) return
+    setCsvExporting(true)
+    try {
+      const { exportCSVForCanva } = await import('./exportResults')
+      await exportCSVForCanva(detailSubject, selected.competition_id)
+    } catch (err) {
+      console.error('CSV export failed:', err)
+    } finally {
+      setCsvExporting(false)
+    }
   }
+
 
   // --- Loading state ---
   if (!history) {
@@ -255,12 +251,12 @@ export default function HistoryPhase({ isDark, onBack }) {
               {excelExporting ? 'Exporting...' : 'Excel'}
             </button>
             <button
-              onClick={handleBatchDownload}
-              disabled={batchProgress != null || !officialSorted.length}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+              onClick={exportCSVResults}
+              disabled={csvExporting}
+              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
             >
               <FileText className="w-4 h-4" />
-              {batchProgress ? `${batchProgress.done}/${batchProgress.total}...` : 'Certificates'}
+              {csvExporting ? 'Exporting...' : 'CSV (Canva)'}
             </button>
           </div>
         </div>

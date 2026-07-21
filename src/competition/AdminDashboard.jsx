@@ -11,13 +11,17 @@ import PodiumPhase from './admin/PodiumPhase'
 import RosterUpload from './admin/RosterUpload'
 import ConfirmDialog from './admin/ConfirmDialog'
 import { generateCode } from './admin/shared'
+import ModuleBoundary from '../components/ModuleBoundary'
 
 const HistoryPhase = lazy(() => import('./admin/HistoryPhase'))
+const DiagnosticsPanel = lazy(() => import('./admin/DiagnosticsPanel'))
+
 
 export default function AdminDashboard() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wordee_admin_theme') || 'dark')
   const [subject, setSubject] = useState(SUBJECTS.ENGLISH)
   const [showUpload, setShowUpload] = useState(false)
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [dialog, setDialog] = useState(null)
 
   const isDark = theme === 'dark'
@@ -182,6 +186,7 @@ export default function AdminDashboard() {
           setTheme={setTheme}
           onLogout={handleLogout}
           onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
+          onDiagnostics={() => setShowDiagnostics(true)}
         />
       )}
 
@@ -194,52 +199,59 @@ export default function AdminDashboard() {
         <AnimatePresence mode="wait">
           {phase === 'setup' && (
             <motion.div key="setup" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <SetupPhase
-                state={state}
-                sessions={sessions}
-                subject={subject}
-                isDark={isDark}
-                autoPhase={autoPhase}
-                updateState={updateState}
-                loadSessions={loadSessions}
-                onOpenLobby={handleOpenLobby}
-                onShowUpload={() => setShowUpload(true)}
-              />
+              <ModuleBoundary label="Setup">
+                <SetupPhase
+                  state={state}
+                  sessions={sessions}
+                  subject={subject}
+                  isDark={isDark}
+                  autoPhase={autoPhase}
+                  updateState={updateState}
+                  loadSessions={loadSessions}
+                  onOpenLobby={handleOpenLobby}
+                  onShowUpload={() => setShowUpload(true)}
+                />
+              </ModuleBoundary>
             </motion.div>
           )}
 
           {phase === 'lobby' && (
             <motion.div key="lobby" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <LobbyPhase
-                state={state}
-                sessions={sessions}
-                subject={subject}
-                isDark={isDark}
-                autoPhase={autoPhase}
-                updateState={updateState}
-                loadSessions={loadSessions}
-                onBackToSetup={async () => { await updateState({ is_unlocked: false }); setPhaseOverride(null) }}
-              />
+              <ModuleBoundary label="Lobby">
+                <LobbyPhase
+                  state={state}
+                  sessions={sessions}
+                  subject={subject}
+                  isDark={isDark}
+                  autoPhase={autoPhase}
+                  updateState={updateState}
+                  loadSessions={loadSessions}
+                  onBackToSetup={async () => { await updateState({ is_unlocked: false }); setPhaseOverride(null) }}
+                />
+              </ModuleBoundary>
             </motion.div>
           )}
 
           {phase === 'live' && (
             <motion.div key="live" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <LivePhase
-                state={state}
-                sessions={sessions}
-                elapsed={elapsed}
-                subject={subject}
-                isDark={isDark}
-                autoPhase={autoPhase}
-                updateState={updateState}
-                loadSessions={loadSessions}
-              />
+              <ModuleBoundary label="Live Competition">
+                <LivePhase
+                  state={state}
+                  sessions={sessions}
+                  elapsed={elapsed}
+                  subject={subject}
+                  isDark={isDark}
+                  autoPhase={autoPhase}
+                  updateState={updateState}
+                  loadSessions={loadSessions}
+                />
+              </ModuleBoundary>
             </motion.div>
           )}
 
           {phase === 'results' && (
             <motion.div key="results" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <ModuleBoundary label="Results">
               <ResultsPhase
                 state={state}
                 sessions={sessions}
@@ -266,28 +278,33 @@ export default function AdminDashboard() {
                   setSubject(sub)
                 }}
               />
+              </ModuleBoundary>
             </motion.div>
           )}
           {phase === 'podium' && (
             <motion.div key="podium" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <PodiumPhase
-                state={state}
-                sessions={sessions}
-                subject={subject}
-                isDark={isDark}
-                updateState={updateState}
-                onEndCompetition={async () => {
-                  await updateState({ is_unlocked: false, started_at: null, podium_visible: false })
-                  setPhaseOverride('setup')
-                }}
-              />
+              <ModuleBoundary label="Podium">
+                <PodiumPhase
+                  state={state}
+                  sessions={sessions}
+                  subject={subject}
+                  isDark={isDark}
+                  updateState={updateState}
+                  onEndCompetition={async () => {
+                    await updateState({ is_unlocked: false, started_at: null, podium_visible: false })
+                    setPhaseOverride('setup')
+                  }}
+                />
+              </ModuleBoundary>
             </motion.div>
           )}
 
           {phase === 'history' && (
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               <Suspense fallback={<div className="flex justify-center py-12"><div className={`animate-spin w-8 h-8 border-4 border-t-transparent rounded-full ${isDark ? 'border-blue-500' : 'border-blue-600'}`} /></div>}>
-                <HistoryPhase isDark={isDark} onBack={() => setPhaseOverride(null)} />
+                <ModuleBoundary label="History">
+                  <HistoryPhase isDark={isDark} onBack={() => setPhaseOverride(null)} />
+                </ModuleBoundary>
               </Suspense>
             </motion.div>
           )}
@@ -306,6 +323,15 @@ export default function AdminDashboard() {
       )}
 
       <ConfirmDialog dialog={dialog} isDark={isDark} />
+
+      {showDiagnostics && (
+        <Suspense fallback={null}>
+          <ModuleBoundary label="Diagnostics">
+            <DiagnosticsPanel isDark={isDark} onClose={() => setShowDiagnostics(false)} />
+          </ModuleBoundary>
+        </Suspense>
+      )}
+
     </div>
   )
 }

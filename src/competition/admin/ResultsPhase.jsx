@@ -14,8 +14,8 @@ function getEnglishTotal(level) {
 export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onShowPodium, readOnly }) {
   const [levelFilter, setLevelFilter] = useState(null)
   const maxTime = (state.duration_seconds || 300) + (state.extra_seconds || 0)
-  const [batchProgress, setBatchProgress] = useState(null)
   const [excelExporting, setExcelExporting] = useState(false)
+  const [csvExporting, setCsvExporting] = useState(false)
   const [mathCounts, setMathCounts] = useState(mathQuestionCountCache)
   const [otherSubjectDone, setOtherSubjectDone] = useState(false)
 
@@ -94,22 +94,17 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     }
   }
 
-  async function handleBatchDownload() {
-    if (!officialSorted.length || batchProgress) return
-    const { downloadBatchCertificates } = await import('../generateCertificate')
-    const students = officialSorted.map((s, i) => ({
-      ...s,
-      rank: i + 1,
-      totalQuestions: getTotalQuestions(s.level),
-    }))
-    setBatchProgress({ done: 0, total: students.length })
-    await downloadBatchCertificates(
-      students,
-      state.round_label || 'International English Spelling & Math Championship',
-      state.competition_id,
-      (done, total) => setBatchProgress({ done, total })
-    )
-    setBatchProgress(null)
+  async function exportCSVResults() {
+    if (csvExporting || !state) return
+    setCsvExporting(true)
+    try {
+      const { exportCSVForCanva } = await import('./exportResults')
+      await exportCSVForCanva(subject, state.competition_id)
+    } catch (err) {
+      console.error('CSV export failed:', err)
+    } finally {
+      setCsvExporting(false)
+    }
   }
 
   const summaryCards = [
@@ -163,15 +158,15 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
             className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
           >
             <Table className="w-4 h-4" />
-            {excelExporting ? 'Exporting...' : 'Export Excel'}
+            {excelExporting ? 'Exporting...' : 'Excel'}
           </button>
           <button
-            onClick={handleBatchDownload}
-            disabled={batchProgress != null || !officialSorted.length}
-            className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+            onClick={exportCSVResults}
+            disabled={csvExporting}
+            className="px-5 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
           >
             <FileText className="w-4 h-4" />
-            {batchProgress ? `Compiling ${batchProgress.done}/${batchProgress.total}...` : 'All Certificates'}
+            {csvExporting ? 'Exporting...' : 'CSV (Canva)'}
           </button>
         </div>
       </div>
