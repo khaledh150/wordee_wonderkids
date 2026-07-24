@@ -23,8 +23,11 @@ This project uses Supabase **free tier**. All code, queries, and architecture de
 
 ### Supabase CLI Deployment
 - Project is under **Karen Go Brrr Company Limited** org on user's second Supabase account
-- If CLI gives 403 or project not found, prompt user to re-login: `npx supabase login`
+- **Always use Supabase CLI** for DB migrations and edge function deployments
+- If CLI gives 403, project not found, or auth errors, ask the user to re-login from terminal: `npx supabase login`
 - Deploy edge functions: `npx supabase functions deploy <name> --no-verify-jwt --project-ref rlsuwlvzeaioanudtmxp`
+- Apply DB migrations: `npx supabase db query --linked "<SQL>"` (for single statements) or `npx supabase db push --linked` (for migration files)
+- List remote migrations: `npx supabase migration list --linked`
 
 ## Security
 - NEVER log, echo, print, or expose .env keys (SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY)

@@ -276,22 +276,52 @@ export default function AdminDashboard() {
                 updateState={updateState}
                 loadSessions={loadSessions}
                 onShowPodium={() => setPhaseOverride('podium')}
-                onSwitchSubject={async (sub) => {
+                onSwitchSubject={(sub) => {
                   const label = sub === 'math' ? 'Mathematics' : 'English Spelling'
-                  if (!window.confirm(`Open the ${label} lobby? Students who completed the current subject will be prompted to join.`)) return
                   const prevSubject = sub === 'math' ? 'english' : 'math'
-                  const now = new Date().toISOString()
-                  await Promise.all([
-                    supabase.from('competition_state').update({
-                      is_unlocked: false, started_at: null, updated_at: now,
-                    }).eq('id', prevSubject),
-                    supabase.from('competition_state').update({
-                      is_unlocked: true, started_at: null,
-                      extra_seconds: 0, announcement: null, updated_at: now,
-                    }).eq('id', sub),
-                  ])
-                  setPhaseOverride(null)
-                  setSubject(sub)
+                  const completedCount = sessions.filter(s => s.status === 'completed').length
+
+                  const doTransfer = async (mode) => {
+                    setDialog(null)
+                    const now = new Date().toISOString()
+                    await Promise.all([
+                      supabase.from('competition_state').update({
+                        is_unlocked: false, started_at: null, updated_at: now,
+                      }).eq('id', prevSubject),
+                      supabase.from('competition_state').update({
+                        is_unlocked: true, started_at: null,
+                        extra_seconds: 0, announcement: null,
+                        transfer_mode: mode, updated_at: now,
+                      }).eq('id', sub),
+                    ])
+                    setPhaseOverride(null)
+                    setSubject(sub)
+                  }
+
+                  setDialog({
+                    title: `Open ${label} Lobby`,
+                    message: `${completedCount} student${completedCount !== 1 ? 's' : ''} completed ${subject === 'english' ? 'English Spelling' : 'Mathematics'}. How should they move to ${label}?`,
+                    onCancel: () => setDialog(null),
+                    actions: [
+                      {
+                        label: '⚡ Auto-Transfer All Students',
+                        className: 'bg-blue-600 hover:bg-blue-500 text-white',
+                        onClick: () => doTransfer('auto'),
+                      },
+                      {
+                        label: '👆 Let Students Tap to Move',
+                        className: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+                        onClick: () => doTransfer('manual'),
+                      },
+                      {
+                        label: 'Cancel',
+                        className: isDark
+                          ? 'bg-white/5 hover:bg-white/10 text-slate-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-500',
+                        onClick: () => setDialog(null),
+                      },
+                    ],
+                  })
                 }}
               />
               </ModuleBoundary>

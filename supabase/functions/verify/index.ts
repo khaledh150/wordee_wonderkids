@@ -98,14 +98,40 @@ Deno.serve(async (req: Request) => {
       (s) => unlockedSet.has(s) && !completedSubjects.has(s)
     );
 
+    // Get transfer_mode for subjects the student hasn't completed yet
+    const pendingSubjects = allSubjects.filter((s) => !completedSubjects.has(s));
+    let transferModes: Record<string, string> = {};
+    if (pendingSubjects.length > 0) {
+      const { data: modeData } = await supabase
+        .from("competition_state")
+        .select("id, transfer_mode")
+        .in("id", pendingSubjects);
+      if (modeData) {
+        for (const m of modeData) {
+          transferModes[m.id] = m.transfer_mode || "auto";
+        }
+      }
+    }
+
     if (availableSubjects.length === 0) {
-      return json({ error: "No competition is currently open for you" }, 403, req);
+      return json({
+        valid: true,
+        name: sessions[0].name,
+        subjects: [],
+        registered_subjects: allSubjects,
+        completed_subjects: [...completedSubjects],
+        transfer_modes: transferModes,
+        waiting: true,
+      }, 200, req);
     }
 
     return json({
       valid: true,
       name: sessions[0].name,
       subjects: availableSubjects,
+      registered_subjects: allSubjects,
+      completed_subjects: [...completedSubjects],
+      transfer_modes: transferModes,
     }, 200, req);
   } catch {
     return json({ error: "Internal error" }, 500, req);

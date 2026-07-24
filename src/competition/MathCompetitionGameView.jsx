@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2 } from 'lucide-react'
+import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
@@ -22,7 +22,7 @@ const MathQuestionArea = memo(function MathQuestionArea({ current, answered, onC
   )
 })
 
-export default function MathCompetitionGameView({ engine, level, isDark = false }) {
+export default function MathCompetitionGameView({ engine, level, isDark = false, nextSubjectInfo, onTransition }) {
   const {
     orderedQuestions,
     timeLeft,
@@ -260,6 +260,35 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
                 <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal mt-1 text-center landscape:text-left">
                   Your final math score has been captured by the competition registry.
                 </p>
+
+                {nextSubjectInfo && (nextSubjectInfo.locked || nextSubjectInfo.available) && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    onClick={nextSubjectInfo.available ? onTransition : undefined}
+                    disabled={!nextSubjectInfo.available}
+                    className={`w-full py-3.5 landscape:py-2.5 rounded-xl text-sm landscape:text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                      nextSubjectInfo.available
+                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)] cursor-pointer animate-pulse'
+                        : isDark
+                          ? 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {nextSubjectInfo.available ? (
+                      <>
+                        <ArrowRight className="w-4 h-4" />
+                        Move to {nextSubjectInfo.subjectName}
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        Waiting for {nextSubjectInfo.subjectName}...
+                      </>
+                    )}
+                  </motion.button>
+                )}
               </div>
             </div>
           </div>

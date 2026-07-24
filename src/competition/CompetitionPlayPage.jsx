@@ -133,6 +133,7 @@ function CompetitionPlayPageInner() {
   const [autoStartMsg, setAutoStartMsg] = useState('Entering arena...')
   const [competitionId, setCompetitionId] = useState(null)
   const [compIdError, setCompIdError] = useState(false)
+  const [nextSubjectInfo, setNextSubjectInfo] = useState({ available: false, subjectName: null, locked: false })
   const restoredRef = useRef(false)
 
   useVersionCheck()
@@ -286,6 +287,18 @@ function CompetitionPlayPageInner() {
 
   const transitioningRef = useRef(false)
 
+  const doTransitionToSubject = useCallback((nextSubject) => {
+    if (transitioningRef.current) return
+    transitioningRef.current = true
+    setNextSubjectInfo({ available: false, subjectName: null, locked: false })
+    setQuestions(null)
+    setPreloadDone(false)
+    setPreloadProgress({ loaded: 0, total: 0 })
+    try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
+    handleSubjectSelect(nextSubject, verifiedCode)
+    transitioningRef.current = false
+  }, [competitionId, verifiedCode])
+
   // Auto-transition: when student is on completed screen and admin opens a new lobby or new session
   useEffect(() => {
     if (phase !== 'completed' || !verifiedCode) return
@@ -324,23 +337,33 @@ function CompetitionPlayPageInner() {
         if (!res.ok) return
         const data = await res.json()
         const subjects = data.subjects || []
+        const registered = data.registered_subjects || []
+        const transferModes = data.transfer_modes || {}
+        const otherRegistered = registered.filter(s => s !== selectedSubject)
         const otherSubjects = subjects.filter(s => s !== selectedSubject)
+
+        if (otherRegistered.length > 0 && otherSubjects.length === 0 && !cancelled) {
+          const nextName = otherRegistered[0] === 'math' ? 'Mathematics' : 'English Spelling'
+          setNextSubjectInfo({ available: false, subjectName: nextName, locked: true })
+        }
+
         if (otherSubjects.length > 0 && !cancelled && !transitioningRef.current) {
-          transitioningRef.current = true
           const nextSubject = otherSubjects[0]
-          setQuestions(null)
-          setPreloadDone(false)
-          setPreloadProgress({ loaded: 0, total: 0 })
-          try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
-          handleSubjectSelect(nextSubject, verifiedCode)
-          transitioningRef.current = false
+          const mode = transferModes[nextSubject] || 'auto'
+          const nextName = nextSubject === 'math' ? 'Mathematics' : 'English Spelling'
+
+          if (mode === 'auto') {
+            doTransitionToSubject(nextSubject)
+          } else {
+            setNextSubjectInfo({ available: true, subjectName: nextName, subjectKey: nextSubject, locked: false })
+          }
         }
       } catch {}
     }
     check()
     const id = setInterval(check, 8000)
     return () => { cancelled = true; clearInterval(id) }
-  }, [phase, verifiedCode, selectedSubject, competitionId])
+  }, [phase, verifiedCode, selectedSubject, competitionId, doTransitionToSubject])
 
   async function handleCodeSubmit(e) {
     e.preventDefault()
@@ -875,10 +898,10 @@ function CompetitionPlayPageInner() {
       <>
         {isMath ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
-            <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} />
+            <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} />
           </Suspense>
         ) : (
-          <CompetitionGameView engine={engine} level={session.level} isDark={isDark} />
+          <CompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} />
         )}
       </>
     )
