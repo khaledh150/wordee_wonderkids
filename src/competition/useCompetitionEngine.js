@@ -87,6 +87,9 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         setPhase('idle')
         clearInterval(timerRef.current)
         clearTimeout(syncRef.current)
+        clearTimeout(pollRef.current)
+        clearTimeout(heartbeatRef.current)
+        clearTimeout(autoSubmitRef.current)
       }
     }
     return () => { channel.close(); broadcastRef.current = null }

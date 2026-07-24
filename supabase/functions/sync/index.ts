@@ -22,7 +22,7 @@ function getCorsHeaders(req: Request) {
 }
 
 function json(data: unknown, status = 200, req?: Request) {
-  const headers = req ? getCorsHeaders(req) : { "Content-Type": "application/json" };
+  const headers = req ? getCorsHeaders(req) : getCorsHeaders(new Request("http://localhost"));
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...headers, "Content-Type": "application/json" },
@@ -70,10 +70,6 @@ Deno.serve(async (req: Request) => {
       const lastUpdate = new Date(session.updated_at).getTime();
       const now = Date.now();
       if (now - lastUpdate < 2_000) {
-        await supabase
-          .from("competition_sessions")
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq("participant_id", session.participant_id);
         return json({ ok: true, throttled: true }, 200, req);
       }
     }

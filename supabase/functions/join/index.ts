@@ -22,7 +22,7 @@ function getCorsHeaders(req: Request) {
 }
 
 function json(data: unknown, status = 200, req?: Request) {
-  const headers = req ? getCorsHeaders(req) : { "Content-Type": "application/json" };
+  const headers = req ? getCorsHeaders(req) : getCorsHeaders(new Request("http://localhost"));
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...headers, "Content-Type": "application/json" },
