@@ -19,27 +19,36 @@ const ThemeModal = lazy(() => import('./admin/ThemeModal'))
 
 
 export default function AdminDashboard() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('wordee_admin_theme') || 'dark')
-  const [remoteTheme, setRemoteTheme] = useState(() => localStorage.getItem('wordee_remote_theme') || 'dark')
+  const [themes, setThemes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wonderkids_themes')
+      if (saved) return { admin: 'dark', student: 'dark', projector: 'dark', ...JSON.parse(saved) }
+    } catch {}
+    return { admin: 'dark', student: 'dark', projector: 'dark' }
+  })
   const [subject, setSubject] = useState(SUBJECTS.ENGLISH)
   const [showUpload, setShowUpload] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [showThemeModal, setShowThemeModal] = useState(false)
   const [dialog, setDialog] = useState(null)
 
-  const isDark = theme === 'dark'
+  const isDark = themes.admin === 'dark'
 
-  useEffect(() => {
-    localStorage.setItem('wordee_admin_theme', theme)
-  }, [theme])
-
-  useEffect(() => {
-    localStorage.setItem('wordee_remote_theme', remoteTheme)
-    Promise.all([
-      supabase.from('competition_state').update({ theme: remoteTheme }).eq('id', 'english'),
-      supabase.from('competition_state').update({ theme: remoteTheme }).eq('id', 'math'),
-    ])
-  }, [remoteTheme])
+  function toggleTheme(key) {
+    setThemes(prev => {
+      const next = { ...prev, [key]: prev[key] === 'dark' ? 'light' : 'dark' }
+      localStorage.setItem('wonderkids_themes', JSON.stringify(next))
+      if (key === 'student') {
+        supabase.from('competition_state').update({ theme: next.student }).eq('id', 'english')
+        supabase.from('competition_state').update({ theme: next.student }).eq('id', 'math')
+      }
+      if (key === 'projector') {
+        supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'english')
+        supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'math')
+      }
+      return next
+    })
+  }
 
   const { state, sessions, elapsed, phase: autoPhase, error: adminError, loadState, loadSessions, updateState } = useAdminData({ subject })
   const [phaseOverride, setPhaseOverride] = useState(null)
@@ -343,10 +352,8 @@ export default function AdminDashboard() {
         <Suspense fallback={null}>
           <ModuleBoundary label="Theme">
             <ThemeModal
-              adminTheme={theme}
-              remoteTheme={remoteTheme}
-              onAdminTheme={setTheme}
-              onRemoteTheme={setRemoteTheme}
+              themes={themes}
+              onToggle={toggleTheme}
               onClose={() => setShowThemeModal(false)}
             />
           </ModuleBoundary>

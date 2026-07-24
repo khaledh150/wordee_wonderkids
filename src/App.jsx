@@ -24,7 +24,7 @@ const MathExam = lazy(() => import('./math/MathExam'))
 const MathResults = lazy(() => import('./math/MathResults'))
 const MathPrintExam = lazy(() => import('./math/MathPrintExam'))
 
-export const APP_VERSION = '1.9.3.2'
+export const APP_VERSION = '1.9.4.0'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version', 'wonderkids_language', 'mathwiz_answers', 'mathwiz_exam_progress']
 
 function writeHash(screen, level, ml) {

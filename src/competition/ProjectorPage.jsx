@@ -68,9 +68,11 @@ export default function ProjectorPage() {
   ), [])
 
   useEffect(() => {
-    if (engState?.theme) setTheme(engState.theme)
+    if (engState?.projector_theme) setTheme(engState.projector_theme)
+    else if (mathState?.projector_theme) setTheme(mathState.projector_theme)
+    else if (engState?.theme) setTheme(engState.theme)
     else if (mathState?.theme) setTheme(mathState.theme)
-  }, [engState?.theme, mathState?.theme])
+  }, [engState?.projector_theme, mathState?.projector_theme, engState?.theme, mathState?.theme])
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'

@@ -1,13 +1,13 @@
 import { Sun, Moon, X, Monitor, Gamepad2, Shield } from 'lucide-react'
 
 const SECTIONS = [
-  { key: 'admin', label: 'Admin Dashboard', icon: Shield, desc: 'This screen only' },
-  { key: 'remote', label: 'Student & Projector', icon: Monitor, desc: 'Play page + projector screen' },
+  { key: 'admin', label: 'Admin', icon: Shield, desc: 'This screen' },
+  { key: 'student', label: 'Student', icon: Gamepad2, desc: 'Play page' },
+  { key: 'projector', label: 'Projector', icon: Monitor, desc: 'Projector screen' },
 ]
 
-export default function ThemeModal({ adminTheme, remoteTheme, onAdminTheme, onRemoteTheme, onClose }) {
-  const themes = { admin: adminTheme, remote: remoteTheme }
-  const setters = { admin: onAdminTheme, remote: onRemoteTheme }
+export default function ThemeModal({ themes, onToggle, onClose }) {
+  const adminDark = themes.admin === 'dark'
 
   return (
     <div
@@ -16,16 +16,16 @@ export default function ThemeModal({ adminTheme, remoteTheme, onAdminTheme, onRe
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className={`w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden ${
-        adminTheme === 'dark' ? 'bg-[#0f1629] text-white' : 'bg-white text-slate-900'
+        adminDark ? 'bg-[#0f1629] text-white' : 'bg-white text-slate-900'
       }`}>
         <div className={`px-5 pt-5 pb-3 flex items-center justify-between ${
-          adminTheme === 'dark' ? 'border-b border-white/5' : 'border-b border-slate-100'
+          adminDark ? 'border-b border-white/5' : 'border-b border-slate-100'
         }`}>
           <h2 className="text-base font-black">Theme Settings</h2>
           <button
             onClick={onClose}
             className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-              adminTheme === 'dark' ? 'hover:bg-white/10 text-white/40' : 'hover:bg-slate-100 text-slate-400'
+              adminDark ? 'hover:bg-white/10 text-white/40' : 'hover:bg-slate-100 text-slate-400'
             }`}
           >
             <X className="w-4 h-4" />
@@ -36,22 +36,19 @@ export default function ThemeModal({ adminTheme, remoteTheme, onAdminTheme, onRe
           {SECTIONS.map(s => {
             const Icon = s.icon
             const isDark = themes[s.key] === 'dark'
-            const toggle = () => setters[s.key](isDark ? 'light' : 'dark')
             return (
               <div key={s.key} className={`flex items-center gap-3 px-3 py-3 rounded-xl ${
-                adminTheme === 'dark' ? 'bg-white/5' : 'bg-slate-50'
+                adminDark ? 'bg-white/5' : 'bg-slate-50'
               }`}>
-                <Icon className={`w-4.5 h-4.5 shrink-0 ${adminTheme === 'dark' ? 'text-white/50' : 'text-slate-400'}`} />
+                <Icon className={`w-4.5 h-4.5 shrink-0 ${adminDark ? 'text-white/50' : 'text-slate-400'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-bold ${adminTheme === 'dark' ? 'text-white/90' : 'text-slate-700'}`}>{s.label}</div>
-                  <div className={`text-[10px] ${adminTheme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>{s.desc}</div>
+                  <div className={`text-sm font-bold ${adminDark ? 'text-white/90' : 'text-slate-700'}`}>{s.label}</div>
+                  <div className={`text-[10px] ${adminDark ? 'text-white/30' : 'text-slate-400'}`}>{s.desc}</div>
                 </div>
                 <button
-                  onClick={toggle}
+                  onClick={() => onToggle(s.key)}
                   className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors ${
-                    isDark
-                      ? 'bg-indigo-600'
-                      : 'bg-amber-400'
+                    isDark ? 'bg-indigo-600' : 'bg-amber-400'
                   }`}
                 >
                   <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center transition-transform ${
@@ -69,7 +66,7 @@ export default function ThemeModal({ adminTheme, remoteTheme, onAdminTheme, onRe
         </div>
 
         <div className={`px-5 py-3 flex justify-end ${
-          adminTheme === 'dark' ? 'border-t border-white/5 bg-white/[0.02]' : 'border-t border-slate-100 bg-slate-50/50'
+          adminDark ? 'border-t border-white/5 bg-white/[0.02]' : 'border-t border-slate-100 bg-slate-50/50'
         }`}>
           <button
             onClick={onClose}
