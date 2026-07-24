@@ -458,6 +458,7 @@ export default function CompetitionGameView({ engine, level, isDark = false }) {
         <div className="flex items-center justify-center min-h-full px-3 sm:px-4 lg:px-6 xl:px-10 py-1">
           <AnimatePresence mode="wait">
             <QuestionArea
+              key={current.question_id}
               current={current}
               level={level}
               allVocab={allVocab}

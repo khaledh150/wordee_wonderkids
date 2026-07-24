@@ -352,6 +352,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false 
         <div className="flex items-center justify-center min-h-full px-3 sm:px-4 lg:px-6 py-1">
           <AnimatePresence mode="wait">
             <MathQuestionArea
+              key={current.question_id}
               current={current}
               answered={answered}
               onCorrect={handleCorrect}

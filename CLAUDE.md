@@ -41,6 +41,13 @@ This project uses Supabase **free tier**. All code, queries, and architecture de
 ## Versioning
 - Always bump APP_VERSION in src/App.jsx AND public/version.json on every commit
 
+## English Game Modes — DO NOT CHANGE
+- **Level 1 ONLY** → `MultipleChoice` (tap the correct word from 3 choices)
+- **Level 2, 3, 4** → `LetterDragDrop` (spell by tapping/dragging letter tiles)
+- This applies to ALL modes: competition, practice, and test
+- The check is `level === 1` in both `CompetitionGameView.jsx` and `PracticeMode.jsx`
+- NEVER change this to `level <= 2` or any other condition
+
 ## Deployment
 - Hosted on Vercel, auto-deploys on git push to main
 - User tests locally first before deploying

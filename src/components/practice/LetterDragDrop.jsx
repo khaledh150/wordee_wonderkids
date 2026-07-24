@@ -99,6 +99,7 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   const handleTouchStart = useCallback((e, letter, choiceIdx) => {
     if (answered || checking) return
     touchedRef.current = true
+    setTimeout(() => { touchedRef.current = false }, 500)
     e.stopPropagation()
     const touch = e.touches?.[0]
     if (!touch) return

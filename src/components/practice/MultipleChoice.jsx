@@ -27,7 +27,7 @@ export default function MultipleChoice({ current, allVocab, onCorrect, onWrong, 
     } else {
       setWrongPick(choice.word)
       onWrong()
-      setTimeout(() => setWrongPick(null), 400)
+      setTimeout(() => setWrongPick(null), 350)
     }
   }
 
