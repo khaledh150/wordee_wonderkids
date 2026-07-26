@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [showThemeModal, setShowThemeModal] = useState(false)
   const [dialog, setDialog] = useState(null)
+  const [otherSubjectPlayed, setOtherSubjectPlayed] = useState(false)
 
   const isDark = themes.admin === 'dark'
 
@@ -53,6 +54,18 @@ export default function AdminDashboard() {
   const { state, sessions, elapsed, phase: autoPhase, error: adminError, loadState, loadSessions, updateState } = useAdminData({ subject })
   const [phaseOverride, setPhaseOverride] = useState(null)
   const phase = phaseOverride || autoPhase
+
+  useEffect(() => {
+    if (!state?.competition_id) return
+    const otherSub = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+    supabase
+      .from('competition_sessions')
+      .select('status', { count: 'exact', head: true })
+      .eq('competition_id', state.competition_id)
+      .eq('subject', otherSub)
+      .eq('status', 'completed')
+      .then(({ count }) => setOtherSubjectPlayed((count || 0) > 0))
+  }, [state?.competition_id, subject, phase])
 
   async function handleOpenLobby() {
     const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
@@ -166,7 +179,7 @@ export default function AdminDashboard() {
     const oldId = state.competition_id
 
     const { error: histErr } = await supabase.from('competition_history').insert({
-      competition_id: newId,
+      competition_id: oldId,
       round_label: state.round_label || null,
     })
     if (histErr) { alert('Failed to create history entry: ' + histErr.message); return }
@@ -389,9 +402,64 @@ export default function AdminDashboard() {
                   subject={subject}
                   isDark={isDark}
                   updateState={updateState}
+                  otherSubjectPlayed={otherSubjectPlayed}
                   onEndCompetition={async () => {
-                    await updateState({ is_unlocked: false, started_at: null, podium_visible: false })
-                    setPhaseOverride('setup')
+                    const now = new Date().toISOString()
+                    await Promise.all([
+                      supabase.from('competition_state').update({
+                        is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                      }).eq('id', 'english'),
+                      supabase.from('competition_state').update({
+                        is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                      }).eq('id', 'math'),
+                    ])
+                    await handleNewSession(true)
+                  }}
+                  onProceedToSubject={(sub) => {
+                    const label = sub === 'math' ? 'Mathematics' : 'English Spelling'
+                    const completedCount = sessions.filter(s => s.subject === subject && s.status === 'completed').length
+
+                    const doTransfer = async (mode) => {
+                      setDialog(null)
+                      const now = new Date().toISOString()
+                      await Promise.all([
+                        supabase.from('competition_state').update({
+                          is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                        }).eq('id', subject),
+                        supabase.from('competition_state').update({
+                          is_unlocked: true, started_at: null,
+                          extra_seconds: 0, announcement: null,
+                          transfer_mode: mode, updated_at: now,
+                        }).eq('id', sub),
+                      ])
+                      setPhaseOverride(null)
+                      setSubject(sub)
+                    }
+
+                    setDialog({
+                      title: `Open ${label} Lobby`,
+                      message: `${completedCount} student${completedCount !== 1 ? 's' : ''} completed ${subject === 'english' ? 'English Spelling' : 'Mathematics'}. How should they move to ${label}?`,
+                      onCancel: () => setDialog(null),
+                      actions: [
+                        {
+                          label: 'Auto-Transfer All Students',
+                          className: 'bg-blue-600 hover:bg-blue-500 text-white',
+                          onClick: () => doTransfer('auto'),
+                        },
+                        {
+                          label: 'Let Students Tap to Move',
+                          className: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+                          onClick: () => doTransfer('manual'),
+                        },
+                        {
+                          label: 'Cancel',
+                          className: isDark
+                            ? 'bg-white/5 hover:bg-white/10 text-slate-400'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-500',
+                          onClick: () => setDialog(null),
+                        },
+                      ],
+                    })
                   }}
                 />
               </ModuleBoundary>

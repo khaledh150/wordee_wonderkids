@@ -42,20 +42,25 @@ export default function HistoryPhase({ isDark, onBack }) {
         Promise.all(data.map(async h => {
           const { data: sessions } = await supabase
             .from('competition_sessions')
-            .select('subject, status, validated_score')
+            .select('subject, status, validated_score, completed_at')
             .eq('competition_id', h.competition_id)
           const all = sessions || []
           const engSessions = all.filter(s => s.subject === 'english')
           const mathSessions = all.filter(s => s.subject === 'math')
+          const engPlayed = engSessions.filter(s => s.status === 'completed').length
+          const mathPlayed = mathSessions.filter(s => s.status === 'completed').length
+          const completedDates = all.filter(s => s.completed_at).map(s => s.completed_at).sort()
+          const playedAt = completedDates.length > 0 ? completedDates[0] : null
           return {
             ...h,
-            totalCount: all.length,
-            engCount: engSessions.length,
-            mathCount: mathSessions.length,
-            engPlayed: engSessions.filter(s => s.status === 'completed').length,
-            mathPlayed: mathSessions.filter(s => s.status === 'completed').length,
-            hasEnglish: engSessions.length > 0,
-            hasMath: mathSessions.length > 0,
+            created_at: playedAt || h.created_at,
+            totalCount: engPlayed + mathPlayed,
+            engCount: engPlayed,
+            mathCount: mathPlayed,
+            engPlayed,
+            mathPlayed,
+            hasEnglish: engPlayed > 0,
+            hasMath: mathPlayed > 0,
           }
         })).then(results => setHistory(results.filter(h => h.totalCount > 0)))
       })

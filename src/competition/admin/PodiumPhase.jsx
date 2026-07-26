@@ -5,7 +5,7 @@ import StudentAvatar from './StudentAvatar'
 import { fmt } from './shared'
 import { mathGradeLabel } from '../mathGradeLabels'
 
-export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition }) {
+export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition, onProceedToSubject, otherSubjectPlayed }) {
   const [selectedLevel, setSelectedLevel] = useState(state?.podium_level || 1)
 
   useEffect(() => {
@@ -149,55 +149,86 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
         </motion.div>
       )}
 
-      {/* End Competition button */}
-      {onEndCompetition && (
-        <EndCompetitionButton subject={subject} isDark={isDark} onEndCompetition={onEndCompetition} />
-      )}
+      {/* End / Proceed buttons */}
+      <EndCompetitionButton
+        subject={subject}
+        isDark={isDark}
+        onEndCompetition={onEndCompetition}
+        onProceedToSubject={onProceedToSubject}
+        otherSubjectPlayed={otherSubjectPlayed}
+      />
     </div>
   )
 }
 
-function EndCompetitionButton({ subject, isDark, onEndCompetition }) {
-  const [confirming, setConfirming] = useState(false)
+function EndCompetitionButton({ subject, isDark, onEndCompetition, onProceedToSubject, otherSubjectPlayed }) {
+  const [confirming, setConfirming] = useState(null)
   const subjectLabel = subject === 'math' ? 'Mathematics' : 'English Spelling'
+  const otherSubject = subject === 'math' ? 'english' : 'math'
+  const otherLabel = subject === 'math' ? 'English Spelling' : 'Mathematics'
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-      className="flex flex-col items-center gap-3 pt-2">
-      {confirming ? (
-        <div className={`w-full max-w-md rounded-2xl border p-5 text-center ${isDark ? 'bg-rose-500/5 border-rose-500/20' : 'bg-rose-50 border-rose-200'}`}>
-          <p className={`font-bold text-sm mb-4 ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
-            End the {subjectLabel} competition? This will show "Competition Ended" on the projector.
+      className="flex flex-col items-center gap-3 pt-4 w-full max-w-md mx-auto">
+
+      {confirming === 'proceed' && (
+        <div className={`w-full rounded-2xl border-2 p-5 text-center space-y-4 ${isDark ? 'bg-blue-950/30 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+          <p className={`font-bold text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+            End {subjectLabel} and open {otherLabel} lobby?
           </p>
           <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => { setConfirming(false); onEndCompetition() }}
-              className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md"
-            >
-              Yes, End It
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              className={`px-6 py-3 font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer border ${
+            <button onClick={() => setConfirming(null)}
+              className={`px-5 py-2.5 font-bold text-sm rounded-xl cursor-pointer border transition-all ${
                 isDark ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              Cancel
+              }`}>Cancel</button>
+            <button onClick={() => { setConfirming(null); onProceedToSubject(otherSubject) }}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl cursor-pointer transition-all shadow-md">
+              Yes, Proceed
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => setConfirming(true)}
-          className={`w-full max-w-md flex items-center justify-center gap-2 py-4 rounded-xl font-black text-base uppercase tracking-wider transition-all cursor-pointer border-2 ${
-            isDark
-              ? 'text-rose-400 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10'
-              : 'text-rose-600 border-rose-300 bg-rose-50 hover:bg-rose-100'
-          }`}
-        >
-          <XCircle className="w-5 h-5" />
-          End {subjectLabel} Competition
-        </button>
+      )}
+
+      {confirming === 'end' && (
+        <div className={`w-full rounded-2xl border-2 p-5 text-center space-y-4 ${isDark ? 'bg-rose-950/30 border-rose-500/30' : 'bg-rose-50 border-rose-200'}`}>
+          <p className={`font-bold text-sm ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+            End the entire session? Results will be saved to history.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button onClick={() => setConfirming(null)}
+              className={`px-5 py-2.5 font-bold text-sm rounded-xl cursor-pointer border transition-all ${
+                isDark ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+              }`}>Cancel</button>
+            <button onClick={() => { setConfirming(null); onEndCompetition() }}
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl cursor-pointer transition-all shadow-md">
+              Yes, End Session
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!confirming && (
+        <div className="flex flex-col gap-3 w-full">
+          {!otherSubjectPlayed && onProceedToSubject && (
+            <button onClick={() => setConfirming('proceed')}
+              className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-base uppercase tracking-wider transition-all cursor-pointer border-2 ${
+                isDark
+                  ? 'text-blue-400 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10'
+                  : 'text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100'
+              }`}>
+              Proceed to {otherLabel}
+            </button>
+          )}
+          <button onClick={() => setConfirming('end')}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all cursor-pointer border ${
+              isDark
+                ? 'text-rose-400/70 border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 hover:text-rose-400'
+                : 'text-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100 hover:text-rose-600'
+            }`}>
+            <XCircle className="w-4 h-4" />
+            End Session
+          </button>
+        </div>
       )}
     </motion.div>
   )

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCompetitionEngine } from './useCompetitionEngine'
 import { getCompetitionQuestions } from './competitionQuestions'
 import { getVocabForLevel } from '../data/vocabulary'
-import { Lock, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator } from 'lucide-react'
+import { Lock, CheckCircle2, AlertCircle, Loader2, BookOpen, Calculator, Clock } from 'lucide-react'
 import { enterFullscreen } from '../utils/useFullscreen'
 import FullscreenBtn from '../components/FullscreenBtn'
 import StudentAvatar from './admin/StudentAvatar'
@@ -118,9 +118,11 @@ class CompetitionErrorBoundary extends React.Component {
 }
 
 function CompetitionPlayPageInner() {
-  const [step, setStep] = useState('code') // code | subject | waiting | countdown | active
+  const [step, setStep] = useState('code') // code | subject | subjectWait | waiting | countdown | active
   const [selectedSubject, setSelectedSubject] = useState(null) // 'english' | 'math'
   const [availableSubjects, setAvailableSubjects] = useState([])
+  const [registeredSubjects, setRegisteredSubjects] = useState([])
+  const [studentName, setStudentName] = useState('')
   const [code, setCode] = useState('')
   const [verifiedCode, setVerifiedCode] = useState('')
   const [error, setError] = useState('')
@@ -135,6 +137,7 @@ function CompetitionPlayPageInner() {
   const [competitionId, setCompetitionId] = useState(null)
   const [compIdError, setCompIdError] = useState(false)
   const [nextSubjectInfo, setNextSubjectInfo] = useState({ available: false, subjectName: null, locked: false })
+  const [waitTheme, setWaitTheme] = useState(null)
   const restoredRef = useRef(false)
 
   useVersionCheck()
@@ -221,7 +224,7 @@ function CompetitionPlayPageInner() {
     return () => timers.forEach(clearTimeout)
   }, [autoStarting])
 
-  const isDark = competitionState?.theme === 'dark'
+  const isDark = competitionState?.theme === 'dark' || waitTheme === 'dark'
 
   async function getQuestionsForSession(sub, level, participantId) {
     try {
@@ -366,6 +369,42 @@ function CompetitionPlayPageInner() {
     return () => { cancelled = true; clearInterval(id) }
   }, [phase, verifiedCode, selectedSubject, competitionId, doTransitionToSubject])
 
+  // Fetch theme when on subjectWait (no session/engine yet)
+  useEffect(() => {
+    if (step !== 'subjectWait') return
+    supabase.from('competition_state').select('theme').limit(1).single()
+      .then(({ data }) => { if (data?.theme) setWaitTheme(data.theme) })
+  }, [step])
+
+  // Poll for subject unlock when on subjectWait screen
+  useEffect(() => {
+    if (step !== 'subjectWait' || !verifiedCode || !competitionId) return
+    let cancelled = false
+    const check = async () => {
+      try {
+        const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+        const res = await fetch(`${FUNC_BASE}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ participant_code: verifiedCode, competition_id: competitionId }),
+        })
+        if (cancelled || !res.ok) return
+        const data = await res.json()
+        const subjects = data.subjects || []
+        if (subjects.length > 0 && !cancelled) {
+          if (subjects.length === 1) {
+            handleSubjectSelect(subjects[0], verifiedCode)
+          } else {
+            setAvailableSubjects(subjects)
+            setStep('subject')
+          }
+        }
+      } catch {}
+    }
+    const id = setInterval(check, 6000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [step, verifiedCode, competitionId])
+
   async function handleCodeSubmit(e) {
     e.preventDefault()
     if (!code.trim()) return
@@ -387,10 +426,16 @@ function CompetitionPlayPageInner() {
         return
       }
       const subjects = data.subjects || []
+      const registered = data.registered_subjects || []
       setVerifiedCode(upperCode)
       setAvailableSubjects(subjects)
+      setRegisteredSubjects(registered)
+      setStudentName(data.name || '')
       if (subjects.length === 1) {
         handleSubjectSelect(subjects[0], upperCode)
+      } else if (subjects.length === 0 && registered.length > 0) {
+        setStep('subjectWait')
+        setLoading(false)
       } else {
         setStep('subject')
         setLoading(false)
@@ -700,6 +745,127 @@ function CompetitionPlayPageInner() {
             {error && <p className={`text-[10px] font-bold mt-3 leading-tight p-2 rounded-xl border ${isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' : 'text-rose-500 bg-rose-50 border-rose-200/50'}`}>{error}</p>}
           </div>
         </motion.div>
+      </div>
+    )
+  }
+
+  // ===== SUBJECT WAIT (logged in but subject not unlocked yet) =====
+  if (step === 'subjectWait') {
+    const waitSubject = registeredSubjects[0] || 'english'
+    const waitIsMath = waitSubject === 'math'
+    const waitLabel = waitIsMath ? 'Mathematics' : 'English Spelling'
+
+    const glowColor = waitIsMath ? 'bg-teal-500' : 'bg-indigo-500'
+    const ringColor = waitIsMath
+      ? (isDark ? 'border-teal-500/30' : 'border-teal-400/40')
+      : (isDark ? 'border-indigo-500/30' : 'border-indigo-400/40')
+    const iconColor = waitIsMath
+      ? (isDark ? 'text-teal-400' : 'text-teal-500')
+      : (isDark ? 'text-indigo-400' : 'text-indigo-500')
+    const gradText = waitIsMath
+      ? (isDark ? 'from-teal-300 to-cyan-400' : 'from-teal-600 to-cyan-700')
+      : (isDark ? 'from-indigo-300 to-purple-400' : 'from-indigo-600 to-purple-700')
+
+    return (
+      <div className={`min-h-[100dvh] max-h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors ${
+        isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
+      }`}>
+        {renderBackgroundBlobs()}
+
+        {/* Accent glow behind clock */}
+        <div className={`absolute w-[400px] h-[400px] rounded-full blur-[180px] pointer-events-none ${glowColor} ${isDark ? 'opacity-15' : 'opacity-10'}`} />
+
+        <div className="fixed top-3 right-3 z-50">
+          <FullscreenBtn />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', duration: 0.8, bounce: 0.3 }}
+          className="w-full max-w-full landscape:max-w-none relative z-10 flex flex-col landscape:flex-row items-center landscape:justify-center justify-center flex-1 landscape:gap-[6vw]"
+        >
+          {/* Left column: identity */}
+          <div className="flex flex-col items-center gap-[2vh] landscape:gap-[2vh]">
+            {/* Subject badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className={`inline-flex items-center gap-2.5 px-[clamp(1.5rem,5vmin,3rem)] landscape:px-[clamp(1.2rem,4vh,2.5rem)] py-[clamp(0.6rem,2vmin,1.2rem)] landscape:py-[clamp(0.5rem,2vh,1rem)] rounded-full bg-gradient-to-r ${waitIsMath ? 'from-teal-500 to-cyan-500' : 'from-indigo-500 to-purple-500'} shadow-lg`}
+            >
+              {waitIsMath
+                ? <Calculator className="w-[clamp(1.2rem,3.5vmin,2rem)] h-[clamp(1.2rem,3.5vmin,2rem)] text-white/90" />
+                : <BookOpen className="w-[clamp(1.2rem,3.5vmin,2rem)] h-[clamp(1.2rem,3.5vmin,2rem)] text-white/90" />
+              }
+              <span className="text-white font-black text-[clamp(1.1rem,3.5vmin,2rem)] landscape:text-[clamp(1rem,4vh,1.6rem)] uppercase tracking-widest">
+                {waitLabel}
+              </span>
+            </motion.div>
+
+            {/* Student name */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.35 }}
+              className="text-center px-4"
+            >
+              <h1 className={`text-[clamp(1.4rem,4.5vmin,2.8rem)] landscape:text-[clamp(1.2rem,5vh,2.2rem)] font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                {studentName}
+              </h1>
+              <p className={`text-[clamp(0.65rem,2vmin,0.85rem)] font-mono mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                {verifiedCode}
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Right column: animated waiting indicator */}
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', delay: 0.3, duration: 0.8 }}
+            className="flex flex-col items-center gap-[1.5vh] mt-[3vh] landscape:mt-0"
+          >
+            {/* Pulsing rings around clock */}
+            <div className="relative flex items-center justify-center">
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ scale: [1, 2.2, 2.5], opacity: [0.35, 0.08, 0] }}
+                  transition={{ duration: 3, delay: i * 1, repeat: Infinity, ease: 'easeOut' }}
+                  className={`absolute w-[clamp(5rem,18vmin,10rem)] h-[clamp(5rem,18vmin,10rem)] landscape:w-[clamp(4rem,26vh,9rem)] landscape:h-[clamp(4rem,26vh,9rem)] rounded-full border-2 ${ringColor} pointer-events-none`}
+                />
+              ))}
+              <motion.div
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <Clock className={`w-[clamp(5rem,18vmin,10rem)] h-[clamp(5rem,18vmin,10rem)] landscape:!w-[clamp(4rem,26vh,9rem)] landscape:!h-[clamp(4rem,26vh,9rem)] drop-shadow-lg ${iconColor}`} />
+              </motion.div>
+            </div>
+
+            {/* Status text */}
+            <motion.p
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              className={`text-[clamp(0.85rem,2.5vmin,1.4rem)] landscape:text-[clamp(0.8rem,3.5vh,1.2rem)] font-black uppercase tracking-[0.2em] bg-gradient-to-r ${gradText} bg-clip-text text-transparent`}
+            >
+              Please Wait
+            </motion.p>
+
+            <p className={`text-[clamp(0.65rem,1.8vmin,0.9rem)] landscape:text-[clamp(0.6rem,2.5vh,0.85rem)] font-medium text-center max-w-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              You'll join automatically when {waitLabel} opens
+            </p>
+          </motion.div>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          className={`absolute bottom-4 text-[10px] font-bold uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-300'}`}
+        >
+          International Championship
+        </motion.p>
       </div>
     )
   }
