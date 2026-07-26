@@ -264,6 +264,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     <>
     {/* Print-only roster */}
     <div className="hidden print:block bg-white text-black px-8 py-4">
+      <div className="fixed top-2 right-4 text-[9px] font-mono text-gray-400">
+        Session {state?.competition_id?.slice(5, 13)?.toUpperCase()}
+      </div>
       {[...new Set(printRows.map(s => subject === 'math' ? s.math?.level : s.english?.level))].sort((a, b) => a - b).map((lvl, idx) => {
         const lvlStudents = printRows.filter(s => (subject === 'math' ? s.math?.level : s.english?.level) === lvl)
         return (
