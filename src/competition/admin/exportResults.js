@@ -47,7 +47,16 @@ const GRAY_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5A5A
 // A4 landscape ~143 chars printable. Visible cols: A,B,C,D,E,F,M
 const COL_WIDTHS = [5, 50, 22, 16, 8, 7, 4, 2.5, 8.5, 3, 5.5, 5.5, 35]
 
-export async function exportFromTemplate(subject, competitionId, tiers) {
+function formatFileDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const day = d.getDate()
+  const mon = d.toLocaleString('en', { month: 'short' })
+  const yr = d.getFullYear()
+  return `${day}-${mon}-${yr}`
+}
+
+export async function exportFromTemplate(subject, competitionId, tiers, sessionDate) {
   const [{ data: allSessions }, { data: stateData }] = await Promise.all([
     supabase.from('competition_sessions').select('*').eq('competition_id', competitionId).eq('subject', subject),
     supabase.from('competition_state').select('duration_seconds').eq('id', subject).single(),
@@ -184,12 +193,14 @@ export async function exportFromTemplate(subject, competitionId, tiers) {
   const a = document.createElement('a')
   a.href = url
   const label = isMath ? 'Mathematics' : 'English'
-  a.download = `${label}-results-${competitionId.slice(0, 8)}.xlsx`
+  const datePart = formatFileDate(sessionDate)
+  const idShort = competitionId?.slice(5, 13)?.toUpperCase() || ''
+  a.download = `${label}-Results${datePart ? `-${datePart}` : ''}-${idShort}.xlsx`
   a.click()
   URL.revokeObjectURL(url)
 }
 
-export async function exportCSVForCanva(subject, competitionId, tiers) {
+export async function exportCSVForCanva(subject, competitionId, tiers, sessionDate) {
   const { data: allSessions } = await supabase
     .from('competition_sessions')
     .select('*')
@@ -240,7 +251,9 @@ export async function exportCSVForCanva(subject, competitionId, tiers) {
   const a = document.createElement('a')
   a.href = url
   const label = isMath ? 'Mathematics' : 'English'
-  a.download = `${label}-canva-${competitionId.slice(0, 8)}.csv`
+  const datePart = formatFileDate(sessionDate)
+  const idShort = competitionId?.slice(5, 13)?.toUpperCase() || ''
+  a.download = `${label}-Canva${datePart ? `-${datePart}` : ''}-${idShort}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

@@ -90,7 +90,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     setExcelExporting(true)
     try {
       const { exportFromTemplate } = await import('./exportResults')
-      await exportFromTemplate(subject, state.competition_id, awardTiers)
+      await exportFromTemplate(subject, state.competition_id, awardTiers, new Date().toISOString())
     } catch (err) {
       console.error('Excel export failed:', err)
     } finally {
@@ -103,7 +103,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     setCsvExporting(true)
     try {
       const { exportCSVForCanva } = await import('./exportResults')
-      await exportCSVForCanva(subject, state.competition_id, awardTiers)
+      await exportCSVForCanva(subject, state.competition_id, awardTiers, new Date().toISOString())
     } catch (err) {
       console.error('CSV export failed:', err)
     } finally {

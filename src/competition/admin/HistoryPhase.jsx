@@ -117,7 +117,7 @@ export default function HistoryPhase({ isDark, onBack }) {
     setExcelExporting(true)
     try {
       const { exportFromTemplate } = await import('./exportResults')
-      await exportFromTemplate(detailSubject, selected.competition_id, awardTiers)
+      await exportFromTemplate(detailSubject, selected.competition_id, awardTiers, selected.created_at)
     } catch (err) {
       console.error('Excel export failed:', err)
     } finally {
@@ -130,7 +130,7 @@ export default function HistoryPhase({ isDark, onBack }) {
     setCsvExporting(true)
     try {
       const { exportCSVForCanva } = await import('./exportResults')
-      await exportCSVForCanva(detailSubject, selected.competition_id, awardTiers)
+      await exportCSVForCanva(detailSubject, selected.competition_id, awardTiers, selected.created_at)
     } catch (err) {
       console.error('CSV export failed:', err)
     } finally {
