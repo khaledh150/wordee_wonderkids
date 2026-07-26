@@ -57,7 +57,7 @@ export default function HistoryPhase({ isDark, onBack }) {
             hasEnglish: engSessions.length > 0,
             hasMath: mathSessions.length > 0,
           }
-        })).then(setHistory)
+        })).then(results => setHistory(results.filter(h => h.totalCount > 0)))
       })
   }, [])
 
@@ -403,20 +403,43 @@ export default function HistoryPhase({ isDark, onBack }) {
   // --- Session list view ---
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
-            isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <h2 className={`text-xl font-black ${text}`}>Session History</h2>
+      {/* Header banner */}
+      <div className={`rounded-2xl p-5 border ${
+        isDark
+          ? 'bg-gradient-to-r from-indigo-950/60 to-purple-950/40 border-indigo-500/20'
+          : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer border ${
+                isDark
+                  ? 'text-slate-300 bg-white/10 border-white/10 hover:bg-white/15 hover:border-white/20'
+                  : 'text-indigo-700 bg-white/80 border-indigo-200 hover:bg-white hover:border-indigo-300 shadow-sm'
+              }`}
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <div>
+              <h2 className={`text-xl font-black ${text}`}>Session History</h2>
+              <p className={`text-xs font-semibold mt-0.5 ${isDark ? 'text-indigo-300/60' : 'text-indigo-500/70'}`}>
+                {history.length} {history.length === 1 ? 'session' : 'sessions'} recorded
+              </p>
+            </div>
+          </div>
+          <div className={`p-3 rounded-xl ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+            <FileText className={`w-6 h-6 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+          </div>
+        </div>
       </div>
 
       {history.length === 0 ? (
-        <p className={`text-center py-12 font-bold ${textMuted}`}>No sessions recorded yet.</p>
+        <div className={`text-center py-16 rounded-2xl border ${card}`}>
+          <FileText className={`w-12 h-12 mx-auto mb-3 ${textMuted}`} />
+          <p className={`font-bold text-lg ${textMuted}`}>No sessions recorded yet</p>
+          <p className={`text-sm mt-1 ${textMuted}`}>Completed competitions will appear here</p>
+        </div>
       ) : (
         <div className="grid gap-3">
           {history.map(h => {
@@ -424,50 +447,55 @@ export default function HistoryPhase({ isDark, onBack }) {
             if (h.hasEnglish) subjects.push('English')
             if (h.hasMath) subjects.push('Math')
             const subjectName = subjects.join(' + ') || 'No subjects'
+            const totalPlayed = (h.engPlayed || 0) + (h.mathPlayed || 0)
 
             return (
               <button
                 key={h.competition_id}
                 onClick={() => { setSelected(h); setDetailSubject(h.hasEnglish ? 'english' : 'math') }}
-                className={`w-full text-left border rounded-2xl p-5 transition-all cursor-pointer ${card} hover:shadow-lg ${
-                  isDark ? 'hover:border-blue-500/30' : 'hover:border-blue-300'
+                className={`w-full text-left border-2 rounded-2xl p-5 transition-all cursor-pointer group ${
+                  isDark
+                    ? 'bg-[#0e1224]/50 border-white/10 hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-500/5'
+                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className={`font-black text-base ${text}`}>
+                    <p className={`font-black text-lg group-hover:text-indigo-500 transition-colors ${text}`}>
                       {h.round_label || subjectName + ' Competition'}
                     </p>
-                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <div className="flex flex-wrap items-center gap-2.5 mt-3">
                       {h.hasEnglish && (
-                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border ${
                           isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
                         }`}>
-                          <BookOpen className="w-3 h-3" />
-                          English {h.engPlayed > 0 ? `(${h.engPlayed}/${h.engCount})` : `(${h.engCount})`}
+                          <BookOpen className="w-3.5 h-3.5" />
+                          English ({h.engCount})
                         </span>
                       )}
                       {h.hasMath && (
-                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border ${
                           isDark ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' : 'bg-teal-50 border-teal-200 text-teal-700'
                         }`}>
-                          <Calculator className="w-3 h-3" />
-                          Math {h.mathPlayed > 0 ? `(${h.mathPlayed}/${h.mathCount})` : `(${h.mathCount})`}
+                          <Calculator className="w-3.5 h-3.5" />
+                          Math ({h.mathCount})
                         </span>
                       )}
                     </div>
-                    <p className={`text-[10px] font-mono mt-2 ${textMuted}`}>{h.competition_id}</p>
+                    <p className={`text-[10px] font-mono mt-2.5 ${textMuted}`}>{h.competition_id}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <div className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className={`flex items-center gap-1.5 text-base font-black px-3 py-1 rounded-lg ${
+                      isDark ? 'bg-white/5 text-white' : 'bg-indigo-50 text-indigo-700'
+                    }`}>
                       <Users className="w-4 h-4" />
                       {h.totalCount}
                     </div>
-                    <div className={`flex items-center gap-1.5 text-xs font-bold ${textMuted}`}>
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${textMuted}`}>
                       <Calendar className="w-3.5 h-3.5" />
                       {new Date(h.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </div>
-                    <div className={`flex items-center gap-1.5 text-xs font-bold ${textMuted}`}>
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${textMuted}`}>
                       <Clock className="w-3.5 h-3.5" />
                       {new Date(h.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                     </div>
