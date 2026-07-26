@@ -70,15 +70,58 @@ export default function AdminDashboard() {
       })
       return
     }
-    setDialog({
-      message: 'Open the lobby? Students will be able to join via QR code.',
-      onConfirm: async () => {
-        await updateState({ is_unlocked: true, started_at: null })
-        setPhaseOverride(null)
+    const otherSub = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+    const { data: otherSessions } = await supabase
+      .from('competition_sessions')
+      .select('status')
+      .eq('competition_id', state.competition_id)
+      .eq('subject', otherSub)
+      .eq('status', 'completed')
+    const completedOther = otherSessions?.length || 0
+
+    if (completedOther > 0) {
+      const subLabel = subject === 'math' ? 'Mathematics' : 'English Spelling'
+      const otherLabel = otherSub === 'math' ? 'Mathematics' : 'English Spelling'
+      const doOpen = async (mode) => {
         setDialog(null)
-      },
-      onCancel: () => setDialog(null),
-    })
+        await updateState({ is_unlocked: true, started_at: null, transfer_mode: mode })
+        setPhaseOverride(null)
+      }
+      setDialog({
+        title: `Open ${subLabel} Lobby`,
+        message: `${completedOther} student${completedOther !== 1 ? 's' : ''} completed ${otherLabel}. How should they move to ${subLabel}?`,
+        onCancel: () => setDialog(null),
+        actions: [
+          {
+            label: 'Auto-Transfer All',
+            className: 'bg-blue-600 hover:bg-blue-500 text-white',
+            onClick: () => doOpen('auto'),
+          },
+          {
+            label: 'Let Students Tap to Move',
+            className: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+            onClick: () => doOpen('manual'),
+          },
+          {
+            label: 'Cancel',
+            className: isDark
+              ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+              : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200',
+            onClick: () => setDialog(null),
+          },
+        ],
+      })
+    } else {
+      setDialog({
+        message: 'Open the lobby? Students will be able to join via QR code.',
+        onConfirm: async () => {
+          await updateState({ is_unlocked: true, started_at: null })
+          setPhaseOverride(null)
+          setDialog(null)
+        },
+        onCancel: () => setDialog(null),
+      })
+    }
   }
 
   async function handleRosterImport(rows) {
