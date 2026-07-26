@@ -11,7 +11,7 @@ const DURATION_OPTIONS = [3, 5, 8, 10, 15]
 const ENGLISH_LEVELS = [0, 1, 2, 3, 4]
 const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
-export default function SetupPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onOpenLobby, onShowUpload }) {
+export default function SetupPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onOpenLobby, onShowUpload, onNewSession }) {
   const [showAddRow, setShowAddRow] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
   const [editingCode, setEditingCode] = useState(null)
@@ -741,6 +741,31 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                 </p>
               )}
             </>
+          )}
+
+          {onNewSession && (
+            <div className={`flex items-center justify-center gap-3 mt-4 pt-4 border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+              <button
+                onClick={() => onNewSession(true)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  isDark
+                    ? 'text-slate-400 bg-white/5 border-white/10 hover:bg-white/10 hover:text-slate-200'
+                    : 'text-slate-500 bg-slate-100 border-slate-200 hover:bg-slate-200 hover:text-slate-700'
+                }`}
+              >
+                New Session (Keep Roster)
+              </button>
+              <button
+                onClick={() => onNewSession(false)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  isDark
+                    ? 'text-rose-400/70 bg-rose-500/5 border-rose-500/10 hover:bg-rose-500/10 hover:text-rose-300'
+                    : 'text-rose-500 bg-rose-50 border-rose-200 hover:bg-rose-100 hover:text-rose-600'
+                }`}
+              >
+                New Session (Fresh)
+              </button>
+            </div>
           )}
         </motion.div>
       </div>

@@ -270,6 +270,15 @@ export default function AdminDashboard() {
                   loadSessions={loadSessions}
                   onOpenLobby={handleOpenLobby}
                   onShowUpload={() => setShowUpload(true)}
+                  onNewSession={(copyRoster) => {
+                    const action = copyRoster ? 'keep the current roster' : 'start completely fresh (empty roster)'
+                    setDialog({
+                      title: 'New Session',
+                      message: `Create a new competition session? This will ${action}. The current session will be saved to history.`,
+                      onConfirm: async () => { setDialog(null); await handleNewSession(copyRoster) },
+                      onCancel: () => setDialog(null),
+                    })
+                  }}
                 />
               </ModuleBoundary>
             </motion.div>
