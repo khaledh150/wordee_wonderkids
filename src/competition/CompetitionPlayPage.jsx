@@ -377,10 +377,13 @@ function CompetitionPlayPageInner() {
   }, [step])
 
   // Poll for subject unlock when on subjectWait screen
+  const waitJoiningRef = useRef(false)
   useEffect(() => {
     if (step !== 'subjectWait' || !verifiedCode || !competitionId) return
+    waitJoiningRef.current = false
     let cancelled = false
     const check = async () => {
+      if (waitJoiningRef.current) return
       try {
         const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
         const res = await fetch(`${FUNC_BASE}/verify`, {
@@ -388,10 +391,11 @@ function CompetitionPlayPageInner() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ participant_code: verifiedCode, competition_id: competitionId }),
         })
-        if (cancelled || !res.ok) return
+        if (cancelled || !res.ok || waitJoiningRef.current) return
         const data = await res.json()
         const subjects = data.subjects || []
-        if (subjects.length > 0 && !cancelled) {
+        if (subjects.length > 0 && !cancelled && !waitJoiningRef.current) {
+          waitJoiningRef.current = true
           if (subjects.length === 1) {
             handleSubjectSelect(subjects[0], verifiedCode)
           } else {
@@ -401,6 +405,7 @@ function CompetitionPlayPageInner() {
         }
       } catch {}
     }
+    check()
     const id = setInterval(check, 6000)
     return () => { cancelled = true; clearInterval(id) }
   }, [step, verifiedCode, competitionId])

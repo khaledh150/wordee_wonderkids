@@ -65,7 +65,7 @@ export default function AdminDashboard() {
       .eq('subject', otherSub)
       .eq('status', 'completed')
       .then(({ count }) => setOtherSubjectPlayed((count || 0) > 0))
-  }, [state?.competition_id, subject, phase])
+  }, [state?.competition_id, subject])
 
   async function handleOpenLobby() {
     const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
@@ -404,16 +404,20 @@ export default function AdminDashboard() {
                   updateState={updateState}
                   otherSubjectPlayed={otherSubjectPlayed}
                   onEndCompetition={async () => {
-                    const now = new Date().toISOString()
-                    await Promise.all([
-                      supabase.from('competition_state').update({
-                        is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
-                      }).eq('id', 'english'),
-                      supabase.from('competition_state').update({
-                        is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
-                      }).eq('id', 'math'),
-                    ])
-                    await handleNewSession(true)
+                    try {
+                      const now = new Date().toISOString()
+                      await Promise.all([
+                        supabase.from('competition_state').update({
+                          is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                        }).eq('id', 'english'),
+                        supabase.from('competition_state').update({
+                          is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                        }).eq('id', 'math'),
+                      ])
+                      await handleNewSession(true)
+                    } catch (err) {
+                      alert('Failed to end session: ' + (err.message || 'Unknown error'))
+                    }
                   }}
                   onProceedToSubject={(sub) => {
                     const label = sub === 'math' ? 'Mathematics' : 'English Spelling'

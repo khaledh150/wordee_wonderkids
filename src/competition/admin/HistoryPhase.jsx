@@ -175,7 +175,7 @@ export default function HistoryPhase({ isDark, onBack }) {
             {' at '}
             {sessionDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
             <span className="mx-2">·</span>
-            <span className="font-mono">{selected.competition_id.slice(0, 8)}</span>
+            <span className="font-mono">Session {selected.competition_id?.slice(5, 13)?.toUpperCase()}</span>
           </p>
         </div>
 
@@ -487,7 +487,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                         </span>
                       )}
                     </div>
-                    <p className={`text-[10px] font-mono mt-2.5 ${textMuted}`}>{h.competition_id}</p>
+                    <p className={`text-[10px] font-mono mt-2.5 ${textMuted}`}>Session {h.competition_id?.slice(5, 13)?.toUpperCase()}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className={`flex items-center gap-1.5 text-base font-black px-3 py-1 rounded-lg ${
