@@ -3,7 +3,7 @@ import { Shield, LogOut, Sun, Moon, History, Activity } from 'lucide-react'
 const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results', podium: 'Podium' }
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results', 'podium']
 
-export default function AdminHeader({ subject, setSubject, phase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal }) {
+export default function AdminHeader({ subject, setSubject, phase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal, competitionId }) {
   return (
     <header className={`border-b px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-40 print:hidden transition-colors ${
       isDark ? 'bg-[#0e1224]/90 border-white/5 shadow-lg' : 'bg-white border-slate-200 shadow-sm'
@@ -71,6 +71,13 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, onLogo
       </div>
 
       <div className="flex items-center gap-2">
+        {competitionId && (
+          <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded-lg border ${
+            isDark ? 'text-slate-500 bg-white/5 border-white/5' : 'text-slate-400 bg-slate-100 border-slate-200'
+          }`}>
+            {competitionId.slice(5, 13).toUpperCase()}
+          </span>
+        )}
         <button
           onClick={onDiagnostics}
           className={`p-2 rounded-xl border cursor-pointer ${

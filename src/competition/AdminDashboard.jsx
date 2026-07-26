@@ -200,9 +200,25 @@ export default function AdminDashboard() {
           phase={phase}
           isDark={isDark}
           onLogout={handleLogout}
-          onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
+          onPhaseClick={(p) => {
+            if (p === 'setup' && autoPhase === 'lobby') {
+              setDialog({
+                title: 'Close Lobby?',
+                message: 'This will close the lobby and disconnect any waiting students. Are you sure?',
+                onConfirm: async () => {
+                  await updateState({ is_unlocked: false })
+                  setPhaseOverride(null)
+                  setDialog(null)
+                },
+                onCancel: () => setDialog(null),
+              })
+              return
+            }
+            setPhaseOverride(p == null || p === autoPhase ? null : p)
+          }}
           onDiagnostics={() => setShowDiagnostics(true)}
           onThemeModal={() => setShowThemeModal(true)}
+          competitionId={state.competition_id}
         />
       )}
 

@@ -164,21 +164,49 @@ export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase
               }`}>{startError}</p>
             )}
 
-            <button
-              onClick={handleBack}
-              className={`flex items-center gap-1 text-sm mt-2 cursor-pointer ${
-                confirmBack
-                  ? 'text-amber-500 font-bold animate-pulse'
-                  : `${textMuted} hover:underline`
-              }`}
-            >
-              <ArrowLeft size={14} />
-              {confirmBack ? 'Tap again to confirm' : 'Back to Setup'}
-            </button>
-            {confirmBack && (
-              <button onClick={() => setConfirmBack(false)} className={`text-xs cursor-pointer ${textMuted} hover:underline`}>
-                Cancel
+            {!confirmBack ? (
+              <button
+                onClick={handleBack}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold mt-2 cursor-pointer border transition-all ${
+                  isDark
+                    ? 'text-slate-300 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    : 'text-slate-600 bg-slate-100 border-slate-200 hover:bg-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <ArrowLeft size={14} />
+                Cancel &amp; Back to Setup
               </button>
+            ) : (
+              <div className={`w-full max-w-md rounded-2xl border-2 p-5 text-center space-y-3 mt-2 ${
+                isDark
+                  ? 'bg-rose-950/30 border-rose-500/30'
+                  : 'bg-rose-50 border-rose-200'
+              }`}>
+                <p className={`text-sm font-bold ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+                  Close the lobby and go back to setup?
+                </p>
+                <p className={`text-xs ${isDark ? 'text-rose-400/60' : 'text-rose-500/70'}`}>
+                  Students will be disconnected from this session.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => setConfirmBack(false)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold cursor-pointer border transition-all ${
+                      isDark
+                        ? 'text-slate-300 bg-white/5 border-white/10 hover:bg-white/10'
+                        : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    Keep Open
+                  </button>
+                  <button
+                    onClick={handleBack}
+                    className="px-4 py-2 rounded-xl text-sm font-bold cursor-pointer bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md"
+                  >
+                    Yes, Close Lobby
+                  </button>
+                </div>
+              </div>
             )}
           </>
         )}
