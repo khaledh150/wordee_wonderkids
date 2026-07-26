@@ -271,7 +271,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             <h1 className="text-xl font-bold mb-0.5 border-b-2 border-black pb-1">
               {subject === 'math' ? `Mathematics — ${mathGradeLabel(lvl)}` : `English Spelling — Level ${lvl}`}
             </h1>
-            <p className="text-xs text-gray-500 mb-2">{lvlStudents.length} student{lvlStudents.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-gray-500 mb-2">{lvlStudents.length} student{lvlStudents.length !== 1 ? 's' : ''} · Session {state?.competition_id?.slice(5, 13)?.toUpperCase()}</p>
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-gray-400 text-xs uppercase font-bold">

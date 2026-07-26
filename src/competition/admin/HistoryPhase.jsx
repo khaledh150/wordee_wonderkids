@@ -366,7 +366,7 @@ export default function HistoryPhase({ isDark, onBack }) {
               <div key={lvl} className="break-before-page first:break-before-auto p-8">
                 <h1 className="text-2xl font-bold mb-1">Session History — {subjectLabel} — {detailSubject === 'math' ? mathGradeLabel(lvl) : `Level ${lvl}`}</h1>
                 <p className="text-sm text-gray-500 mb-4">
-                  {sessionDate.toLocaleDateString()} {selected.round_label ? `— ${selected.round_label}` : ''}
+                  {sessionDate.toLocaleDateString()} · Session {selected.competition_id?.slice(5, 13)?.toUpperCase()} {selected.round_label ? `— ${selected.round_label}` : ''}
                 </p>
                 <table className="w-full text-base border-collapse">
                   <thead>
