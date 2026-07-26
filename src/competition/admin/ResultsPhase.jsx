@@ -5,6 +5,7 @@ import { supabase, SUBJECTS } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import { fmt } from './shared'
 import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 const mathQuestionCountCache = {}
 
@@ -149,7 +150,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                   : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
             >
-              L{lvl}
+              {subject === 'math' ? mathGradeLabel(lvl) : `L${lvl}`}
             </button>
           ))}
         </div>
@@ -190,7 +191,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
               <th className="px-6 py-4">Rank</th>
               <th className="px-4 py-4">Name</th>
               <th className="px-4 py-4">School</th>
-              <th className="px-4 py-4 text-center">Level</th>
+              <th className="px-4 py-4 text-center">{subject === 'math' ? 'Grade' : 'Level'}</th>
               <th className="px-4 py-4 text-right">Score</th>
               <th className="px-4 py-4 text-right">Time</th>
               <th className="px-6 py-4 text-center">Certificate</th>
@@ -221,7 +222,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                   <span className={`px-2 py-0.5 rounded border ${
                     isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
                   }`}>
-                    L{s.level}
+                    {subject === 'math' ? mathGradeLabel(s.level) : `L${s.level}`}
                   </span>
                 </td>
                 <td className={`px-4 py-4 text-right font-black text-base ${text}`}>
@@ -299,7 +300,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
           const lvlResults = officialSorted.filter(s => s.level === lvl)
           return (
             <div key={lvl} className="break-before-page first:break-before-auto p-8">
-              <h1 className="text-2xl font-bold mb-1">Official Results — {subject.toUpperCase()} — Level {lvl}</h1>
+              <h1 className="text-2xl font-bold mb-1">Official Results — {subject.toUpperCase()} — {subject === 'math' ? mathGradeLabel(lvl) : `Level ${lvl}`}</h1>
               <p className="text-sm text-gray-500 mb-4">{state.competition_id} {state.round_label ? `— ${state.round_label}` : ''}</p>
               <table className="w-full text-base border-collapse">
                 <thead>

@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X, Camera } from 'lucide-react'
+import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X, Camera, Printer } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { generateCode } from './shared'
 import { uploadPhoto } from './photoUtils'
 import StudentAvatar from './StudentAvatar'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 const DURATION_OPTIONS = [3, 5, 8, 10, 15]
 const ENGLISH_LEVELS = [0, 1, 2, 3, 4]
@@ -254,8 +255,51 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     }
   }
 
+  const printRows = useMemo(() => {
+    const lvl = s => subject === 'math' ? s.math?.level : s.english?.level
+    return [...grouped].filter(s => lvl(s)).sort((a, b) => (lvl(a) || 0) - (lvl(b) || 0))
+  }, [grouped, subject])
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <>
+    {/* Print-only roster */}
+    <div className="hidden print:block bg-white text-black">
+      {[...new Set(printRows.map(s => subject === 'math' ? s.math?.level : s.english?.level))].sort((a, b) => a - b).map(lvl => {
+        const lvlStudents = printRows.filter(s => (subject === 'math' ? s.math?.level : s.english?.level) === lvl)
+        return (
+          <div key={lvl} className="break-before-page first:break-before-auto p-8">
+            <h1 className="text-2xl font-bold mb-1">
+              {subject === 'math' ? `Mathematics — ${mathGradeLabel(lvl)}` : `English Spelling — Level ${lvl}`}
+            </h1>
+            <p className="text-sm text-gray-500 mb-4">{state?.competition_id} — {lvlStudents.length} student{lvlStudents.length !== 1 ? 's' : ''}</p>
+            <table className="w-full text-base border-collapse">
+              <thead>
+                <tr className="border-b-2 border-black text-sm uppercase font-bold">
+                  <th className="px-3 py-2 text-left w-12">#</th>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-left">Nickname</th>
+                  <th className="px-3 py-2 text-left">School</th>
+                  <th className="px-3 py-2 text-center w-20">Code</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lvlStudents.map((s, i) => (
+                  <tr key={s.code} className="border-b border-gray-200">
+                    <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                    <td className="px-3 py-1.5 font-medium">{s.name}</td>
+                    <td className="px-3 py-1.5 text-gray-600">{s.nickname || '—'}</td>
+                    <td className="px-3 py-1.5 text-gray-600">{s.school || '—'}</td>
+                    <td className="px-3 py-1.5 text-center font-mono font-bold">{s.code}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      })}
+    </div>
+
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 print:hidden">
       {/* Left Side - Roster Table */}
       <div className="lg:col-span-3">
         <motion.div
@@ -302,6 +346,17 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   >
                     <Download className="w-3.5 h-3.5" />
                     Export
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      isDark
+                        ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Print
                   </button>
                 </>
               )}
@@ -479,7 +534,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         >
                           <option value={0}>—</option>
                           {(subject === 'math' ? MATH_LEVELS : ENGLISH_LEVELS).slice(1).map(l => (
-                            <option key={l} value={l}>{l}</option>
+                            <option key={l} value={l}>{subject === 'math' ? mathGradeLabel(l) : l}</option>
                           ))}
                         </select>
                       </td>
@@ -572,7 +627,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         className={`px-2 py-1.5 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                       >
                         {(subject === 'math' ? MATH_LEVELS : ENGLISH_LEVELS).map(l => (
-                          <option key={l} value={l}>{l === 0 ? '—' : l}</option>
+                          <option key={l} value={l}>{l === 0 ? '—' : subject === 'math' ? mathGradeLabel(l) : l}</option>
                         ))}
                       </select>
                     </td>
@@ -687,5 +742,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         </motion.div>
       </div>
     </div>
+    </>
   )
 }

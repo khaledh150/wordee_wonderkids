@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Tabl
 import { supabase } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 const mathQuestionCountCache = {}
 
@@ -239,7 +240,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                     : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
-                L{lvl}
+                {detailSubject === 'math' ? mathGradeLabel(lvl) : `L${lvl}`}
               </button>
             ))}
           </div>
@@ -281,7 +282,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                 <th className="px-5 py-4">Rank</th>
                 <th className="px-4 py-4">Name</th>
                 <th className="px-4 py-4">School</th>
-                <th className="px-4 py-4 text-center">Level</th>
+                <th className="px-4 py-4 text-center">{detailSubject === 'math' ? 'Grade' : 'Level'}</th>
                 <th className="px-4 py-4 text-right">Score</th>
                 <th className="px-4 py-4 text-right">Time</th>
                 <th className="px-5 py-4 text-center">Certificate</th>
@@ -309,7 +310,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                     <span className={`px-2 py-0.5 rounded border ${
                       isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}>
-                      L{s.level}
+                      {detailSubject === 'math' ? mathGradeLabel(s.level) : `L${s.level}`}
                     </span>
                   </td>
                   <td className={`px-4 py-4 text-right font-black text-base ${text}`}>
@@ -363,7 +364,7 @@ export default function HistoryPhase({ isDark, onBack }) {
             const lvlResults = officialSorted.filter(s => s.level === lvl)
             return (
               <div key={lvl} className="break-before-page first:break-before-auto p-8">
-                <h1 className="text-2xl font-bold mb-1">Session History — {subjectLabel} — Level {lvl}</h1>
+                <h1 className="text-2xl font-bold mb-1">Session History — {subjectLabel} — {detailSubject === 'math' ? mathGradeLabel(lvl) : `Level ${lvl}`}</h1>
                 <p className="text-sm text-gray-500 mb-4">
                   {selected.competition_id} · {sessionDate.toLocaleDateString()} {selected.round_label ? `— ${selected.round_label}` : ''}
                 </p>

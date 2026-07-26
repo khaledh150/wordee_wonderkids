@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Trophy, Eye, EyeOff, XCircle } from 'lucide-react'
 import StudentAvatar from './StudentAvatar'
 import { fmt } from './shared'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition }) {
   const [selectedLevel, setSelectedLevel] = useState(state?.podium_level || 1)
@@ -65,7 +66,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
             <h3 className={`text-xl font-black ${text}`}>Podium Control</h3>
             {isPodiumVisible && (
               <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse">
-                LIVE on Projector — Level {state.podium_level}
+                LIVE on Projector — {subject === 'math' ? mathGradeLabel(state.podium_level) : `Level ${state.podium_level}`}
               </span>
             )}
           </div>
@@ -89,7 +90,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
                       : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
                   }`}
                 >
-                  Level {l}
+                  {subject === 'math' ? mathGradeLabel(l) : `Level ${l}`}
                   <span className={`ml-2 text-xs ${selectedLevel === l ? 'text-white/70' : textMuted}`}>({count})</span>
                 </button>
               )
@@ -123,7 +124,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className={`rounded-2xl border p-6 ${card}`}>
           <h4 className={`text-sm font-black uppercase tracking-wider mb-5 ${textMuted}`}>
-            Level {selectedLevel} — Top {top3.length}
+            {subject === 'math' ? mathGradeLabel(selectedLevel) : `Level ${selectedLevel}`} — Top {top3.length}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {top3.map((s, i) => (

@@ -1,15 +1,8 @@
 import { supabase } from '../supabaseClient'
 
-const MATH_LEVEL_LABELS = {
-  1: 'Kindergarten',
-  2: 'Grade 1',
-  3: 'Grade 2',
-  4: 'Grade 3',
-  5: 'Grade 4',
-  6: 'Grade 5',
-  7: 'Grade 6',
-  8: 'High-school 1-3',
-}
+import { MATH_GRADE_LABELS } from '../mathGradeLabels'
+
+const MATH_LEVEL_LABELS = MATH_GRADE_LABELS
 
 const ENG_LEVEL_LABELS = {
   1: 'English Level 1',

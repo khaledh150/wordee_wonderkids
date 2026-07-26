@@ -31,3 +31,6 @@ dist-ssr
 # MCP config (contains project refs)
 .mcp.json
 supabase/.temp/
+
+# Roster Excel files (contain student data)
+roster/

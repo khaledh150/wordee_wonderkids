@@ -8813,13 +8813,13 @@ export const questionBank = {
   "5": [
     {
       "id": 1,
-      "question": "2 × 3 ÷ 1 = ?",
-      "answer": 6,
-      "answerDisplay": "6",
+      "question": "2 × 3 + 2 = ?",
+      "answer": 8,
+      "answerDisplay": "8",
       "distractors": [
-        7,
-        5,
-        8
+        6,
+        11,
+        12
       ]
     },
     {
@@ -8857,13 +8857,13 @@ export const questionBank = {
     },
     {
       "id": 5,
-      "question": "5 × 2 ÷ 1 = ?",
-      "answer": 10,
-      "answerDisplay": "10",
+      "question": "5 × 2 + 2 = ?",
+      "answer": 12,
+      "answerDisplay": "12",
       "distractors": [
+        10,
         11,
-        9,
-        12
+        14
       ]
     },
     {
@@ -8934,13 +8934,13 @@ export const questionBank = {
     },
     {
       "id": 12,
-      "question": "3/4 × 2 ÷ 1 = ?",
-      "answer": 1.5,
-      "answerDisplay": "1.5",
+      "question": "3/4 × 4 + 2 = ?",
+      "answer": 5,
+      "answerDisplay": "5",
       "distractors": [
-        2,
-        1,
-        2.5
+        4,
+        6,
+        7
       ]
     },
     {
@@ -8967,13 +8967,13 @@ export const questionBank = {
     },
     {
       "id": 15,
-      "question": "5/6 × 3 ÷ 1 = ?",
-      "answer": 2.5,
-      "answerDisplay": "2.5",
+      "question": "5/6 × 6 + 5 = ?",
+      "answer": 10,
+      "answerDisplay": "10",
       "distractors": [
-        3,
-        2,
-        3.5
+        9,
+        11,
+        12
       ]
     },
     {
@@ -9000,13 +9000,13 @@ export const questionBank = {
     },
     {
       "id": 18,
-      "question": "3/5 + 2/5 × 2 = ?",
-      "answer": 1.4,
-      "answerDisplay": "1.4",
+      "question": "3/5 + 2/5 × 5 = ?",
+      "answer": 2.6,
+      "answerDisplay": "2.6",
       "distractors": [
-        1.9,
-        0.9,
-        2.4
+        1.6,
+        4.1,
+        4.6
       ]
     },
     {
@@ -9044,13 +9044,13 @@ export const questionBank = {
     },
     {
       "id": 22,
-      "question": "5/8 + 3/8 × 2 = ?",
-      "answer": 1.375,
-      "answerDisplay": "1.375",
+      "question": "5/8 + 3/8 × 8 = ?",
+      "answer": 3.625,
+      "answerDisplay": "3.625",
       "distractors": [
-        1.875,
-        0.875,
-        2.375
+        3.125,
+        5.125,
+        6.125
       ]
     },
     {
@@ -9165,13 +9165,13 @@ export const questionBank = {
     },
     {
       "id": 33,
-      "question": "4/7 + 3/7 × 2 = ?",
-      "answer": 1.4286,
-      "answerDisplay": "1.4286",
+      "question": "4/7 + 3/7 × 7 = ?",
+      "answer": 3.5714,
+      "answerDisplay": "3.5714",
       "distractors": [
-        1.93,
-        0.93,
-        2.43
+        1.5714,
+        4.5714,
+        6.0714
       ]
     },
     {
@@ -9209,13 +9209,13 @@ export const questionBank = {
     },
     {
       "id": 37,
-      "question": "6/9 + 3/9 × 3 = ?",
-      "answer": 1.6667,
-      "answerDisplay": "1.6667",
+      "question": "6/9 + 3/9 × 9 = ?",
+      "answer": 3.6667,
+      "answerDisplay": "3.6667",
       "distractors": [
-        2.17,
-        1.17,
-        2.67
+        1.6667,
+        2.6667,
+        4.6667
       ]
     },
     {
@@ -9242,13 +9242,13 @@ export const questionBank = {
     },
     {
       "id": 40,
-      "question": "3/8 × 4 ÷ 2 = ?",
-      "answer": 0.75,
-      "answerDisplay": "3/4",
+      "question": "3/8 × 8 ÷ 2 = ?",
+      "answer": 1.5,
+      "answerDisplay": "1.5",
       "distractors": [
-        1.25,
-        0.25,
-        1.75
+        2.5,
+        3,
+        3.5
       ]
     },
     {
@@ -9319,13 +9319,13 @@ export const questionBank = {
     },
     {
       "id": 47,
-      "question": "1/6 + 5/6 × 2 = ?",
-      "answer": 1.8333,
-      "answerDisplay": "1.8333",
+      "question": "1/6 + 5/6 × 6 = ?",
+      "answer": 5.1667,
+      "answerDisplay": "5.1667",
       "distractors": [
-        2.33,
-        1.33,
-        2.83
+        4.6667,
+        6.1667,
+        8.1667
       ]
     },
     {
@@ -9374,13 +9374,13 @@ export const questionBank = {
     },
     {
       "id": 52,
-      "question": "4/9 + 5/9 × 2 = ?",
-      "answer": 1.5556,
-      "answerDisplay": "1.5556",
+      "question": "4/9 + 5/9 × 9 = ?",
+      "answer": 5.4444,
+      "answerDisplay": "5.4444",
       "distractors": [
-        2.06,
-        1.06,
-        2.56
+        3.4444,
+        7.4444,
+        8.4444
       ]
     },
     {
@@ -9429,13 +9429,13 @@ export const questionBank = {
     },
     {
       "id": 57,
-      "question": "1/2 + 3/2 × 1 = ?",
-      "answer": 2,
-      "answerDisplay": "2",
+      "question": "1/2 + 3/2 × 2 = ?",
+      "answer": 3.5,
+      "answerDisplay": "3.5",
       "distractors": [
+        1.5,
         3,
-        1,
-        4
+        4.5
       ]
     },
     {
@@ -9484,13 +9484,13 @@ export const questionBank = {
     },
     {
       "id": 62,
-      "question": "2/8 + 6/8 × 2 = ?",
-      "answer": 1.75,
-      "answerDisplay": "1.75",
+      "question": "2/8 + 6/8 × 8 = ?",
+      "answer": 6.25,
+      "answerDisplay": "6.25",
       "distractors": [
-        2.25,
-        1.25,
-        2.75
+        5.25,
+        5.75,
+        7.25
       ]
     },
     {
@@ -9506,13 +9506,13 @@ export const questionBank = {
     },
     {
       "id": 64,
-      "question": "4/6 × 3 ÷ 2 = ?",
-      "answer": 1,
-      "answerDisplay": "1",
+      "question": "4/6 × 6 ÷ 2 = ?",
+      "answer": 2,
+      "answerDisplay": "2",
       "distractors": [
-        2,
-        0,
-        3
+        1.5,
+        3.5,
+        4.5
       ]
     },
     {
@@ -9649,13 +9649,13 @@ export const questionBank = {
     },
     {
       "id": 77,
-      "question": "2/7 + 5/7 × 2 = ?",
-      "answer": 1.7143,
-      "answerDisplay": "1.7143",
+      "question": "2/7 + 5/7 × 7 = ?",
+      "answer": 5.2857,
+      "answerDisplay": "5.2857",
       "distractors": [
-        2.21,
-        1.21,
-        2.71
+        3.2857,
+        6.2857,
+        6.7857
       ]
     },
     {
@@ -9671,13 +9671,13 @@ export const questionBank = {
     },
     {
       "id": 79,
-      "question": "3/5 × 5 ÷ 1 = ?",
-      "answer": 3,
-      "answerDisplay": "3",
+      "question": "3/5 × 5 + 4 = ?",
+      "answer": 7,
+      "answerDisplay": "7",
       "distractors": [
-        4,
-        2,
-        5
+        7.5,
+        8.5,
+        9
       ]
     },
     {
@@ -9759,13 +9759,13 @@ export const questionBank = {
     },
     {
       "id": 87,
-      "question": "3/4 + 2/4 × 2 = ?",
-      "answer": 1.75,
-      "answerDisplay": "1.75",
+      "question": "3/4 + 2/4 × 4 = ?",
+      "answer": 2.75,
+      "answerDisplay": "2.75",
       "distractors": [
         2.25,
-        1.25,
-        2.75
+        3.25,
+        5.75
       ]
     },
     {
@@ -9869,13 +9869,13 @@ export const questionBank = {
     },
     {
       "id": 97,
-      "question": "2/9 + 7/9 × 3 = ?",
-      "answer": 2.5556,
-      "answerDisplay": "2.5556",
+      "question": "2/9 + 7/9 × 9 = ?",
+      "answer": 7.2222,
+      "answerDisplay": "7.2222",
       "distractors": [
-        3.06,
-        2.06,
-        3.56
+        5.2222,
+        6.7222,
+        9.2222
       ]
     },
     {
@@ -9924,13 +9924,13 @@ export const questionBank = {
     },
     {
       "id": 102,
-      "question": "5/8 × 6 ÷ 2 = ?",
-      "answer": 1.875,
-      "answerDisplay": "1.875",
+      "question": "5/8 × 8 ÷ 2 = ?",
+      "answer": 2.5,
+      "answerDisplay": "2.5",
       "distractors": [
-        2.375,
-        1.375,
-        2.875
+        1.5,
+        3.5,
+        4
       ]
     },
     {
@@ -9946,13 +9946,13 @@ export const questionBank = {
     },
     {
       "id": 104,
-      "question": "4/5 × 3 ÷ 2 = ?",
-      "answer": 1.2,
-      "answerDisplay": "1.2",
+      "question": "4/5 × 5 ÷ 2 = ?",
+      "answer": 2,
+      "answerDisplay": "2",
       "distractors": [
-        1.7,
-        0.7,
-        2.2
+        1,
+        1.5,
+        2.5
       ]
     },
     {
@@ -10023,13 +10023,13 @@ export const questionBank = {
     },
     {
       "id": 111,
-      "question": "3/8 × 5 ÷ 1 = ?",
-      "answer": 1.875,
-      "answerDisplay": "1.875",
+      "question": "3/8 × 8 + 4 = ?",
+      "answer": 7,
+      "answerDisplay": "7",
       "distractors": [
-        2.375,
-        1.375,
-        2.875
+        6,
+        8,
+        9
       ]
     },
     {
@@ -10056,13 +10056,13 @@ export const questionBank = {
     },
     {
       "id": 114,
-      "question": "4/5 × 3 ÷ 3 = ?",
-      "answer": 0.8,
-      "answerDisplay": "0.8",
+      "question": "4/5 × 5 ÷ 3 = ?",
+      "answer": 1.3333,
+      "answerDisplay": "1.3333",
       "distractors": [
-        1.3,
-        0.3,
-        1.8
+        1.8333,
+        2.3333,
+        3.8333
       ]
     },
     {
@@ -10078,13 +10078,13 @@ export const questionBank = {
     },
     {
       "id": 116,
-      "question": "1/3 × 4 ÷ 1 = ?",
-      "answer": 1.3333,
-      "answerDisplay": "1.3333",
+      "question": "1/3 × 6 + 4 = ?",
+      "answer": 6,
+      "answerDisplay": "6",
       "distractors": [
-        1.83,
-        0.83,
-        2.33
+        5,
+        7,
+        8
       ]
     },
     {
@@ -10100,24 +10100,24 @@ export const questionBank = {
     },
     {
       "id": 118,
-      "question": "4/5 × 2 ÷ 3 = ?",
-      "answer": 0.5333,
-      "answerDisplay": "0.5333",
+      "question": "4/5 × 5 ÷ 3 = ?",
+      "answer": 1.3333,
+      "answerDisplay": "1.3333",
       "distractors": [
-        1.03,
-        0.03,
-        1.53
+        1.8333,
+        3.3333,
+        3.8333
       ]
     },
     {
       "id": 119,
-      "question": "9 × 5 ÷ 1 = ?",
-      "answer": 45,
-      "answerDisplay": "45",
+      "question": "9 × 5 + 3 = ?",
+      "answer": 48,
+      "answerDisplay": "48",
       "distractors": [
-        46,
-        44,
-        47
+        45,
+        47,
+        51
       ]
     },
     {
@@ -10331,13 +10331,13 @@ export const questionBank = {
     },
     {
       "id": 139,
-      "question": "4/5 × 2 ÷ 1 = ?",
-      "answer": 1.6,
-      "answerDisplay": "1.6",
+      "question": "4/5 × 5 + 3 = ?",
+      "answer": 7,
+      "answerDisplay": "7",
       "distractors": [
-        2.1,
-        1.1,
-        2.6
+        6,
+        8,
+        9
       ]
     },
     {
@@ -10364,13 +10364,13 @@ export const questionBank = {
     },
     {
       "id": 142,
-      "question": "5/6 × 2 ÷ 2 = ?",
-      "answer": 0.8333,
-      "answerDisplay": "0.8333",
+      "question": "5/6 × 6 ÷ 2 = ?",
+      "answer": 2.5,
+      "answerDisplay": "2.5",
       "distractors": [
-        1.33,
-        0.33,
-        1.83
+        4,
+        4.5,
+        5.5
       ]
     },
     {
@@ -10397,13 +10397,13 @@ export const questionBank = {
     },
     {
       "id": 145,
-      "question": "3/8 × 6 ÷ 2 = ?",
-      "answer": 1.125,
-      "answerDisplay": "1.125",
+      "question": "3/8 × 8 ÷ 2 = ?",
+      "answer": 1.5,
+      "answerDisplay": "1.5",
       "distractors": [
-        1.625,
-        0.625,
-        2.125
+        1,
+        3.5,
+        4
       ]
     },
     {
@@ -10419,13 +10419,13 @@ export const questionBank = {
     },
     {
       "id": 147,
-      "question": "3/4 × 5 ÷ 1 = ?",
-      "answer": 3.75,
-      "answerDisplay": "3.75",
+      "question": "3/4 × 8 + 3 = ?",
+      "answer": 9,
+      "answerDisplay": "9",
       "distractors": [
-        4.25,
-        3.25,
-        4.75
+        8,
+        10,
+        11
       ]
     },
     {
@@ -10441,24 +10441,24 @@ export const questionBank = {
     },
     {
       "id": 149,
-      "question": "7 × 4 ÷ 1 = ?",
-      "answer": 28,
-      "answerDisplay": "28",
+      "question": "7 × 4 + 2 = ?",
+      "answer": 30,
+      "answerDisplay": "30",
       "distractors": [
-        29,
         27,
-        30
+        33,
+        34
       ]
     },
     {
       "id": 150,
-      "question": "5/8 × 7 ÷ 1 = ?",
-      "answer": 4.375,
-      "answerDisplay": "4.375",
+      "question": "5/8 × 8 + 3 = ?",
+      "answer": 8,
+      "answerDisplay": "8",
       "distractors": [
-        4.875,
-        3.875,
-        5.375
+        7,
+        9,
+        10
       ]
     },
     {
@@ -10496,13 +10496,13 @@ export const questionBank = {
     },
     {
       "id": 154,
-      "question": "3/5 × 7 ÷ 2 = ?",
-      "answer": 2.1,
-      "answerDisplay": "2.1",
+      "question": "3/5 × 10 ÷ 2 = ?",
+      "answer": 3,
+      "answerDisplay": "3",
       "distractors": [
-        2.6,
-        1.6,
-        3.1
+        1,
+        4,
+        6
       ]
     },
     {
@@ -10540,24 +10540,24 @@ export const questionBank = {
     },
     {
       "id": 158,
-      "question": "1/3 × 2 ÷ 3 = ?",
-      "answer": 0.2222,
-      "answerDisplay": "0.2222",
+      "question": "1/3 × 3 ÷ 3 = ?",
+      "answer": 0.3333,
+      "answerDisplay": "0.3333",
       "distractors": [
-        0.72,
-        -0.28,
-        1.22
+        1.3333,
+        1.8333,
+        2.8333
       ]
     },
     {
       "id": 159,
-      "question": "3 × 8 ÷ 1 = ?",
-      "answer": 24,
-      "answerDisplay": "24",
+      "question": "3 × 8 + 3 = ?",
+      "answer": 27,
+      "answerDisplay": "27",
       "distractors": [
         25,
-        23,
-        26
+        28,
+        31
       ]
     },
     {
@@ -10573,13 +10573,13 @@ export const questionBank = {
     },
     {
       "id": 161,
-      "question": "1/2 × 7 ÷ 2 = ?",
-      "answer": 1.75,
-      "answerDisplay": "1.75",
+      "question": "1/2 × 8 ÷ 2 = ?",
+      "answer": 2,
+      "answerDisplay": "2",
       "distractors": [
-        2.25,
-        1.25,
-        2.75
+        1,
+        3,
+        4
       ]
     },
     {
@@ -10617,24 +10617,24 @@ export const questionBank = {
     },
     {
       "id": 165,
-      "question": "1/4 × 5 ÷ 2 = ?",
-      "answer": 0.625,
-      "answerDisplay": "0.625",
+      "question": "1/4 × 8 ÷ 2 = ?",
+      "answer": 1,
+      "answerDisplay": "1",
       "distractors": [
-        1.125,
-        0.125,
-        1.625
+        2.5,
+        3.5,
+        4
       ]
     },
     {
       "id": 166,
-      "question": "3/8 × 3 ÷ 3 = ?",
-      "answer": 0.375,
-      "answerDisplay": "0.375",
+      "question": "3/8 × 8 ÷ 3 = ?",
+      "answer": 1,
+      "answerDisplay": "1",
       "distractors": [
-        0.875,
-        -0.125,
-        1.375
+        1.5,
+        2.5,
+        3.5
       ]
     },
     {
@@ -10650,13 +10650,13 @@ export const questionBank = {
     },
     {
       "id": 168,
-      "question": "5/8 × 5 ÷ 1 = ?",
-      "answer": 3.125,
-      "answerDisplay": "3.125",
+      "question": "5/8 × 8 + 5 = ?",
+      "answer": 10,
+      "answerDisplay": "10",
       "distractors": [
-        3.625,
-        2.625,
-        4.125
+        9,
+        11,
+        12
       ]
     },
     {
@@ -10694,24 +10694,24 @@ export const questionBank = {
     },
     {
       "id": 172,
-      "question": "3/4 × 6 ÷ 3 = ?",
-      "answer": 1.5,
-      "answerDisplay": "1.5",
+      "question": "3/4 × 8 ÷ 3 = ?",
+      "answer": 2,
+      "answerDisplay": "2",
       "distractors": [
-        2,
-        1,
-        2.5
+        3,
+        4,
+        4.5
       ]
     },
     {
       "id": 173,
-      "question": "1/4 × 7 ÷ 1 = ?",
-      "answer": 1.75,
-      "answerDisplay": "1.75",
+      "question": "1/4 × 8 + 3 = ?",
+      "answer": 5,
+      "answerDisplay": "5",
       "distractors": [
-        2.25,
-        1.25,
-        2.75
+        4,
+        6,
+        7
       ]
     },
     {
@@ -10749,13 +10749,13 @@ export const questionBank = {
     },
     {
       "id": 177,
-      "question": "8 × 4 ÷ 1 = ?",
-      "answer": 32,
-      "answerDisplay": "32",
+      "question": "8 × 4 + 4 = ?",
+      "answer": 36,
+      "answerDisplay": "36",
       "distractors": [
-        33,
-        31,
-        34
+        34,
+        35,
+        40
       ]
     },
     {
@@ -10903,13 +10903,13 @@ export const questionBank = {
     },
     {
       "id": 191,
-      "question": "2/5 × 2 ÷ 3 = ?",
-      "answer": 0.2667,
-      "answerDisplay": "0.2667",
+      "question": "2/5 × 5 ÷ 3 = ?",
+      "answer": 0.6667,
+      "answerDisplay": "0.6667",
       "distractors": [
-        0.77,
-        -0.23,
-        1.27
+        0.1667,
+        2.1667,
+        3.1667
       ]
     },
     {
@@ -10947,24 +10947,24 @@ export const questionBank = {
     },
     {
       "id": 195,
-      "question": "6 × 3 ÷ 1 = ?",
-      "answer": 18,
-      "answerDisplay": "18",
+      "question": "6 × 3 + 2 = ?",
+      "answer": 20,
+      "answerDisplay": "20",
       "distractors": [
-        19,
-        17,
-        20
+        21,
+        23,
+        24
       ]
     },
     {
       "id": 196,
-      "question": "6 × 6 ÷ 1 = ?",
-      "answer": 36,
-      "answerDisplay": "36",
+      "question": "6 × 6 + 3 = ?",
+      "answer": 39,
+      "answerDisplay": "39",
       "distractors": [
+        36,
         37,
-        35,
-        38
+        43
       ]
     },
     {
@@ -11059,12 +11059,12 @@ export const questionBank = {
     },
     {
       "id": 5,
-      "question": "4.5 + 2.5 ÷ 1 = ?",
+      "question": "4.5 + 2.5 = ?",
       "answer": 7,
       "answerDisplay": "7",
       "distractors": [
-        8,
         6,
+        8.5,
         9
       ]
     },
@@ -11114,13 +11114,13 @@ export const questionBank = {
     },
     {
       "id": 10,
-      "question": "2/3 × 9 ÷ 1 = ?",
+      "question": "2/3 × 9 = ?",
       "answer": 6,
       "answerDisplay": "6",
       "distractors": [
-        7,
-        5,
-        8
+        6.5,
+        8,
+        9
       ]
     },
     {
@@ -12170,13 +12170,13 @@ export const questionBank = {
     },
     {
       "id": 106,
-      "question": "3/4 × 25 + 2 = ?",
-      "answer": 20.75,
-      "answerDisplay": "20.75",
+      "question": "3/4 × 28 + 2 = ?",
+      "answer": 23,
+      "answerDisplay": "23",
       "distractors": [
-        21.75,
-        19.75,
-        22.75
+        22,
+        25.5,
+        26
       ]
     },
     {
@@ -12192,13 +12192,13 @@ export const questionBank = {
     },
     {
       "id": 108,
-      "question": "2/5 × 6 + 4 = ?",
-      "answer": 6.4,
-      "answerDisplay": "6.4",
+      "question": "2/5 × 10 + 4 = ?",
+      "answer": 8,
+      "answerDisplay": "8",
       "distractors": [
-        6.9,
-        5.9,
-        7.4
+        6,
+        7,
+        9.5
       ]
     },
     {
@@ -12214,13 +12214,13 @@ export const questionBank = {
     },
     {
       "id": 110,
-      "question": "1/4 × 27 + 4 = ?",
-      "answer": 10.75,
-      "answerDisplay": "10.75",
+      "question": "1/4 × 28 + 4 = ?",
+      "answer": 11,
+      "answerDisplay": "11",
       "distractors": [
-        11.75,
-        9.75,
-        12.75
+        10,
+        12,
+        13
       ]
     },
     {
@@ -12236,13 +12236,13 @@ export const questionBank = {
     },
     {
       "id": 112,
-      "question": "8.4 × 3 ÷ 1 = ?",
+      "question": "8.4 × 3 = ?",
       "answer": 25.2,
       "answerDisplay": "25.2",
       "distractors": [
-        26.2,
         24.2,
-        27.2
+        24.7,
+        25.7
       ]
     },
     {
@@ -12269,13 +12269,13 @@ export const questionBank = {
     },
     {
       "id": 115,
-      "question": "1.2 × 3 ÷ 1 = ?",
+      "question": "1.2 × 3 = ?",
       "answer": 3.6,
       "answerDisplay": "3.6",
       "distractors": [
         4.1,
-        3.1,
-        4.6
+        5.1,
+        6.1
       ]
     },
     {
@@ -12346,13 +12346,13 @@ export const questionBank = {
     },
     {
       "id": 122,
-      "question": "4/5 × 16 + 6 = ?",
-      "answer": 18.8,
-      "answerDisplay": "18.8",
+      "question": "4/5 × 20 + 6 = ?",
+      "answer": 22,
+      "answerDisplay": "22",
       "distractors": [
-        19.8,
-        17.8,
-        20.8
+        21,
+        22.5,
+        24.5
       ]
     },
     {
@@ -12412,13 +12412,13 @@ export const questionBank = {
     },
     {
       "id": 128,
-      "question": "1/4 × 14 + 3 = ?",
-      "answer": 6.5,
-      "answerDisplay": "6.5",
+      "question": "1/4 × 16 + 3 = ?",
+      "answer": 7,
+      "answerDisplay": "7",
       "distractors": [
-        7,
         6,
-        7.5
+        8.5,
+        10
       ]
     },
     {
@@ -12676,13 +12676,13 @@ export const questionBank = {
     },
     {
       "id": 152,
-      "question": "5/6 × 15 + 2 = ?",
-      "answer": 14.5,
-      "answerDisplay": "14.5",
+      "question": "5/6 × 18 + 2 = ?",
+      "answer": 17,
+      "answerDisplay": "17",
       "distractors": [
-        15.5,
-        13.5,
-        16.5
+        15,
+        18.5,
+        20
       ]
     },
     {
@@ -12742,13 +12742,13 @@ export const questionBank = {
     },
     {
       "id": 158,
-      "question": "3/4 × 9 + 10 = ?",
-      "answer": 16.75,
-      "answerDisplay": "16.75",
+      "question": "3/4 × 12 + 10 = ?",
+      "answer": 19,
+      "answerDisplay": "19",
       "distractors": [
-        17.75,
-        15.75,
-        18.75
+        18,
+        20,
+        20.5
       ]
     },
     {
@@ -12764,13 +12764,13 @@ export const questionBank = {
     },
     {
       "id": 160,
-      "question": "6.6 × 4 ÷ 1 = ?",
+      "question": "6.6 × 4 = ?",
       "answer": 26.4,
       "answerDisplay": "26.4",
       "distractors": [
-        27.4,
-        25.4,
-        28.4
+        26.9,
+        27.9,
+        28.9
       ]
     },
     {
@@ -12863,13 +12863,13 @@ export const questionBank = {
     },
     {
       "id": 169,
-      "question": "4.8 × 6 ÷ 1 = ?",
+      "question": "4.8 × 6 = ?",
       "answer": 28.8,
       "answerDisplay": "28.8",
       "distractors": [
-        29.8,
-        27.8,
-        30.8
+        26.8,
+        28.3,
+        31.3
       ]
     },
     {
@@ -12918,13 +12918,13 @@ export const questionBank = {
     },
     {
       "id": 174,
-      "question": "1/4 × 22 + 3 = ?",
-      "answer": 8.5,
-      "answerDisplay": "8.5",
+      "question": "1/4 × 24 + 3 = ?",
+      "answer": 9,
+      "answerDisplay": "9",
       "distractors": [
-        9,
-        8,
-        9.5
+        7,
+        11,
+        12
       ]
     },
     {
@@ -12973,13 +12973,13 @@ export const questionBank = {
     },
     {
       "id": 179,
-      "question": "3/4 × 25 + 8 = ?",
-      "answer": 26.75,
-      "answerDisplay": "26.75",
+      "question": "3/4 × 28 + 8 = ?",
+      "answer": 29,
+      "answerDisplay": "29",
       "distractors": [
-        27.75,
-        25.75,
-        28.75
+        27,
+        30,
+        31.5
       ]
     },
     {
@@ -13017,13 +13017,13 @@ export const questionBank = {
     },
     {
       "id": 183,
-      "question": "1/2 × 9 + 1 = ?",
-      "answer": 5.5,
-      "answerDisplay": "5.5",
+      "question": "1/2 × 10 + 1 = ?",
+      "answer": 6,
+      "answerDisplay": "6",
       "distractors": [
-        6,
-        5,
-        6.5
+        7,
+        7.5,
+        8.5
       ]
     },
     {
@@ -13039,13 +13039,13 @@ export const questionBank = {
     },
     {
       "id": 185,
-      "question": "1/2 × 11 + 10 = ?",
-      "answer": 15.5,
-      "answerDisplay": "15.5",
+      "question": "1/2 × 12 + 10 = ?",
+      "answer": 16,
+      "answerDisplay": "16",
       "distractors": [
-        16.5,
-        14.5,
-        17.5
+        14,
+        15.5,
+        17
       ]
     },
     {
@@ -13160,13 +13160,13 @@ export const questionBank = {
     },
     {
       "id": 196,
-      "question": "7.2 × 2 ÷ 1 = ?",
+      "question": "7.2 × 2 = ?",
       "answer": 14.4,
       "answerDisplay": "14.4",
       "distractors": [
         15.4,
-        13.4,
-        16.4
+        15.9,
+        16.9
       ]
     },
     {
@@ -13182,13 +13182,13 @@ export const questionBank = {
     },
     {
       "id": 198,
-      "question": "1/4 × 27 + 7 = ?",
-      "answer": 13.75,
-      "answerDisplay": "13.75",
+      "question": "1/4 × 28 + 7 = ?",
+      "answer": 14,
+      "answerDisplay": "14",
       "distractors": [
-        14.75,
-        12.75,
-        15.75
+        12,
+        14.5,
+        17
       ]
     },
     {
@@ -13204,13 +13204,13 @@ export const questionBank = {
     },
     {
       "id": 200,
-      "question": "4/5 × 23 + 1 = ?",
-      "answer": 19.4,
-      "answerDisplay": "19.4",
+      "question": "4/5 × 25 + 1 = ?",
+      "answer": 21,
+      "answerDisplay": "21",
       "distractors": [
-        20.4,
-        18.4,
-        21.4
+        20.5,
+        23.5,
+        24
       ]
     }
   ],

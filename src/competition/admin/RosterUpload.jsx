@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, Download, X, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 const COL_MAP = {
   name: ['name', 'ชื่อ', 'ชื่อ-นามสกุล', 'ชื่อ - นามสกุล', 'ชื่อ-นามสกุล (ผู้เข้าแข่งขัน)', 'ชื่อ - นามสกุล (ผู้เข้าแข่งขัน)', 'student name', 'full name'],
@@ -475,7 +476,7 @@ export default function RosterUpload({ open, onClose, onImport, competitionId, s
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.school || '—'}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.age || '—'}</td>
                         <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.english_level}</td>
-                        <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.math_level}</td>
+                        <td className={`px-3 py-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{row.math_level > 0 ? mathGradeLabel(row.math_level) : row.math_level}</td>
                         <td className="px-3 py-1.5">
                           {row._valid ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-400" />

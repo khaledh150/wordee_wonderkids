@@ -11,6 +11,7 @@ import wonderkidsLogo from '../assets/wonderkids_logo.webp'
 import { supabase } from './supabaseClient'
 import CompetitionGameView from './CompetitionGameView'
 import useVersionCheck from '../hooks/useVersionCheck'
+import { mathGradeLabel } from './mathGradeLabels'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
 
@@ -735,7 +736,7 @@ function CompetitionPlayPageInner() {
                 {isMath ? 'Mathematics' : 'English Spelling'}
               </span>
               <span className="text-white/80 font-black text-[clamp(1.1rem,3.5vmin,2rem)] landscape:text-[clamp(1rem,4vh,1.6rem)]">
-                — Level {session.level}
+                — {isMath ? mathGradeLabel(session.level) : `Level ${session.level}`}
               </span>
             </div>
 

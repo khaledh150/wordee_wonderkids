@@ -9,6 +9,7 @@ import useFullscreen from '../utils/useFullscreen'
 import StudentAvatar from './admin/StudentAvatar'
 import logo from '../assets/wonderkids_logo.webp'
 import useVersionCheck from '../hooks/useVersionCheck'
+import { mathGradeLabel } from './mathGradeLabels'
 
 const PROJECTOR_FONT = "'Playfair Display', Georgia, 'Times New Roman', serif"
 
@@ -347,7 +348,9 @@ export default function ProjectorPage() {
   const textDim = isDark ? 'text-slate-500' : 'text-slate-400'
   const cardBg = isDark ? 'bg-[#0e1224]/60 border-white/5' : 'bg-white border-slate-200'
   const isMathSubject = activeSubject === 'math'
+  const isPodiumMath = podiumSubject === 'math'
   const subjectLabel = isMathSubject ? 'Mathematics' : 'English Spelling'
+  const lvlLabel = (lvl, isMath = isMathSubject) => isMath ? mathGradeLabel(lvl) : `Level ${lvl}`
   const sc = {
     blob: isMathSubject
       ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-300/20')
@@ -552,7 +555,7 @@ export default function ProjectorPage() {
         {/* Level badge */}
         <div className="absolute top-6 right-16 z-20">
           <span className={`px-4 py-2 rounded-xl font-black text-sm uppercase tracking-wider border ${sc.levelBadge}`}>
-            Level {podiumLevel}
+            {lvlLabel(podiumLevel, isPodiumMath)}
           </span>
         </div>
 
@@ -561,7 +564,7 @@ export default function ProjectorPage() {
             {subjectLabel}
           </p>
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            Level {podiumLevel} Results
+            {lvlLabel(podiumLevel, isPodiumMath)} Results
           </h1>
         </motion.div>
 
@@ -985,7 +988,7 @@ export default function ProjectorPage() {
                     />
                   )}
                   <span className="relative z-10 flex items-center justify-center gap-1">
-                    Level {l}
+                    {lvlLabel(l)}
                     {activeCount > 0 && (
                       <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelected ? 'bg-white/80' : 'bg-emerald-400'}`} />
                     )}
@@ -1003,7 +1006,7 @@ export default function ProjectorPage() {
         {levels.length === 1 && activeLevel != null && (
           <div className="flex items-center gap-2">
             <span className={`text-xs font-black px-2 py-0.5 rounded-lg border ${sc.levelBadge}`}>
-              Level {activeLevel}
+              {lvlLabel(activeLevel)}
             </span>
           </div>
         )}
@@ -1117,7 +1120,7 @@ export default function ProjectorPage() {
           <Trophy className={`w-4 h-4 ${sc.accent}`} />
           {levelSessions.filter(s => s.status === 'completed').length} / {levelSessions.length} Completed
         </span>
-        <span>Level {activeLevel} • {subjectLabel}</span>
+        <span>{lvlLabel(activeLevel)} • {subjectLabel}</span>
       </footer>
     </div>
   )

@@ -6,6 +6,7 @@ import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
 import PracticeTimerDisplay from '../components/practice/PracticeTimer'
 import FullscreenBtn from '../components/FullscreenBtn'
+import { mathGradeLabel } from './mathGradeLabels'
 
 const MathQuestionArea = memo(function MathQuestionArea({ current, answered, onCorrect, onWrong }) {
   return (
@@ -354,7 +355,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
       )}
 
       <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 shrink-0 relative z-10 bg-white/30 backdrop-blur-md border-b border-white/20">
-        <span className="text-xs sm:text-sm lg:text-base font-bold text-teal-600 shrink-0">Math · Level {level}</span>
+        <span className="text-xs sm:text-sm lg:text-base font-bold text-teal-600 shrink-0">Math · {mathGradeLabel(level)}</span>
         <div className="flex-1 h-1.5 sm:h-2 lg:h-2.5 bg-teal-100 rounded-full overflow-hidden min-w-6">
           <motion.div
             className="h-full bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full"
