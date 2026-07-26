@@ -559,7 +559,7 @@ function CompetitionPlayPageInner() {
                   if (val.length === 4) {
                     setTimeout(() => {
                       const form = e.target.closest('form')
-                      if (form) form.requestSubmit()
+                      if (form) { if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })) }
                     }, 150)
                   }
                 }}
