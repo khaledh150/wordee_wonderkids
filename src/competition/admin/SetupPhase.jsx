@@ -268,13 +268,13 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         const lvlStudents = printRows.filter(s => (subject === 'math' ? s.math?.level : s.english?.level) === lvl)
         return (
           <div key={lvl} className={idx > 0 ? 'mt-6' : ''}>
-            <h1 className="text-xl font-bold mb-0.5 border-b-2 border-black pb-1">
+            <h1 className="text-xl font-bold mb-2 border-b-2 border-black pb-1">
               {subject === 'math' ? `Mathematics — ${mathGradeLabel(lvl)}` : `English Spelling — Level ${lvl}`}
+              <span className="text-sm font-normal text-gray-500 ml-2">({lvlStudents.length})</span>
             </h1>
-            <p className="text-xs text-gray-500 mb-2">{lvlStudents.length} student{lvlStudents.length !== 1 ? 's' : ''} · Session {state?.competition_id?.slice(5, 13)?.toUpperCase()}</p>
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-gray-400 text-xs uppercase font-bold">
+                <tr className="border-b border-gray-200 text-xs uppercase font-bold text-gray-500">
                   <th className="px-2 py-1 text-left w-8">#</th>
                   <th className="px-2 py-1 text-left">Name</th>
                   <th className="px-2 py-1 text-left">Nickname</th>
