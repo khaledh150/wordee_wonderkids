@@ -503,28 +503,25 @@ function CompetitionPlayPageInner() {
   }, [step, session, markReady, selectedSubject])
 
 
-  const renderBackgroundBlobs = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <motion.div
-        animate={{
-          x: [0, 80, -40, 0],
-          y: [0, -50, 60, 0],
-          scale: [1, 1.2, 0.9, 1],
-        }}
-        transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-300/30 to-purple-400/30 blur-3xl"
-      />
-      <motion.div
-        animate={{
-          x: [0, -90, 50, 0],
-          y: [0, 60, -80, 0],
-          scale: [1, 0.8, 1.1, 1],
-        }}
-        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-40 -right-40 w-112 h-112 rounded-full bg-gradient-to-tr from-cyan-200/30 to-indigo-300/30 blur-3xl"
-      />
-    </div>
-  )
+  const renderBackgroundBlobs = (mathOverride) => {
+    const math = mathOverride != null ? mathOverride : isMath
+    const blob1 = math ? 'from-teal-300/30 to-cyan-400/30' : 'from-indigo-300/30 to-purple-400/30'
+    const blob2 = math ? 'from-emerald-200/30 to-teal-300/30' : 'from-cyan-200/30 to-indigo-300/30'
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <motion.div
+          animate={{ x: [0, 80, -40, 0], y: [0, -50, 60, 0], scale: [1, 1.2, 0.9, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+          className={`absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br ${blob1} blur-3xl`}
+        />
+        <motion.div
+          animate={{ x: [0, -90, 50, 0], y: [0, 60, -80, 0], scale: [1, 0.8, 1.1, 1] }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+          className={`absolute -bottom-40 -right-40 w-112 h-112 rounded-full bg-gradient-to-tr ${blob2} blur-3xl`}
+        />
+      </div>
+    )
+  }
 
   const isMath = selectedSubject === 'math'
   const subjectLabel = isMath ? 'math' : 'spelling'
@@ -879,11 +876,14 @@ function CompetitionPlayPageInner() {
   if (step === 'waiting' && session) {
     const accentFrom = isMath ? 'from-teal-500' : 'from-indigo-500'
     const accentTo = isMath ? 'to-cyan-500' : 'to-purple-500'
+    const lobbyBg = isDark
+      ? 'bg-[#060814]'
+      : isMath
+        ? 'bg-gradient-to-br from-[#EEFCFA] via-[#F0F9F6] to-[#E5F0ED]'
+        : 'bg-gradient-to-br from-[#F0EEFF] via-[#EEF0F8] to-[#E8E5F5]'
 
     return (
-      <div className={`min-h-[100dvh] max-h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors ${
-        isDark ? 'bg-[#060814]' : 'bg-gradient-to-br from-[#FFF5F0] via-[#EEF2F6] to-[#E5E9F0]'
-      }`}>
+      <div className={`min-h-[100dvh] max-h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors ${lobbyBg}`}>
         {renderBackgroundBlobs()}
 
         <div className="fixed top-3 right-3 z-50">
@@ -934,9 +934,17 @@ function CompetitionPlayPageInner() {
               animate={{ scale: [1, 1.08, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <CheckCircle2 className={`w-[clamp(5rem,20vmin,12rem)] h-[clamp(5rem,20vmin,12rem)] landscape:!w-[clamp(4rem,30vh,10rem)] landscape:!h-[clamp(4rem,30vh,10rem)] drop-shadow-lg ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`} />
+              <CheckCircle2 className={`w-[clamp(5rem,20vmin,12rem)] h-[clamp(5rem,20vmin,12rem)] landscape:!w-[clamp(4rem,30vh,10rem)] landscape:!h-[clamp(4rem,30vh,10rem)] drop-shadow-lg ${
+                isMath
+                  ? (isDark ? 'text-teal-400' : 'text-teal-500')
+                  : (isDark ? 'text-indigo-400' : 'text-indigo-500')
+              }`} />
             </motion.div>
-            <p className={`text-[clamp(1rem,3vmin,2rem)] landscape:text-[clamp(0.9rem,4vh,1.6rem)] font-black uppercase tracking-[0.2em] ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Ready</p>
+            <p className={`text-[clamp(1rem,3vmin,2rem)] landscape:text-[clamp(0.9rem,4vh,1.6rem)] font-black uppercase tracking-[0.2em] ${
+              isMath
+                ? (isDark ? 'text-teal-400' : 'text-teal-600')
+                : (isDark ? 'text-indigo-400' : 'text-indigo-600')
+            }`}>Ready</p>
           </motion.div>
         </motion.div>
       </div>

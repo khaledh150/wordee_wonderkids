@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient'
+import { getTiersForCount } from './AwardConfig'
 
 import { MATH_GRADE_LABELS } from '../mathGradeLabels'
 
@@ -18,7 +19,7 @@ function ordinal(n) {
 }
 
 function getAward(rank, tiers) {
-  const t = tiers || { trophy: 3, gold: 3, silver: 3, bronze: 3 }
+  const t = tiers
   let cutoff = 0
   cutoff += t.trophy; if (rank <= cutoff) return `${ordinal(rank)} Place Award`
   cutoff += t.gold; if (rank <= cutoff) return 'Gold Medal Award'
@@ -175,8 +176,9 @@ export async function exportFromTemplate(subject, competitionId, tiers, sessionD
         cell.border = THIN_BORDER_ALL
       }
 
+      const levelTiers = getTiersForCount(participated.length)
       const cellM = row.getCell(13)
-      cellM.value = hasScore ? getAward(rank, tiers) : ''
+      cellM.value = hasScore ? getAward(rank, levelTiers) : ''
       cellM.font = { size: fontSize, name: 'Angsana New', color: { theme: 1 } }
       cellM.alignment = { vertical: 'middle' }
       cellM.border = THIN_BORDER_ALL
@@ -212,7 +214,7 @@ export async function exportCSVForCanva(subject, competitionId, tiers, sessionDa
   const isMath = subject === 'math'
   const levelLabels = isMath ? MATH_LEVEL_LABELS : ENG_LEVEL_LABELS
 
-  const CSV_HEADERS = ['ลำดับ', 'รายชื่อ', 'สาขา', 'ชื่อเล่น', 'ระดับ', 'ข้อถูก', 'รางวัลที่ได้']
+  const CSV_HEADERS = ['รายชื่อ', 'ระดับ', 'รางวัลที่ได้']
 
   const rows = []
   const levels = [...new Set(allSessions.map(s => s.level))].sort((a, b) => a - b)
@@ -223,17 +225,14 @@ export async function exportCSVForCanva(subject, competitionId, tiers, sessionDa
       .filter(s => s.validated_score != null)
       .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
 
+    const levelTiers = getTiersForCount(participated.length)
     let rankCounter = 1
     for (const s of participated) {
       const rank = rankCounter++
       rows.push([
-        rank,
         s.name || '',
-        s.school || '',
-        s.nickname || '',
         levelLabels[level] || `Level ${level}`,
-        s.validated_score,
-        getAward(rank, tiers),
+        getAward(rank, levelTiers),
       ])
     }
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Volume2, Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight } from 'lucide-react'
+import { Volume2, Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, BookOpen } from 'lucide-react'
 import { playWordVO, playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MultipleChoice from '../components/practice/MultipleChoice'
@@ -228,35 +228,35 @@ export default function CompetitionGameView({ engine, level, isDark = false, nex
           className={`w-full max-w-md landscape:max-w-2xl backdrop-blur-xl border rounded-3xl p-5 sm:p-8 text-center relative z-10 ${isDark ? 'bg-[#0e1224]/70 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]' : 'bg-white/70 border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.06)]'}`}
         >
           <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 sm:gap-6 items-center landscape:items-stretch text-center landscape:text-left">
-            
-            {/* Left Column: Trophy, Titles & SVG Radial Progress Meter */}
+
+            {/* Left Column: Subject, Name, Trophy, Tier & SVG Radial Progress Meter */}
             <div className="flex flex-col items-center justify-center text-center">
-              {/* Confetti Ribbon Badge Icon (Compacted on landscape) */}
+              <span className={`inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 landscape:mb-1 ${
+                isDark ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+              }`}>
+                <BookOpen className="w-3 h-3" />
+                English Spelling
+              </span>
+              {session?.name && (
+                <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0.5 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}{session.nickname ? ` (${session.nickname})` : ''}</p>
+              )}
+
               <motion.div
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', bounce: 0.5, delay: 0.2 }}
-                className={`w-20 h-20 sm:w-24 sm:h-24 landscape:w-14 landscape:h-14 rounded-full bg-gradient-to-br ${tierColors.bg} flex items-center justify-center mx-auto mb-3.5 landscape:mb-2 shadow-lg ${tierColors.shadow}`}
+                className={`w-16 h-16 sm:w-20 sm:h-20 landscape:w-12 landscape:h-12 rounded-full bg-gradient-to-br ${tierColors.bg} flex items-center justify-center mx-auto mb-2 landscape:mb-1 shadow-lg ${tierColors.shadow}`}
               >
-                {tier === 'gold' && <Trophy className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
-                {tier === 'emerald' && <Star className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white fill-current animate-float" />}
-                {tier === 'silver' && <Award className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
-                {tier === 'bronze' && <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 landscape:w-7 landscape:h-7 text-white animate-float" />}
+                {tier === 'gold' && <Trophy className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-6 landscape:h-6 text-white animate-float" />}
+                {tier === 'emerald' && <Star className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-6 landscape:h-6 text-white fill-current animate-float" />}
+                {tier === 'silver' && <Award className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-6 landscape:h-6 text-white animate-float" />}
+                {tier === 'bronze' && <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-6 landscape:h-6 text-white animate-float" />}
               </motion.div>
 
-              <span className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2 landscape:mb-1 ${
-                isDark ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-200'
-              }`}>
-                English Spelling
-              </span>
-              {session?.name && (
-                <p className={`text-sm sm:text-base landscape:text-xs font-black mb-1 landscape:mb-0 ${isDark ? 'text-white' : 'text-slate-800'}`}>{session.name}</p>
-              )}
-              <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none landscape:hidden">Competition Complete</h2>
-              <h1 className={`text-xl sm:text-2xl landscape:text-base font-black mt-1.5 landscape:mt-0.5 tracking-tight leading-tight ${tierColors.text}`}>
+              <h1 className={`text-lg sm:text-xl landscape:text-sm font-black tracking-tight leading-tight ${tierColors.text}`}>
                 {tierColors.title}
               </h1>
-              <p className="text-xs text-slate-400 font-bold mt-1 landscape:mt-0 landscape:text-[10px]">{tierColors.desc}</p>
+              <p className="text-[10px] text-slate-400 font-bold mt-0.5 landscape:mt-0">{tierColors.desc}</p>
               
               {/* SVG Animated Radial Progress Bar (Compacted in landscape) */}
               <div className="relative w-36 h-36 landscape:w-24 landscape:h-24 mt-3 landscape:mt-1 flex items-center justify-center">

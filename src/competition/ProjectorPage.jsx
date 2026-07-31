@@ -599,7 +599,7 @@ export default function ProjectorPage() {
             className={`mt-14 w-full max-w-3xl border rounded-3xl p-5 shadow-lg relative z-10 ${cardBg}`}>
             <table className="w-full text-base font-semibold">
               <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                {podiumSorted.slice(3).map((s, i) => {
+                {podiumSorted.slice(3, 10).map((s, i) => {
                   const cappedTime = Math.min(s.time_spent_seconds || 0, maxTime)
                   return (
                     <tr key={s.participant_id} className={isDark ? 'hover:bg-white/[0.01]' : 'hover:bg-slate-50'}>

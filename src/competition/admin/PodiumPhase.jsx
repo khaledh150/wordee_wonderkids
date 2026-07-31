@@ -1,9 +1,27 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, Eye, EyeOff, XCircle } from 'lucide-react'
+import { Trophy, Eye, EyeOff, XCircle, Medal } from 'lucide-react'
 import StudentAvatar from './StudentAvatar'
 import { fmt } from './shared'
 import { mathGradeLabel } from '../mathGradeLabels'
+import { getTiersForCount } from './AwardConfig'
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
+function getAwardLabel(rank, tiers) {
+  let cutoff = 0
+  cutoff += tiers.trophy; if (rank <= cutoff) return `${ordinal(rank)} Place`
+  cutoff += tiers.gold; if (rank <= cutoff) return 'Gold Medal'
+  cutoff += tiers.silver; if (rank <= cutoff) return 'Silver Medal'
+  cutoff += tiers.bronze; if (rank <= cutoff) return 'Bronze Medal'
+  return ''
+}
+
+const AWARD_COLORS = { Gold: 'text-amber-400', Silver: 'text-slate-400', Bronze: 'text-orange-400' }
 
 export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition, onProceedToSubject, otherSubjectPlayed }) {
   const [selectedLevel, setSelectedLevel] = useState(state?.podium_level || 1)
@@ -17,12 +35,17 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
     [sessions]
   )
 
-  const top3 = useMemo(() => {
+  const top10 = useMemo(() => {
     return sessions
       .filter(s => s.level === selectedLevel && s.validated_score != null)
       .sort((a, b) => b.validated_score - a.validated_score || a.time_spent_seconds - b.time_spent_seconds)
-      .slice(0, 3)
+      .slice(0, 10)
   }, [sessions, selectedLevel])
+
+  const top3 = top10.slice(0, 3)
+  const rest = top10.slice(3)
+  const levelParticipantCount = sessions.filter(s => s.level === selectedLevel && s.validated_score != null).length
+  const levelTiers = getTiersForCount(levelParticipantCount)
 
   const isPodiumVisible = state?.podium_visible
   const isCurrentLevel = state?.podium_level === selectedLevel
@@ -124,7 +147,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className={`rounded-2xl border p-6 ${card}`}>
           <h4 className={`text-sm font-black uppercase tracking-wider mb-5 ${textMuted}`}>
-            {subject === 'math' ? mathGradeLabel(selectedLevel) : `Level ${selectedLevel}`} — Top {top3.length}
+            {subject === 'math' ? mathGradeLabel(selectedLevel) : `Level ${selectedLevel}`} — Top {top10.length}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {top3.map((s, i) => (
@@ -146,6 +169,41 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
               </div>
             ))}
           </div>
+
+          {rest.length > 0 && (
+            <div className={`mt-4 rounded-xl border overflow-hidden ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+              {rest.map((s, i) => {
+                const rank = i + 4
+                return (
+                  <div key={s.participant_id}
+                    className={`flex items-center gap-3 px-4 py-3 ${
+                      i > 0 ? (isDark ? 'border-t border-white/5' : 'border-t border-slate-100') : ''
+                    } ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}>
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+                      isDark ? 'bg-white/5 text-white/60' : 'bg-slate-100 text-slate-500'
+                    }`}>{rank}</span>
+                    <StudentAvatar photoUrl={s.photo_url} name={s.name} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-bold text-sm truncate ${text}`}>{s.name}</p>
+                      {s.nickname && <p className={`text-xs truncate ${textMuted}`}>{s.nickname}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-base font-black font-mono ${text}`}>{s.validated_score}</p>
+                      <p className={`text-[10px] font-mono ${textMuted}`}>{fmt(Math.min(s.time_spent_seconds || 0, (state.duration_seconds || 300) + (state.extra_seconds || 0)))}</p>
+                      {(() => {
+                        const award = getAwardLabel(rank, levelTiers)
+                        const type = award.split(' ')[0]
+                        const color = AWARD_COLORS[type] || textMuted
+                        return award ? (
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${color}`}>{award}</p>
+                        ) : null
+                      })()}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </motion.div>
       )}
 

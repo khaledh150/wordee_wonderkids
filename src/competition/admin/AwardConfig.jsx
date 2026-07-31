@@ -10,7 +10,14 @@ const TIERS = [
   { key: 'bronze', label: 'Bronze Medal', icon: Medal, color: 'text-orange-400', ring: 'ring-orange-500/30', iconBg: 'bg-orange-500/15' },
 ]
 
-export const DEFAULT_TIERS = { trophy: 3, gold: 3, silver: 3, bronze: 3 }
+export const DEFAULT_TIERS = { trophy: 3, gold: 5, silver: 5, bronze: 5 }
+export const LARGE_CLASS_TIERS = { trophy: 3, gold: 12, silver: 12, bronze: 13 }
+export const LARGE_CLASS_THRESHOLD = 18
+
+export function getTiersForCount(count, customTiers) {
+  if (customTiers) return customTiers
+  return count > LARGE_CLASS_THRESHOLD ? LARGE_CLASS_TIERS : DEFAULT_TIERS
+}
 
 export function loadTiers() {
   try {
