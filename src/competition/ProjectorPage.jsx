@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator, Maximize, Minimize } from 'lucide-react'
+import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator, Maximize, Minimize, Pause, Play } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
@@ -313,15 +313,15 @@ export default function ProjectorPage() {
     }
   }, [activeSubject])
 
-  // Auto-cycle through levels with activity, 5s per level
-  const userPickedLevelRef = useRef(false)
+  const [autoRotate, setAutoRotate] = useState(true)
   const autoCycleRef = useRef(null)
+  const autoResumeRef = useRef(null)
   useEffect(() => {
-    if (userPickedLevelRef.current) return
+    clearInterval(autoCycleRef.current)
+    if (!autoRotate) return
     if (levels.length <= 1) return
     const activeLevels = levels.filter(l => subjectSessions.some(s => s.level === l && (s.status === 'active' || s.status === 'completed')))
     if (activeLevels.length <= 1) return
-    clearInterval(autoCycleRef.current)
     autoCycleRef.current = setInterval(() => {
       setDisplayLevel(prev => {
         const idx = activeLevels.indexOf(prev)
@@ -329,11 +329,7 @@ export default function ProjectorPage() {
       })
     }, 5000)
     return () => clearInterval(autoCycleRef.current)
-  }, [subjectSessions, levels])
-  // Stop auto-cycling when user picks manually
-  useEffect(() => {
-    if (userPickedLevelRef.current) clearInterval(autoCycleRef.current)
-  }, [userPickedLevelRef.current])
+  }, [autoRotate, subjectSessions, levels])
 
   // Reset countdown detection when subject or competition changes
   const prevActiveSubjectRef = useRef(activeSubject)
@@ -1116,7 +1112,8 @@ export default function ProjectorPage() {
 
         {/* Row 2: Level switcher (compact) */}
         {levels.length > 1 && (
-          <div className={`flex gap-1 rounded-xl p-1 border ${
+          <div className="flex items-center gap-2">
+          <div className={`flex gap-1 rounded-xl p-1 border flex-1 ${
             isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-100 border-slate-200'
           }`}>
             {levels.map(l => {
@@ -1125,7 +1122,15 @@ export default function ProjectorPage() {
               const doneCount = lvlSessions.filter(s => s.status === 'completed').length
               const isSelected = activeLevel === l
               return (
-                <button key={l} onClick={() => { userPickedLevelRef.current = true; clearInterval(autoCycleRef.current); setDisplayLevel(l) }}
+                <button key={l} onClick={() => {
+                    setDisplayLevel(l)
+                    if (autoRotate) {
+                      clearInterval(autoCycleRef.current)
+                      clearTimeout(autoResumeRef.current)
+                      autoResumeRef.current = setTimeout(() => setAutoRotate(true), 5000)
+                      setAutoRotate(false)
+                    }
+                  }}
                   className={`relative flex-1 px-2 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all duration-300 cursor-pointer ${
                     isSelected
                       ? 'text-white shadow-md'
@@ -1159,6 +1164,21 @@ export default function ProjectorPage() {
               )
             })}
           </div>
+          <button
+            onClick={() => {
+              clearTimeout(autoResumeRef.current)
+              setAutoRotate(prev => !prev)
+            }}
+            className={`p-2 rounded-lg border transition-all shrink-0 ${
+              autoRotate
+                ? isDark ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                : isDark ? 'bg-amber-500/10 border-amber-500/25 text-amber-400 hover:bg-amber-500/20' : 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
+            }`}
+            title={autoRotate ? 'Pause auto-rotate' : 'Resume auto-rotate'}
+          >
+            {autoRotate ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+          </button>
+          </div>
         )}
         {levels.length === 1 && activeLevel != null && (
           <div className="flex items-center gap-2">
@@ -1170,13 +1190,12 @@ export default function ProjectorPage() {
       </header>
 
       {/* Column headers */}
-      <div className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem_5.5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
+      <div className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem] gap-3 px-5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-widest ${textDim}`}>
         <span className="text-center">Rank</span>
         <span></span>
         <span>Participant</span>
         <span className="text-right">Score</span>
         <span className="text-right">Time</span>
-        <span className="text-right">Status</span>
       </div>
 
       {/* Rows */}
@@ -1217,7 +1236,7 @@ export default function ProjectorPage() {
               <motion.div key={s.participant_id} layout
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem_5.5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
+                className={`grid grid-cols-[3rem_2.5rem_2fr_5rem_5rem] gap-3 items-center px-5 py-3.5 rounded-xl border font-bold ${cardThemes}`}>
                 <span className={`text-center text-xl font-black font-mono ${rankColors}`}>
                   {!hasScore ? '—' : scoredRank < 3 ? ['🥇', '🥈', '🥉'][scoredRank] : scoredRank + 1}
                 </span>
@@ -1225,39 +1244,6 @@ export default function ProjectorPage() {
                 <span className={`font-black truncate text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.name}{s.nickname ? ` (${s.nickname})` : ''}</span>
                 <span className={`text-right text-xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-800'}`}>{s.validated_score ?? s.provisional_score}</span>
                 <span className={`text-right font-mono text-sm ${textMuted}`}>{s.status === 'completed' ? formatTime(Math.min(s.time_spent_seconds || 0, (activeState?.duration_seconds ?? 300) + (activeState?.extra_seconds ?? 0))) : '—'}</span>
-                <span className="text-right">
-                  {(() => {
-                    const isOnline = s.last_seen_at && (Date.now() - new Date(s.last_seen_at).getTime()) < 60000
-                    if (s.status === 'completed') return (
-                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                        isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                      }`}>Done</span>
-                    )
-                    if (s.status === 'active' && isOnline) return (
-                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg inline-flex items-center gap-1 ${
-                        isDark ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' : 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                      }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Playing
-                      </span>
-                    )
-                    if (s.status === 'active' && !isOnline) return (
-                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                        isDark ? 'text-rose-400 bg-rose-500/10 border-rose-500/25' : 'text-rose-600 bg-rose-50 border-rose-200'
-                      }`}>D/C</span>
-                    )
-                    if (s.status === 'waiting' && isOnline) return (
-                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                        isDark ? 'text-amber-400 bg-amber-500/10 border-amber-500/25' : 'text-amber-600 bg-amber-50 border-amber-200'
-                      }`}>Lobby</span>
-                    )
-                    return (
-                      <span className={`text-[10px] font-black uppercase tracking-widest border px-2 py-0.5 rounded-lg ${
-                        isDark ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-100 border-slate-200'
-                      }`}>Offline</span>
-                    )
-                  })()}
-                </span>
               </motion.div>
             )
           })}
