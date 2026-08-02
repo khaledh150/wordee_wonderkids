@@ -33,7 +33,7 @@ export default function ProjectorPage() {
   const [mathState, setMathState] = useState(null)
   const [sessions, setSessions] = useState([])
   const [displayLevel, setDisplayLevel] = useState(null)
-  const [elapsed, setElapsed] = useState(null)
+  const [countdown, setCountdown] = useState(null)
   const [projectorCountdown, setProjectorCountdown] = useState(null) // null | 'COMPETITION STARTING...' | 'GET READY!' | 3 | 2 | 1 | 'GO!'
   const [liveBadge, setLiveBadge] = useState(null) // null | 'live' | 'done'
   const fetchingSessionsRef = useRef(false)
@@ -279,21 +279,23 @@ export default function ProjectorPage() {
   }, [anyPodiumVisible, anyPodiumLevel])
 
   useEffect(() => {
-    if (!activeState?.started_at) { setElapsed(null); return }
+    if (!activeState?.started_at) { setCountdown(null); return }
     const start = new Date(activeState.started_at).getTime()
+    const duration = (activeState.duration_seconds || 300) + (activeState.extra_seconds || 0)
     const activeSessions = subjectSessions.filter(s => s.status === 'active' || s.status === 'completed')
     const allDone = activeSessions.length > 0 && activeSessions.every(s => s.status === 'completed')
     if (allDone) {
-      const completedSessions = activeSessions.filter(s => s.completed_at)
-      if (completedSessions.length > 0) {
-        const lastDone = Math.max(...completedSessions.map(s => new Date(s.completed_at).getTime()))
-        setElapsed(Math.round((lastDone - start) / 1000))
-      }
+      setCountdown(0)
       return
     }
-    const id = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000)
+    const tick = () => {
+      const elapsed = (Date.now() - start) / 1000
+      setCountdown(Math.max(0, Math.round(duration - elapsed)))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [activeState?.started_at, activeState?.is_unlocked, subjectSessions])
+  }, [activeState?.started_at, activeState?.duration_seconds, activeState?.extra_seconds, activeState?.is_unlocked, subjectSessions])
 
   const levels = [...new Set(subjectSessions.map(s => s.level))].sort((a, b) => a - b)
   const activeLevel = displayLevel || (levels.length > 0 ? levels.reduce((best, l) => {
@@ -411,10 +413,18 @@ export default function ProjectorPage() {
       : (isDark ? 'bg-blue-500/10 border-blue-500/25 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'),
   }
 
-  const formatElapsed = (sec) => {
+  const formatCountdown = (sec) => {
     if (sec == null) return '--:--'
-    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
+    return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
   }
+
+  const allDone = (() => {
+    const active = subjectSessions.filter(s => s.status === 'active' || s.status === 'completed')
+    return active.length > 0 && active.every(s => s.status === 'completed')
+  })()
+  const isTimerCritical = countdown != null && countdown <= 30 && countdown > 0
+  const isTimerUrgent = countdown != null && countdown <= 10 && countdown > 0
+  const isTimerExpired = countdown != null && countdown <= 0 && !allDone
 
   // ── LOGIN ──
   if (!authed) {
@@ -1081,13 +1091,24 @@ export default function ProjectorPage() {
 
           {/* Right: Timer + Fullscreen */}
           <div className="flex items-center gap-2 shrink-0">
-            {elapsed != null && (
-              <div className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 font-mono ${
-                isDark ? 'bg-rose-500/10 border-rose-500/25 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
-              }`}>
-                <Timer className="w-3.5 h-3.5" />
-                <span className="text-base font-black">{formatElapsed(elapsed)}</span>
-              </div>
+            {countdown != null && (
+              <motion.div
+                animate={isTimerExpired ? { scale: [1, 1.15, 1] } : isTimerCritical ? { scale: [1, isTimerUrgent ? 1.2 : 1.1, 1] } : {}}
+                transition={isTimerExpired || isTimerCritical ? { duration: isTimerExpired ? 0.6 : isTimerUrgent ? 0.4 : 0.7, repeat: Infinity, ease: 'easeInOut' } : {}}
+                className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 font-mono ${
+                  isTimerExpired
+                    ? (isDark ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-red-100 border-red-300 text-red-600')
+                    : isTimerCritical
+                      ? (isDark ? 'bg-orange-500/15 border-orange-500/30 text-orange-400' : 'bg-orange-50 border-orange-300 text-orange-600')
+                      : countdown <= 60
+                        ? (isDark ? 'bg-amber-500/10 border-amber-500/25 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600')
+                        : (isDark ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600')
+                }`}
+              >
+                <Timer className={`w-3.5 h-3.5 ${isTimerExpired ? 'animate-spin' : isTimerCritical ? 'animate-spin' : ''}`}
+                  style={(isTimerExpired || isTimerCritical) ? { animationDuration: isTimerUrgent || isTimerExpired ? '1s' : '2s' } : {}} />
+                <span className="text-base font-black">{formatCountdown(countdown)}</span>
+              </motion.div>
             )}
             {fullscreenBtn}
           </div>
