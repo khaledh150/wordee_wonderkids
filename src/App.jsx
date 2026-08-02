@@ -61,6 +61,10 @@ function App() {
         PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
         localStorage.clear()
         Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
+        if ('caches' in window) {
+          caches.delete('audio')
+          caches.delete('images')
+        }
       }
       localStorage.setItem('last_wordee_version', APP_VERSION)
     } catch {}
