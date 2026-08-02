@@ -109,7 +109,8 @@ export default function ProjectorPage() {
               && prev.podium_level === d.podium_level
               && prev.extra_seconds === d.extra_seconds
               && prev.announcement === d.announcement
-              && prev.theme === d.theme) return prev
+              && prev.theme === d.theme
+              && prev.projector_theme === d.projector_theme) return prev
             return d
           })
         }
@@ -543,7 +544,7 @@ export default function ProjectorPage() {
 
   // ── PODIUM ──
   if (showPodium && podiumSorted.length > 0) {
-    const maxTime = (activeState?.duration_seconds ?? 300) + (activeState?.extra_seconds ?? 0)
+    const maxTime = (podiumState?.duration_seconds ?? 300) + (podiumState?.extra_seconds ?? 0)
 
     const podiumColors = isDark
       ? [
@@ -574,7 +575,7 @@ export default function ProjectorPage() {
 
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 relative z-10">
           <p className={`text-sm font-black uppercase tracking-[0.3em] mb-2 ${sc.accent}`}>
-            {subjectLabel}
+            {isPodiumMath ? 'Mathematics' : 'English Spelling'}
           </p>
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
             {lvlLabel(podiumLevel, isPodiumMath)} Results

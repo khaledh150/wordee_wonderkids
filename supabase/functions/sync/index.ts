@@ -39,9 +39,10 @@ Deno.serve(async (req: Request) => {
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400, req);
     }
-    const provisional_score = typeof body.provisional_score === "number" ? Math.max(0, Math.floor(body.provisional_score)) : 0;
-    const questions_answered = typeof body.questions_answered === "number" ? Math.max(0, Math.floor(body.questions_answered)) : 0;
     const answers = Array.isArray(body.answers) ? body.answers : null;
+    const maxPossible = answers ? answers.length : 200;
+    const provisional_score = typeof body.provisional_score === "number" ? Math.min(Math.max(0, Math.floor(body.provisional_score)), maxPossible) : 0;
+    const questions_answered = typeof body.questions_answered === "number" ? Math.max(0, Math.floor(body.questions_answered)) : 0;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

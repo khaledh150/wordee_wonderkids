@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trophy, Award, Star, Sparkles, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, Calculator, Home, RefreshCw } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
@@ -76,14 +76,17 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
     }
   }, [])
 
+  const currentIndexRef = useRef(currentIndex)
+  currentIndexRef.current = currentIndex
+
   const goToNext = useCallback(() => {
-    if (currentIndex >= total - 1) {
+    if (currentIndexRef.current >= total - 1) {
       finish()
       return
     }
     setCurrentIndex(prev => prev + 1)
     setAnswered(false)
-  }, [currentIndex, total, finish])
+  }, [total, finish])
 
   const handleCorrect = useCallback(() => {
     if (answered) return

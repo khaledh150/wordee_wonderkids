@@ -140,6 +140,8 @@ function CompetitionPlayPageInner() {
   const [sessionEnded, setSessionEnded] = useState(false)
   const [waitTheme, setWaitTheme] = useState(null)
   const restoredRef = useRef(false)
+  const codeSubmitRef = useRef(false)
+  const subjectSelectRef = useRef(false)
 
   useVersionCheck()
 
@@ -413,7 +415,8 @@ function CompetitionPlayPageInner() {
 
   async function handleCodeSubmit(e) {
     e.preventDefault()
-    if (!code.trim()) return
+    if (!code.trim() || codeSubmitRef.current) return
+    codeSubmitRef.current = true
     setError('')
     setLoading(true)
     try {
@@ -429,6 +432,7 @@ function CompetitionPlayPageInner() {
       if (!res.ok) {
         setError(data.error || 'Invalid code. Please check and try again.')
         setLoading(false)
+        codeSubmitRef.current = false
         return
       }
       const subjects = data.subjects || []
@@ -446,13 +450,17 @@ function CompetitionPlayPageInner() {
         setStep('subject')
         setLoading(false)
       }
+      codeSubmitRef.current = false
     } catch (err) {
       setError('Connection error. Please try again.')
       setLoading(false)
+      codeSubmitRef.current = false
     }
   }
 
   async function handleSubjectSelect(subject, codeOverride) {
+    if (subjectSelectRef.current) return
+    subjectSelectRef.current = true
     const useCode = codeOverride || verifiedCode
     setSelectedSubject(subject)
     setError('')
@@ -469,6 +477,7 @@ function CompetitionPlayPageInner() {
       setError(err.message || 'Failed to join. Please try again.')
     }
     setLoading(false)
+    subjectSelectRef.current = false
   }
 
   useEffect(() => {

@@ -200,6 +200,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
             setTimeout(tryStart, backoff)
           } else {
             setAutoStarting(false)
+            setCountdownReady(false)
+            autoStartRef.current = false
           }
         }
       } catch {
@@ -209,6 +211,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
           setTimeout(tryStart, backoff)
         } else {
           setAutoStarting(false)
+          setCountdownReady(false)
+          autoStartRef.current = false
         }
       }
     }
@@ -458,6 +462,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     if (submittingRef.current) return
     submittingRef.current = true
     setIsSubmitting(true)
+    setSubmitError(false)
 
     const sess = sessionRef.current
     if (!sess) { submittingRef.current = false; setIsSubmitting(false); return }
@@ -503,14 +508,16 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       const entry = { question_id: questionId, submitted_answer: submittedAnswer }
       let next
       if (idx >= 0) { next = [...prev]; next[idx] = entry }
-      else { next = [...prev, entry] }
+      else {
+        next = [...prev, entry]
+        if (isCorrect) setCorrectCount(c => c + 1)
+      }
       clearTimeout(saveDebounceRef.current)
       saveDebounceRef.current = setTimeout(() => {
         saveLocal(competitionId, { ...loadLocal(competitionId), answers: next, correctCount: correctCountRef.current })
       }, 2000)
       return next
     })
-    if (isCorrect) setCorrectCount(prev => prev + 1)
   }, [competitionId])
 
   // ── Manual Finish ──

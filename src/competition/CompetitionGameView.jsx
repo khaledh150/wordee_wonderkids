@@ -111,15 +111,18 @@ export default function CompetitionGameView({ engine, level, isDark = false, nex
     }
   }, [])
 
+  const currentIndexRef = useRef(currentIndex)
+  currentIndexRef.current = currentIndex
+
   // Transition helper
   const goToNext = useCallback(() => {
-    if (currentIndex >= total - 1) {
+    if (currentIndexRef.current >= total - 1) {
       finish()
       return
     }
     setCurrentIndex(prev => prev + 1)
     setAnswered(false)
-  }, [currentIndex, total, finish])
+  }, [total, finish])
 
   // Correct feedback trigger
   const handleCorrect = useCallback(() => {

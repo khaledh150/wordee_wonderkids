@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase, SUBJECTS } from './supabaseClient'
 import useAdminData from './admin/useAdminData'
@@ -67,7 +67,11 @@ export default function AdminDashboard() {
       .then(({ count }) => setOtherSubjectPlayed((count || 0) > 0))
   }, [state?.competition_id, subject])
 
+  const lobbyBusyRef = useRef(false)
   async function handleOpenLobby() {
+    if (lobbyBusyRef.current) return
+    lobbyBusyRef.current = true
+    try {
     const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
     const { data: otherState } = await supabase
       .from('competition_state')
@@ -135,6 +139,7 @@ export default function AdminDashboard() {
         onCancel: () => setDialog(null),
       })
     }
+    } finally { lobbyBusyRef.current = false }
   }
 
   async function handleRosterImport(rows) {
@@ -187,7 +192,10 @@ export default function AdminDashboard() {
     if (updates.length > 0 || inserts.length > 0) await loadSessions()
   }
 
+  const newSessionRef = useRef(false)
   async function handleNewSession(copyRoster) {
+    if (newSessionRef.current) return
+    newSessionRef.current = true
     const rnd = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(16).padStart(2, '0')).join('')
     const newId = 'comp_' + rnd
     const oldId = state.competition_id
@@ -249,6 +257,7 @@ export default function AdminDashboard() {
     setPhaseOverride(null)
     await loadState()
     await loadSessions()
+    newSessionRef.current = false
   }
 
   async function handleLogout() {
@@ -368,7 +377,7 @@ export default function AdminDashboard() {
                     const now = new Date().toISOString()
                     await Promise.all([
                       supabase.from('competition_state').update({
-                        is_unlocked: false, started_at: null, updated_at: now,
+                        is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
                       }).eq('id', prevSubject),
                       supabase.from('competition_state').update({
                         is_unlocked: true, started_at: null,
