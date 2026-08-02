@@ -121,13 +121,20 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     try {
       const { data, error } = await supabase
         .from('competition_state')
-        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme, started_at')
+        .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme, started_at, competition_id')
         .eq('id', subject)
         .single()
       if (error) { console.warn('Poll state error:', error.message); return }
-      if (data) { setCompetitionState(data); setAnnouncement(data.announcement || '') }
+      if (data) {
+        if (competitionId && data.competition_id && data.competition_id !== competitionId) {
+          window.location.reload()
+          return
+        }
+        setCompetitionState(data)
+        setAnnouncement(data.announcement || '')
+      }
     } catch (e) { console.warn('Poll state exception:', e) }
-  }, [subject])
+  }, [subject, competitionId])
 
   // ── Heartbeat ──
   const sendHeartbeat = useCallback(async (ready = false) => {
@@ -217,18 +224,25 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   }, [phase, pollState])
 
   // ── Restore from localStorage ──
-  // Always restore to 'waiting' — joinCompetition will re-validate with the server.
-  // Never restore to 'completed' from localStorage alone (could be stale from a previous competition).
+  const restoredEngineRef = useRef(false)
   useEffect(() => {
+    if (!competitionId || restoredEngineRef.current) return
+    restoredEngineRef.current = true
     const saved = loadLocal(competitionId)
     if (saved.participantCode && saved.session) {
       setSession(saved.session)
       setAnswers(saved.answers || [])
       setCorrectCount(saved.correctCount || 0)
-      if (questions) setOrderedQuestions(seededShuffle(questions, saved.session.participant_id))
       setPhase('waiting')
     }
-  }, [competitionId, questions])
+  }, [competitionId])
+
+  // Set orderedQuestions once questions arrive and we have a session
+  useEffect(() => {
+    if (questions && session?.participant_id && orderedQuestions.length === 0) {
+      setOrderedQuestions(seededShuffle(questions, session.participant_id))
+    }
+  }, [questions, session])
 
   // ── Join ──
   const joinCompetition = useCallback(async (participantCode, subjectOverride) => {
@@ -305,11 +319,14 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       subject: subjectRef.current,
     })
 
+    const sess = { ...result, participant_code: session.participant_code }
+    setSession(sess)
+
     if (result.completed) {
       setPhase('completed')
       setValidatedScore(result.validated_score)
       if (result.rank != null) setRank(result.rank)
-      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'completed', validatedScore: result.validated_score, rank: result.rank ?? null })
+      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'completed', validatedScore: result.validated_score, rank: result.rank ?? null, session: sess })
       return true
     }
 
@@ -322,7 +339,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       deadlineRef.current = Date.now() + result.remaining * 1000
       setTimeLeft(result.remaining)
       setPhase('active')
-      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
+      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active', session: sess })
       return true
     }
 
@@ -331,7 +348,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       deadlineRef.current = Date.now() + result.remaining * 1000
       setTimeLeft(result.remaining)
       setPhase('active')
-      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active' })
+      saveLocal(competitionId, { ...loadLocal(competitionId), phase: 'active', session: sess })
       return true
     }
     return false

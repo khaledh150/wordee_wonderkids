@@ -140,8 +140,12 @@ export default function AdminDashboard() {
   async function handleRosterImport(rows) {
     if (!state) return
     const existingCodes = sessions.map(s => s.participant_code)
-    const existingKeys = new Set(sessions.map(s => `${s.name}|${s.subject}|${s.level}`))
+    const existingByNameSubject = new Map()
+    for (const s of sessions) {
+      existingByNameSubject.set(`${s.name}|${s.subject}`, s)
+    }
     const inserts = []
+    const updates = []
     let skipped = 0
     for (const row of rows) {
       const code = generateCode(existingCodes)
@@ -156,21 +160,31 @@ export default function AdminDashboard() {
         age: row.age || null,
         nickname: row.nickname || null,
       }
-      if (row.english_level > 0) {
-        const key = `${row.name}|english|${row.english_level}`
-        if (existingKeys.has(key)) { skipped++; } else { existingKeys.add(key); inserts.push({ ...base, subject: 'english', level: row.english_level }) }
-      }
-      if (row.math_level > 0) {
-        const key = `${row.name}|math|${row.math_level}`
-        if (existingKeys.has(key)) { skipped++; } else { existingKeys.add(key); inserts.push({ ...base, subject: 'math', level: row.math_level }) }
+      for (const [subjectKey, lvl] of [['english', row.english_level], ['math', row.math_level]]) {
+        if (!lvl || lvl <= 0) continue
+        const key = `${row.name}|${subjectKey}`
+        const existing = existingByNameSubject.get(key)
+        if (existing) {
+          if (existing.level !== lvl) {
+            updates.push({ participant_id: existing.participant_id, level: lvl })
+          }
+          skipped++
+        } else {
+          existingByNameSubject.set(key, { name: row.name, subject: subjectKey, level: lvl })
+          inserts.push({ ...base, subject: subjectKey, level: lvl })
+        }
       }
     }
-    if (skipped > 0) console.warn(`Roster: skipped ${skipped} duplicate entries`)
+    if (updates.length > 0) {
+      for (const u of updates) {
+        await supabase.from('competition_sessions').update({ level: u.level, updated_at: new Date().toISOString() }).eq('participant_id', u.participant_id)
+      }
+    }
     if (inserts.length > 0) {
       const { error } = await supabase.from('competition_sessions').insert(inserts)
       if (error) { alert('Roster import failed: ' + error.message); return }
-      await loadSessions()
     }
+    if (updates.length > 0 || inserts.length > 0) await loadSessions()
   }
 
   async function handleNewSession(copyRoster) {
@@ -193,6 +207,8 @@ export default function AdminDashboard() {
       announcement: null,
       podium_visible: false,
       podium_level: 1,
+      transfer_mode: null,
+      round_label: null,
       updated_at: new Date().toISOString(),
     }).in('id', ['english', 'math'])
     if (stateErr) { alert('Failed to reset competition state: ' + stateErr.message); return }
@@ -308,7 +324,7 @@ export default function AdminDashboard() {
                   autoPhase={autoPhase}
                   updateState={updateState}
                   loadSessions={loadSessions}
-                  onBackToSetup={async () => { await updateState({ is_unlocked: false }); setPhaseOverride(null) }}
+                  onBackToSetup={() => setPhaseOverride(null)}
                 />
               </ModuleBoundary>
             </motion.div>

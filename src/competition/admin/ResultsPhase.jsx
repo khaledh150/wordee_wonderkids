@@ -193,8 +193,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
               <th className="px-4 py-4">School</th>
               <th className="px-4 py-4 text-center">{subject === 'math' ? 'Grade' : 'Level'}</th>
               <th className="px-4 py-4 text-right">Score</th>
-              <th className="px-4 py-4 text-right">Time</th>
-              <th className="px-6 py-4 text-center">Certificate</th>
+              <th className="px-6 py-4 text-right">Time</th>
             </tr>
           </thead>
           <tbody className="divide-y font-semibold text-sm transition-colors divide-white/5">
@@ -227,39 +226,14 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                 </td>
                 <td className={`px-4 py-4 text-right font-black text-base ${text}`}>
                   {s.validated_score}
-                  <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {getTotalQuestions(s.level)}</span>
+                  <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {s.questions_answered || getTotalQuestions(s.level)}</span>
                 </td>
-                <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
-                <td className="px-6 py-4 text-center">
-                  <button
-                    onClick={async () => {
-                      const { downloadCertificate } = await import('../generateCertificate')
-                      await downloadCertificate({
-                        name: s.name,
-                        rank: i + 1,
-                        score: s.validated_score,
-                        totalQuestions: getTotalQuestions(s.level),
-                        level: s.level,
-                        school: s.school,
-                        country: s.country,
-                        eventName: state.round_label || 'International English Spelling & Math Championship',
-                        competitionId: state.competition_id,
-                      })
-                    }}
-                    className={`text-xs font-black uppercase px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                      isDark
-                        ? 'text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border-indigo-500/20'
-                        : 'text-indigo-600 hover:text-white hover:bg-indigo-500 bg-indigo-50 border-indigo-200 hover:border-indigo-500 shadow-sm'
-                    }`}
-                  >
-                    Download
-                  </button>
-                </td>
+                <td className={`px-6 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
               </tr>
             ))}
             {!officialSorted.length && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-bold">
+                <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-bold">
                   No sessions validated yet.
                 </td>
               </tr>
@@ -320,7 +294,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
                       <td className="px-3 py-2 font-semibold">{s.name}</td>
                       <td className="px-3 py-2 text-center font-mono text-gray-500">{s.display_id}</td>
                       <td className="px-3 py-2 text-gray-600">{s.school || '-'}</td>
-                      <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {getTotalQuestions(s.level)}</td>
+                      <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {s.questions_answered || getTotalQuestions(s.level)}</td>
                       <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
                     </tr>
                   ))}

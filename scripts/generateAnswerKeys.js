@@ -30,15 +30,12 @@ function extractWords() {
     if (words.length > 0) rawLevels[levelId] = words
   }
 
-  // Match getVocabForLevel logic: Level 1 includes Level 2 words
-  const levels = {}
-  for (const [id, words] of Object.entries(rawLevels)) {
-    const lvl = parseInt(id)
-    if (lvl === 1) {
-      levels[1] = [...(rawLevels[1] || []), ...(rawLevels[2] || [])]
-    } else {
-      levels[lvl] = words
-    }
+  // Match getVocabForLevel logic exactly (see src/data/vocabulary.js)
+  const levels = {
+    1: [...(rawLevels[1] || []), ...(rawLevels[2] || [])],
+    2: [...(rawLevels[2] || []), ...(rawLevels[1] || [])],
+    3: [...(rawLevels[3] || []), ...(rawLevels[2] || [])],
+    4: [...(rawLevels[4] || []), ...(rawLevels[3] || []), ...(rawLevels[2] || [])],
   }
   return levels
 }

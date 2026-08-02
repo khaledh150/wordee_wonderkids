@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, Calculator, Home } from 'lucide-react'
+import { Trophy, Award, Star, Sparkles, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, Calculator, Home, RefreshCw } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
@@ -23,6 +23,31 @@ const MathQuestionArea = memo(function MathQuestionArea({ current, answered, onC
   )
 })
 
+function MathBackToHomeButton({ isDark, onBack }) {
+  const [locked, setLocked] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setLocked(false), 10000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <motion.button
+      initial={{ opacity: 0 }}
+      animate={{ opacity: locked ? 0.5 : 1 }}
+      transition={{ delay: 0.8 }}
+      onClick={locked ? undefined : onBack}
+      disabled={locked}
+      className={`w-full max-w-md landscape:max-w-2xl mt-3 py-3 landscape:py-2.5 rounded-2xl text-sm landscape:text-xs font-black relative z-10 transition-all flex items-center justify-center gap-2 ${
+        locked
+          ? isDark ? 'bg-white/5 text-slate-600 border border-white/5 cursor-not-allowed' : 'bg-slate-200 text-slate-400 border border-slate-200 cursor-not-allowed'
+          : isDark ? 'bg-white/10 hover:bg-white/15 text-slate-300 border border-white/10 cursor-pointer' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 cursor-pointer'
+      }`}
+    >
+      <Home className="w-4 h-4" />
+      {locked ? 'Please wait...' : 'Back to Home'}
+    </motion.button>
+  )
+}
+
 export default function MathCompetitionGameView({ engine, level, isDark = false, nextSubjectInfo, onTransition, sessionEnded, onBack }) {
   const {
     orderedQuestions,
@@ -42,8 +67,6 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answered, setAnswered] = useState(false)
-  const [downloadingCert, setDownloadingCert] = useState(false)
-
   const total = orderedQuestions.length
   const current = orderedQuestions[currentIndex]
 
@@ -87,32 +110,11 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
     }
   }, [phase, validatedScore])
 
-  const handleDownloadCertificate = async () => {
-    if (validatedScore == null || !session) return
-    setDownloadingCert(true)
-    try {
-      const { downloadCertificate } = await import('./generateCertificate')
-      await downloadCertificate({
-        name: session.name,
-        rank: rank ?? undefined,
-        score: validatedScore,
-        totalQuestions: total,
-        level: level,
-        school: session.school || null,
-        country: session.country || null,
-        eventName: (competitionState && competitionState.round_label) || 'Math Competition',
-        competitionId: (competitionState && competitionState.competition_id) || 'Wonderkids'
-      })
-    } catch (err) {
-      console.error('Failed to compile certificate:', err)
-    } finally {
-      setDownloadingCert(false)
-    }
-  }
 
   if (phase === 'completed') {
     const scoreVal = validatedScore ?? engine.currentScore ?? 0
-    const pct = total > 0 ? Math.round((scoreVal / total) * 100) : 0
+    const attempted = engine.questionsAnswered || total
+    const pct = attempted > 0 ? Math.round((scoreVal / attempted) * 100) : 0
     const tier = pct >= 100 ? 'gold' : pct >= 80 ? 'emerald' : pct >= 60 ? 'silver' : 'bronze'
 
     const tierColors = {
@@ -151,18 +153,65 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
     }[tier]
 
     const maxTime = competitionState?.duration_seconds || 300
-    const timeSpent = Math.max(0, maxTime - (timeLeft || 0))
+    const timeSpent = Math.min(Math.max(0, maxTime - (timeLeft || 0)), maxTime)
     const formattedTime = `${Math.floor(timeSpent / 60)}m ${String(timeSpent % 60).padStart(2, '0')}s`
 
     return (
       <motion.div
-        className={`w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br ${tierColors.gradient} px-3 py-4 sm:px-4 sm:py-8 relative overflow-hidden`}
+        className={`w-full min-h-screen flex flex-col items-center bg-gradient-to-br ${tierColors.gradient} px-3 py-3 sm:px-4 sm:py-6 relative overflow-hidden`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         <div className={`absolute top-1/10 left-1/10 w-48 h-48 rounded-full blur-2xl pointer-events-none ${isDark ? 'bg-teal-500/10' : 'bg-teal-200/20'}`} />
         <div className={`absolute bottom-1/10 right-1/10 w-72 h-72 rounded-full blur-3xl pointer-events-none ${isDark ? 'bg-amber-500/10' : 'bg-amber-200/20'}`} />
 
+        {/* Competition Ended Banner — TOP, outside score panel */}
+        {sessionEnded && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`w-full max-w-md landscape:max-w-2xl rounded-2xl px-5 py-3 landscape:py-2 mb-3 text-center relative z-10 ${isDark ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-emerald-50 border-2 border-emerald-300'}`}
+          >
+            <p className={`text-lg landscape:text-base font-black ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              Competition Ended
+            </p>
+            <p className={`text-xs landscape:text-[10px] font-medium ${isDark ? 'text-emerald-400/70' : 'text-emerald-600/80'}`}>
+              Thank you for participating!
+            </p>
+          </motion.div>
+        )}
+
+        {/* Next subject button — TOP, outside score panel */}
+        {!sessionEnded && nextSubjectInfo && (nextSubjectInfo.locked || nextSubjectInfo.available) && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            onClick={nextSubjectInfo.available ? onTransition : undefined}
+            disabled={!nextSubjectInfo.available}
+            className={`w-full max-w-md landscape:max-w-2xl py-3.5 landscape:py-2.5 rounded-2xl text-sm landscape:text-xs font-black mb-3 relative z-10 transition-all flex items-center justify-center gap-2 ${
+              nextSubjectInfo.available
+                ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)] cursor-pointer animate-pulse'
+                : isDark
+                  ? 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {nextSubjectInfo.available ? (
+              <>
+                <ArrowRight className="w-4 h-4" />
+                Move to {nextSubjectInfo.subjectName}
+              </>
+            ) : (
+              <>
+                <Lock className="w-3.5 h-3.5" />
+                Waiting for {nextSubjectInfo.subjectName}...
+              </>
+            )}
+          </motion.button>
+        )}
+
+        {/* Score Card */}
         <motion.div
           initial={{ scale: 0.93, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -219,7 +268,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
                 </svg>
                 <div className="absolute text-center">
                   <span className={`text-3xl landscape:text-xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{scoreVal}</span>
-                  <span className="text-slate-400 text-[10px] sm:text-xs font-bold block mt-0.5 leading-none">out of {total}</span>
+                  <span className="text-slate-400 text-[10px] sm:text-xs font-bold block mt-0.5 leading-none">out of {attempted}</span>
                 </div>
               </div>
             </div>
@@ -242,89 +291,17 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2.5">
-                <motion.button
-                  onClick={handleDownloadCertificate}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  disabled={downloadingCert || !validatedScore}
-                  className="w-full py-3.5 landscape:py-2.5 bg-gradient-to-r from-teal-600 via-cyan-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white font-black rounded-xl text-sm landscape:text-xs shadow-[0_4px_12px_rgba(20,184,166,0.2)] disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  {downloadingCert ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" /> Compiling...</>
-                  ) : !validatedScore ? (
-                    <><Download className="w-4 h-4" /> No score to download</>
-                  ) : (
-                    <><Download className="w-4 h-4" /> View math certificate</>
-                  )}
-                </motion.button>
-                <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal mt-1 text-center landscape:text-left">
-                  Your final math score has been captured by the competition registry.
-                </p>
-
-                {!sessionEnded && nextSubjectInfo && (nextSubjectInfo.locked || nextSubjectInfo.available) && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    onClick={nextSubjectInfo.available ? onTransition : undefined}
-                    disabled={!nextSubjectInfo.available}
-                    className={`w-full py-3.5 landscape:py-2.5 rounded-xl text-sm landscape:text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                      nextSubjectInfo.available
-                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)] cursor-pointer animate-pulse'
-                        : isDark
-                          ? 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {nextSubjectInfo.available ? (
-                      <>
-                        <ArrowRight className="w-4 h-4" />
-                        Move to {nextSubjectInfo.subjectName}
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5" />
-                        Waiting for {nextSubjectInfo.subjectName}...
-                      </>
-                    )}
-                  </motion.button>
-                )}
-
-                {sessionEnded && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className={`w-full rounded-xl p-3 text-center ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'}`}
-                  >
-                    <p className={`text-sm font-black ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                      Competition Ended
-                    </p>
-                    <p className={`text-[10px] font-medium mt-0.5 ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/70'}`}>
-                      Thank you for participating!
-                    </p>
-                  </motion.div>
-                )}
-
-                {onBack && (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8 }}
-                    onClick={onBack}
-                    className={`w-full py-2.5 landscape:py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200'
-                    }`}
-                  >
-                    <Home className="w-3.5 h-3.5" />
-                    Back to Home
-                  </motion.button>
-                )}
-              </div>
+              <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold leading-normal text-center landscape:text-left">
+                Your final math score has been captured by the competition registry.
+              </p>
             </div>
           </div>
         </motion.div>
+
+        {/* Back to Home — BOTTOM, outside score panel, locked for 10s */}
+        {onBack && (
+          <MathBackToHomeButton isDark={isDark} onBack={onBack} />
+        )}
 
         <AnimatePresence>
           {submitError && (
@@ -351,7 +328,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
                   <div className="w-px h-8 bg-slate-200" />
                   <div>
                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Score</span>
-                    <span className="text-xl font-black text-slate-800 block">{scoreVal} / {total}</span>
+                    <span className="text-xl font-black text-slate-800 block">{scoreVal} / {attempted}</span>
                   </div>
                 </div>
                 <button

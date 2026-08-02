@@ -245,8 +245,10 @@ function CompetitionPlayPageInner() {
     }
   }
 
+  const lastQuestionLevelRef = useRef(null)
   useEffect(() => {
-    if (session && questions == null) {
+    if (session && (questions == null || lastQuestionLevelRef.current !== session.level)) {
+      lastQuestionLevelRef.current = session.level
       getQuestionsForSession(selectedSubject, session.level, session.participant_id).then(setQuestions).catch(() => setError('Failed to load questions. Please reload.'))
     }
     if (phase === 'completed' && session) {
@@ -261,7 +263,6 @@ function CompetitionPlayPageInner() {
       }
       setStep('waiting')
     } else if (phase === 'active' && session) {
-      // Engine is active (startRace succeeded) — go straight to questions
       if (step === 'countdown' || step === 'waiting') {
         setStep('active')
       }

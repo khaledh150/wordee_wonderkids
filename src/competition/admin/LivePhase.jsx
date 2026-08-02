@@ -18,6 +18,27 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
   const activeSessions = sessions.filter(s => s.status === 'active' || s.status === 'completed')
   const allDone = activeSessions.length > 0 && activeSessions.every(s => s.status === 'completed')
 
+  const autoFinalizeRef = useRef(false)
+  useEffect(() => {
+    if (remaining > -15 || activeCount === 0 || allDone || autoFinalizeRef.current) return
+    autoFinalizeRef.current = true
+    ;(async () => {
+      try {
+        const token = (await supabase.auth.getSession()).data.session?.access_token
+        if (token) {
+          const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
+          await fetch(`${FUNC_BASE}/finalize-stragglers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ competition_id: state.competition_id, subject }),
+          })
+        }
+      } catch {}
+      await loadSessions()
+      autoFinalizeRef.current = false
+    })()
+  }, [remaining, activeCount, allDone, state.competition_id, subject, loadSessions])
+
   const formattedRemaining = remaining <= 0
     ? activeCount > 0 ? `TIME'S UP · ${activeCount} submitting` : "TIME'S UP"
     : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`

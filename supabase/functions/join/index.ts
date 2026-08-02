@@ -77,17 +77,37 @@ Deno.serve(async (req: Request) => {
 
     // Already completed — return existing result (idempotent)
     if (session.status === "completed") {
+      // Compute rank among completed peers
+      const { data: peers } = await supabase
+        .from("competition_sessions")
+        .select("participant_id, validated_score, time_spent_seconds")
+        .eq("competition_id", competition_id)
+        .eq("subject", session.subject)
+        .eq("level", session.level)
+        .eq("status", "completed")
+        .not("validated_score", "is", null);
+      let rank: number | null = null;
+      if (peers) {
+        const sorted = peers.sort((a: any, b: any) =>
+          (b.validated_score ?? 0) - (a.validated_score ?? 0) ||
+          (a.time_spent_seconds ?? 9999) - (b.time_spent_seconds ?? 9999)
+        );
+        rank = sorted.findIndex((p: any) => p.participant_id === session.participant_id) + 1 || null;
+      }
       return json({
         participant_id: session.participant_id,
         name: session.name,
+        nickname: session.nickname,
         school: session.school,
         country: session.country,
         level: session.level,
         subject: session.subject,
         display_id: session.display_id,
+        photo_url: session.photo_url,
         status: "completed",
         validated_score: session.validated_score,
         time_spent_seconds: session.time_spent_seconds,
+        rank,
         completed: true,
       }, 200, req);
     }
@@ -148,7 +168,8 @@ Deno.serve(async (req: Request) => {
             completed_at: now.toISOString(),
             updated_at: now.toISOString(),
           })
-          .eq("participant_id", session.participant_id);
+          .eq("participant_id", session.participant_id)
+          .eq("status", "active");
 
         if (updateErr) {
           return json({ error: "Failed to finalize session" }, 500, req);
@@ -157,11 +178,13 @@ Deno.serve(async (req: Request) => {
         return json({
           participant_id: session.participant_id,
           name: session.name,
+          nickname: session.nickname,
           school: session.school,
           country: session.country,
           level: session.level,
           subject: session.subject,
           display_id: session.display_id,
+          photo_url: session.photo_url,
           status: "completed",
           validated_score: validatedScore,
           time_spent_seconds: Math.min(Math.round(elapsed), totalSeconds + 5),
@@ -173,11 +196,13 @@ Deno.serve(async (req: Request) => {
       return json({
         participant_id: session.participant_id,
         name: session.name,
+        nickname: session.nickname,
         school: session.school,
         country: session.country,
         level: session.level,
         subject: session.subject,
         display_id: session.display_id,
+        photo_url: session.photo_url,
         started_at: session.started_at,
         server_now: now.toISOString(),
         remaining: Math.round(remaining),
@@ -205,11 +230,13 @@ Deno.serve(async (req: Request) => {
       return json({
         participant_id: session.participant_id,
         name: session.name,
+        nickname: session.nickname,
         school: session.school,
         country: session.country,
         level: session.level,
         subject: session.subject,
         display_id: session.display_id,
+        photo_url: session.photo_url,
         not_started: true,
       }, 200, req);
     }
@@ -243,11 +270,13 @@ Deno.serve(async (req: Request) => {
     return json({
       participant_id: session.participant_id,
       name: session.name,
+      nickname: session.nickname,
       school: session.school,
       country: session.country,
       level: session.level,
       subject: session.subject,
       display_id: session.display_id,
+      photo_url: session.photo_url,
       started_at: startedAt,
       server_now: startedAt,
       remaining,
