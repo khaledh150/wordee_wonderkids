@@ -25,7 +25,29 @@
         <p>Please enable JavaScript to use this app.</p>
       </div>
     </noscript>
-    <script>window.onerror=function(m){document.getElementById('root').innerHTML='<div style="text-align:center;padding:40px;font-family:system-ui"><h2>WonderKids Championship</h2><p>Loading error. Please refresh.</p><p style="font-size:12px;color:#999">'+m+'</p><button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;font-size:16px">Reload</button></div>'}</script>
+    <script>
+    (function(){
+      var KEY='chunk_reload',count=parseInt(sessionStorage.getItem(KEY)||'0',10);
+      function nuke(){
+        if(count>=2){sessionStorage.removeItem(KEY);return}
+        sessionStorage.setItem(KEY,String(count+1));
+        Promise.all([
+          navigator.serviceWorker?navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}):0,
+          window.caches?caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}):0
+        ]).then(function(){location.reload()}).catch(function(){location.reload()})
+      }
+      window.addEventListener('error',function(e){
+        var m=e.message||'';
+        if(m.indexOf('MIME')>-1||m.indexOf('dynamically imported')>-1||m.indexOf('module script')>-1){e.preventDefault();nuke()}
+        else{document.getElementById('root').innerHTML='<div style="text-align:center;padding:40px;font-family:system-ui"><h2>WonderKids Championship</h2><p>Loading error. Please refresh.</p><p style="font-size:12px;color:#999">'+m+'</p><button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;font-size:16px">Reload</button></div>'}
+      });
+      window.addEventListener('unhandledrejection',function(e){
+        var m=e.reason&&e.reason.message||String(e.reason||'');
+        if(m.indexOf('dynamically imported')>-1||m.indexOf('MIME')>-1||m.indexOf('Failed to fetch')>-1){e.preventDefault();nuke()}
+      });
+      if(count>0)sessionStorage.removeItem(KEY);
+    })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
