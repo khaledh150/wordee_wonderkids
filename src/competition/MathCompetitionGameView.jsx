@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, Calculator } from 'lucide-react'
+import { Trophy, Award, Star, Sparkles, Download, RefreshCw, AlertTriangle, Timer, CheckCircle, Loader2, Lock, ArrowRight, Calculator, Home } from 'lucide-react'
 import { playSFX } from '../utils/audioPlayer'
 import { fireConfetti } from '../utils/confetti'
 import MathQuestion from '../components/practice/MathQuestion'
@@ -23,7 +23,7 @@ const MathQuestionArea = memo(function MathQuestionArea({ current, answered, onC
   )
 })
 
-export default function MathCompetitionGameView({ engine, level, isDark = false, nextSubjectInfo, onTransition }) {
+export default function MathCompetitionGameView({ engine, level, isDark = false, nextSubjectInfo, onTransition, sessionEnded, onBack }) {
   const {
     orderedQuestions,
     timeLeft,
@@ -262,7 +262,7 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
                   Your final math score has been captured by the competition registry.
                 </p>
 
-                {nextSubjectInfo && (nextSubjectInfo.locked || nextSubjectInfo.available) && (
+                {!sessionEnded && nextSubjectInfo && (nextSubjectInfo.locked || nextSubjectInfo.available) && (
                   <motion.button
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -288,6 +288,37 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
                         Waiting for {nextSubjectInfo.subjectName}...
                       </>
                     )}
+                  </motion.button>
+                )}
+
+                {sessionEnded && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className={`w-full rounded-xl p-3 text-center ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'}`}
+                  >
+                    <p className={`text-sm font-black ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                      Competition Ended
+                    </p>
+                    <p className={`text-[10px] font-medium mt-0.5 ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/70'}`}>
+                      Thank you for participating!
+                    </p>
+                  </motion.div>
+                )}
+
+                {onBack && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    onClick={onBack}
+                    className={`w-full py-2.5 landscape:py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    Back to Home
                   </motion.button>
                 )}
               </div>

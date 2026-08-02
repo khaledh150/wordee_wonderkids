@@ -137,6 +137,7 @@ function CompetitionPlayPageInner() {
   const [competitionId, setCompetitionId] = useState(null)
   const [compIdError, setCompIdError] = useState(false)
   const [nextSubjectInfo, setNextSubjectInfo] = useState({ available: false, subjectName: null, locked: false })
+  const [sessionEnded, setSessionEnded] = useState(false)
   const [waitTheme, setWaitTheme] = useState(null)
   const restoredRef = useRef(false)
 
@@ -157,14 +158,16 @@ function CompetitionPlayPageInner() {
           const timer = setTimeout(() => controller.abort(), timeout)
           const { data, error: fetchErr } = await supabase
             .from('competition_state')
-            .select('competition_id')
-            .limit(1)
-            .single()
+            .select('competition_id, is_unlocked')
             .abortSignal(controller.signal)
           clearTimeout(timer)
           if (cancelled) return
           if (fetchErr) throw fetchErr
-          if (data) { setCompetitionId(data.competition_id); return }
+          if (data?.length) {
+            const unlocked = data.find(r => r.is_unlocked)
+            setCompetitionId((unlocked || data[0]).competition_id)
+            return
+          }
         } catch {
           if (cancelled) return
           if (attempt < maxRetries) {
@@ -305,29 +308,19 @@ function CompetitionPlayPageInner() {
 
   // Auto-transition: when student is on completed screen and admin opens a new lobby or new session
   useEffect(() => {
-    if (phase !== 'completed' || !verifiedCode) return
+    if (phase !== 'completed' || !verifiedCode || sessionEnded) return
     let cancelled = false
     const check = async () => {
       if (transitioningRef.current) return
       try {
-        // Check if competition_id changed (new session created)
-        const { data: freshState } = await supabase
+        // Check if competition_id changed (new session created) → session is over for this student
+        const { data: freshStates } = await supabase
           .from('competition_state')
           .select('competition_id')
-          .limit(1)
-          .single()
         if (cancelled) return
-        if (freshState && freshState.competition_id !== competitionId) {
-          transitioningRef.current = true
-          try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
-          setCompetitionId(freshState.competition_id)
-          setQuestions(null)
-          setPreloadDone(false)
-          setPreloadProgress({ loaded: 0, total: 0 })
-          restoredRef.current = false
-          setStep('code')
-          setCode(verifiedCode)
-          transitioningRef.current = false
+        const ids = (freshStates || []).map(r => r.competition_id)
+        if (ids.length > 0 && ids.every(id => id !== competitionId)) {
+          setSessionEnded(true)
           return
         }
 
@@ -342,9 +335,16 @@ function CompetitionPlayPageInner() {
         const data = await res.json()
         const subjects = data.subjects || []
         const registered = data.registered_subjects || []
+        const completed = data.completed_subjects || []
         const transferModes = data.transfer_modes || {}
         const otherRegistered = registered.filter(s => s !== selectedSubject)
         const otherSubjects = subjects.filter(s => s !== selectedSubject)
+
+        // All registered subjects completed, nothing left → competition ended for this student
+        if (registered.length > 0 && completed.length >= registered.length && otherSubjects.length === 0) {
+          setSessionEnded(true)
+          return
+        }
 
         if (otherRegistered.length > 0 && otherSubjects.length === 0 && !cancelled) {
           const nextName = otherRegistered[0] === 'math' ? 'Mathematics' : 'English Spelling'
@@ -367,7 +367,7 @@ function CompetitionPlayPageInner() {
     check()
     const id = setInterval(check, 8000)
     return () => { cancelled = true; clearInterval(id) }
-  }, [phase, verifiedCode, selectedSubject, competitionId, doTransitionToSubject])
+  }, [phase, verifiedCode, selectedSubject, competitionId, doTransitionToSubject, sessionEnded])
 
   // Fetch theme when on subjectWait (no session/engine yet)
   useEffect(() => {
@@ -1078,10 +1078,10 @@ function CompetitionPlayPageInner() {
       <>
         {isMath ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFF5F0]"><Loader2 className="w-10 h-10 animate-spin text-teal-500" /></div>}>
-            <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} />
+            <MathCompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} sessionEnded={sessionEnded} onBack={() => { window.location.href = '/' }} />
           </Suspense>
         ) : (
-          <CompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} />
+          <CompetitionGameView engine={engine} level={session.level} isDark={isDark} nextSubjectInfo={nextSubjectInfo} onTransition={() => nextSubjectInfo.subjectKey && doTransitionToSubject(nextSubjectInfo.subjectKey)} sessionEnded={sessionEnded} onBack={() => { window.location.href = '/' }} />
         )}
       </>
     )
