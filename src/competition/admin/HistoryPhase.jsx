@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Table } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Table, Monitor } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getVocabForLevel } from '../../data/vocabulary'
 import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
@@ -27,6 +27,36 @@ export default function HistoryPhase({ isDark, onBack }) {
   const [csvExporting, setCsvExporting] = useState(false)
   const [awardTiers, setAwardTiers] = useState(loadTiers)
   const [showAwardConfig, setShowAwardConfig] = useState(false)
+  const [historyPodiumActive, setHistoryPodiumActive] = useState(null)
+  const podiumBusyRef = useRef(false)
+
+  async function showHistoryPodium(competitionId, subject, level) {
+    if (podiumBusyRef.current) return
+    podiumBusyRef.current = true
+    try {
+      await supabase.from('competition_state').update({
+        history_podium_id: competitionId,
+        history_podium_subject: subject,
+        history_podium_level: level,
+        updated_at: new Date().toISOString(),
+      }).eq('id', 'english')
+      setHistoryPodiumActive({ competitionId, subject, level })
+    } finally { podiumBusyRef.current = false }
+  }
+
+  async function hideHistoryPodium() {
+    if (podiumBusyRef.current) return
+    podiumBusyRef.current = true
+    try {
+      await supabase.from('competition_state').update({
+        history_podium_id: null,
+        history_podium_subject: null,
+        history_podium_level: null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', 'english')
+      setHistoryPodiumActive(null)
+    } finally { podiumBusyRef.current = false }
+  }
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'
   const text = isDark ? 'text-white' : 'text-slate-900'
@@ -158,7 +188,7 @@ export default function HistoryPhase({ isDark, onBack }) {
         {/* Header */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={() => { setSelected(null); setDetailSessions([]); setLevelFilter(null) }}
+            onClick={() => { if (historyPodiumActive) hideHistoryPodium(); setSelected(null); setDetailSessions([]); setLevelFilter(null) }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
               isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
             }`}
@@ -251,6 +281,30 @@ export default function HistoryPhase({ isDark, onBack }) {
           </div>
 
           <div className="flex gap-2 flex-wrap items-center">
+            {levelFilter && (
+              historyPodiumActive?.competitionId === selected.competition_id
+                && historyPodiumActive?.subject === detailSubject
+                && historyPodiumActive?.level === levelFilter
+                ? (
+                  <button
+                    onClick={hideHistoryPodium}
+                    className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                  >
+                    <Monitor className="w-4 h-4" />
+                    Hide Podium
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => showHistoryPodium(selected.competition_id, detailSubject, levelFilter)}
+                    className={`px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5 ${
+                      isDark ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    }`}
+                  >
+                    <Monitor className="w-4 h-4" />
+                    Show Podium
+                  </button>
+                )
+            )}
             <AwardConfigButton onClick={() => setShowAwardConfig(true)} isDark={isDark} />
             <button
               onClick={exportExcelResults}
