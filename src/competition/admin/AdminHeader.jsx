@@ -3,7 +3,8 @@ import { Shield, LogOut, Sun, Moon, History, Activity } from 'lucide-react'
 const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'Results', podium: 'Podium' }
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results', 'podium']
 
-export default function AdminHeader({ subject, setSubject, phase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal, competitionId }) {
+export default function AdminHeader({ subject, setSubject, phase, autoPhase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal, competitionId }) {
+  const reachedIndex = PHASE_ORDER.indexOf(autoPhase || 'setup')
   return (
     <header className={`border-b px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-40 print:hidden transition-colors ${
       isDark ? 'bg-[#0e1224]/90 border-white/5 shadow-lg' : 'bg-white border-slate-200 shadow-sm'
@@ -39,23 +40,30 @@ export default function AdminHeader({ subject, setSubject, phase, isDark, onLogo
         </div>
 
         <div className="hidden sm:flex items-center gap-1">
-          {PHASE_ORDER.map((p, i) => (
-            <div key={p} className="flex items-center">
-              {i > 0 && <span className={`mx-1 text-xs ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>›</span>}
-              <button
-                onClick={() => onPhaseClick?.(p)}
-                className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer transition-colors ${
-                  p === phase
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                    : PHASE_ORDER.indexOf(p) < PHASE_ORDER.indexOf(phase)
-                      ? isDark ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-50'
-                      : isDark ? 'text-slate-600 hover:text-slate-400 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {PHASE_LABELS[p]}
-              </button>
-            </div>
-          ))}
+          {PHASE_ORDER.map((p, i) => {
+            const pIndex = PHASE_ORDER.indexOf(p)
+            const isLocked = pIndex > reachedIndex
+            return (
+              <div key={p} className="flex items-center">
+                {i > 0 && <span className={`mx-1 text-xs ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>›</span>}
+                <button
+                  onClick={() => !isLocked && onPhaseClick?.(p)}
+                  disabled={isLocked}
+                  className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg transition-colors ${
+                    isLocked
+                      ? `opacity-30 cursor-not-allowed ${isDark ? 'text-slate-600' : 'text-slate-400'}`
+                      : p === phase
+                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 cursor-pointer'
+                        : pIndex < PHASE_ORDER.indexOf(phase)
+                          ? `cursor-pointer ${isDark ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-50'}`
+                          : `cursor-pointer ${isDark ? 'text-slate-600 hover:text-slate-400 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`
+                  }`}
+                >
+                  {PHASE_LABELS[p]}
+                </button>
+              </div>
+            )
+          })}
           <button
             onClick={() => onPhaseClick?.('history')}
             className={`ml-2 p-1.5 rounded-lg transition-colors cursor-pointer ${

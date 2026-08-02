@@ -287,6 +287,7 @@ export default function AdminDashboard() {
           subject={subject}
           setSubject={(s) => { setSubject(s); setPhaseOverride(null) }}
           phase={phase}
+          autoPhase={autoPhase}
           isDark={isDark}
           onLogout={handleLogout}
           onPhaseClick={(p) => setPhaseOverride(p == null || p === autoPhase ? null : p)}
