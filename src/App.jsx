@@ -27,7 +27,7 @@ const MathExam = lazy(() => import('./math/MathExam'))
 const MathResults = lazy(() => import('./math/MathResults'))
 const MathPrintExam = lazy(() => import('./math/MathPrintExam'))
 
-export const APP_VERSION = '1.9.8.14'
+export const APP_VERSION = '1.9.8.15'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version', 'wonderkids_language', 'mathwiz_answers', 'mathwiz_exam_progress']
 
 function writeHash(screen, level, ml) {
@@ -64,7 +64,7 @@ function App() {
         PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i)
-          if (k && k.startsWith('wordee_comp_')) { preserved[k] = localStorage.getItem(k) }
+          if (k && (k.startsWith('wordee_comp_') || k.startsWith('sb-'))) { preserved[k] = localStorage.getItem(k) }
         }
         localStorage.clear()
         Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
