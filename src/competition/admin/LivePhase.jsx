@@ -135,7 +135,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
     } catch {}
     await updateState({ is_unlocked: false })
     await loadSessions()
-    toast.success('Competition stopped')
+    toast.warning('Competition stopped')
   }
 
   return (

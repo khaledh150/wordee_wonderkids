@@ -27,6 +27,7 @@ export function ToastProvider({ children }) {
 
   const api = useCallback({
     success: (msg) => toast(msg, 'success'),
+    warning: (msg) => toast(msg, 'warning'),
     error: (msg) => toast(msg, 'error'),
     info: (msg) => toast(msg, 'info'),
   }, [toast])
@@ -45,6 +46,6 @@ export function ToastProvider({ children }) {
 
 export function useToast() {
   const ctx = useContext(ToastContext)
-  if (!ctx) return { success: () => {}, error: () => {}, info: () => {} }
+  if (!ctx) return { success: () => {}, warning: () => {}, error: () => {}, info: () => {} }
   return ctx
 }

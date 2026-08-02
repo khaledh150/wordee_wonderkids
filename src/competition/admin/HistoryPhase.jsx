@@ -58,7 +58,7 @@ export default function HistoryPhase({ isDark, onBack }) {
         updated_at: new Date().toISOString(),
       }).eq('id', 'english')
       setHistoryPodiumActive(null)
-      toast.success('Podium hidden')
+      toast.warning('Podium hidden')
     } finally { podiumBusyRef.current = false }
   }
 
@@ -352,7 +352,6 @@ export default function HistoryPhase({ isDark, onBack }) {
                 <th className="px-4 py-4 text-center">{detailSubject === 'math' ? 'Grade' : 'Level'}</th>
                 <th className="px-4 py-4 text-right">Score</th>
                 <th className="px-4 py-4 text-right">Time</th>
-                <th className="px-5 py-4 text-center">Certificate</th>
               </tr>
             </thead>
             <tbody className="divide-y font-semibold text-sm transition-colors divide-white/5">
@@ -387,36 +386,11 @@ export default function HistoryPhase({ isDark, onBack }) {
                   <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {fmt(s.time_spent_seconds)}
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    <button
-                      onClick={async () => {
-                        const { downloadCertificate } = await import('../generateCertificate')
-                        await downloadCertificate({
-                          name: s.name,
-                          rank: i + 1,
-                          score: s.validated_score,
-                          totalQuestions: getTotalQuestions(s.level),
-                          level: s.level,
-                          school: s.school,
-                          country: s.country,
-                          eventName: selected.round_label || 'International English Spelling & Math Championship',
-                          competitionId: selected.competition_id,
-                        })
-                      }}
-                      className={`text-xs font-black uppercase px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                        isDark
-                          ? 'text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border-indigo-500/20'
-                          : 'text-indigo-600 hover:text-white hover:bg-indigo-500 bg-indigo-50 border-indigo-200 hover:border-indigo-500 shadow-sm'
-                      }`}
-                    >
-                      Download
-                    </button>
-                  </td>
                 </tr>
               ))}
               {!officialSorted.length && (
                 <tr>
-                  <td colSpan={7} className={`px-6 py-12 text-center font-bold ${textMuted}`}>
+                  <td colSpan={6} className={`px-6 py-12 text-center font-bold ${textMuted}`}>
                     No {subjectLabel} results for this session.
                   </td>
                 </tr>

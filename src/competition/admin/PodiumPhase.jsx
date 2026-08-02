@@ -56,7 +56,7 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
     try {
       if (isPodiumVisible && isCurrentLevel) {
         await updateState({ podium_visible: false })
-        toast.success('Podium hidden')
+        toast.warning('Podium hidden')
       } else {
         await updateState({ podium_visible: true, podium_level: selectedLevel })
         toast.success('Podium shown')

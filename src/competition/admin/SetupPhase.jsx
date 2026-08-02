@@ -124,7 +124,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       if (error) { toast.error('Failed to delete student: ' + error.message); return }
     }
     await loadSessions()
-    toast.success('Student removed')
+    toast.warning('Student removed')
   }
 
   function startEdit(student) {

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, Info, X } from 'lucide-react'
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react'
 
 const ICONS = {
   success: CheckCircle,
+  warning: AlertTriangle,
   error: XCircle,
   info: Info,
 }
 
 const COLORS = {
   success: 'bg-emerald-600 text-white',
+  warning: 'bg-amber-500 text-white',
   error: 'bg-red-600 text-white',
   info: 'bg-blue-600 text-white',
 }

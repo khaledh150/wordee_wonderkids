@@ -449,7 +449,7 @@ export default function AdminDashboard() {
                         }).eq('id', 'math'),
                       ])
                       await handleNewSession(true)
-                      toast.success('Competition ended')
+                      toast.warning('Competition ended')
                     } catch (err) {
                       toast.error('Failed to end session: ' + (err.message || 'Unknown error'))
                     }
