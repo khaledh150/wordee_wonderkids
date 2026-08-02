@@ -127,7 +127,9 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       if (error) { console.warn('Poll state error:', error.message); return }
       if (data) {
         if (competitionId && data.competition_id && data.competition_id !== competitionId) {
-          window.location.reload()
+          if (phaseRef.current !== 'completed') {
+            window.location.reload()
+          }
           return
         }
         setCompetitionState(data)
@@ -233,7 +235,13 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setSession(saved.session)
       setAnswers(saved.answers || [])
       setCorrectCount(saved.correctCount || 0)
-      setPhase('waiting')
+      if (saved.phase === 'completed') {
+        setPhase('completed')
+        if (saved.validatedScore != null) setValidatedScore(saved.validatedScore)
+        if (saved.rank != null) setRank(saved.rank)
+      } else {
+        setPhase('waiting')
+      }
     }
   }, [competitionId])
 
