@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { ArrowLeft, Calendar, Users, BookOpen, Calculator, Clock, FileText, Table, Monitor } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useToast } from '../../components/ToastContext'
 import { getVocabForLevel } from '../../data/vocabulary'
 import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
 import { mathGradeLabel } from '../mathGradeLabels'
@@ -17,6 +18,7 @@ function getEnglishTotal(level) {
 }
 
 export default function HistoryPhase({ isDark, onBack }) {
+  const toast = useToast()
   const [history, setHistory] = useState(null)
   const [selected, setSelected] = useState(null)
   const [detailSubject, setDetailSubject] = useState('english')
@@ -41,6 +43,7 @@ export default function HistoryPhase({ isDark, onBack }) {
         updated_at: new Date().toISOString(),
       }).eq('id', 'english')
       setHistoryPodiumActive({ competitionId, subject, level })
+      toast.success('Podium displayed')
     } finally { podiumBusyRef.current = false }
   }
 
@@ -55,6 +58,7 @@ export default function HistoryPhase({ isDark, onBack }) {
         updated_at: new Date().toISOString(),
       }).eq('id', 'english')
       setHistoryPodiumActive(null)
+      toast.success('Podium hidden')
     } finally { podiumBusyRef.current = false }
   }
 
@@ -148,8 +152,10 @@ export default function HistoryPhase({ isDark, onBack }) {
     try {
       const { exportFromTemplate } = await import('./exportResults')
       await exportFromTemplate(detailSubject, selected.competition_id, awardTiers, selected.created_at)
+      toast.success('Excel exported')
     } catch (err) {
       console.error('Excel export failed:', err)
+      toast.error('Export failed')
     } finally {
       setExcelExporting(false)
     }
@@ -161,8 +167,10 @@ export default function HistoryPhase({ isDark, onBack }) {
     try {
       const { exportCSVForCanva } = await import('./exportResults')
       await exportCSVForCanva(detailSubject, selected.competition_id, awardTiers, selected.created_at)
+      toast.success('CSV exported')
     } catch (err) {
       console.error('CSV export failed:', err)
+      toast.error('Export failed')
     } finally {
       setCsvExporting(false)
     }

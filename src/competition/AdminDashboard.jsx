@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase, SUBJECTS } from './supabaseClient'
+import { useToast } from '../components/ToastContext'
 import useAdminData from './admin/useAdminData'
 import AdminHeader from './admin/AdminHeader'
 import SetupPhase from './admin/SetupPhase'
@@ -19,6 +20,7 @@ const ThemeModal = lazy(() => import('./admin/ThemeModal'))
 
 
 export default function AdminDashboard() {
+  const toast = useToast()
   const [themes, setThemes] = useState(() => {
     try {
       const saved = localStorage.getItem('wonderkids_themes')
@@ -103,6 +105,7 @@ export default function AdminDashboard() {
         setDialog(null)
         await updateState({ is_unlocked: true, started_at: null, transfer_mode: mode })
         setPhaseOverride(null)
+        toast.success('Lobby opened')
       }
       setDialog({
         title: `Open ${subLabel} Lobby`,
@@ -135,6 +138,7 @@ export default function AdminDashboard() {
           await updateState({ is_unlocked: true, started_at: null })
           setPhaseOverride(null)
           setDialog(null)
+          toast.success('Lobby opened')
         },
         onCancel: () => setDialog(null),
       })
@@ -187,9 +191,12 @@ export default function AdminDashboard() {
     }
     if (inserts.length > 0) {
       const { error } = await supabase.from('competition_sessions').insert(inserts)
-      if (error) { alert('Roster import failed: ' + error.message); return }
+      if (error) { toast.error('Roster import failed: ' + error.message); return }
     }
-    if (updates.length > 0 || inserts.length > 0) await loadSessions()
+    if (updates.length > 0 || inserts.length > 0) {
+      await loadSessions()
+      toast.success('Roster imported')
+    }
   }
 
   const newSessionRef = useRef(false)
@@ -204,7 +211,7 @@ export default function AdminDashboard() {
       competition_id: oldId,
       round_label: state.round_label || null,
     })
-    if (histErr) { alert('Failed to create history entry: ' + histErr.message); return }
+    if (histErr) { toast.error('Failed to create history entry: ' + histErr.message); newSessionRef.current = false; return }
 
     const { error: stateErr } = await supabase.from('competition_state').update({
       competition_id: newId,
@@ -219,7 +226,7 @@ export default function AdminDashboard() {
       round_label: null,
       updated_at: new Date().toISOString(),
     }).in('id', ['english', 'math'])
-    if (stateErr) { alert('Failed to reset competition state: ' + stateErr.message); return }
+    if (stateErr) { toast.error('Failed to reset competition state: ' + stateErr.message); newSessionRef.current = false; return }
 
     if (copyRoster) {
       const { data: oldSessions } = await supabase
@@ -250,13 +257,14 @@ export default function AdminDashboard() {
           completed_at: null,
         }))
         const { error: copyErr } = await supabase.from('competition_sessions').insert(inserts)
-        if (copyErr) { alert('Failed to copy roster: ' + copyErr.message) }
+        if (copyErr) { toast.error('Failed to copy roster: ' + copyErr.message) }
       }
     }
 
     setPhaseOverride(null)
     await loadState()
     await loadSessions()
+    toast.success('New session created')
     newSessionRef.current = false
   }
 
@@ -440,8 +448,9 @@ export default function AdminDashboard() {
                         }).eq('id', 'math'),
                       ])
                       await handleNewSession(true)
+                      toast.success('Competition ended')
                     } catch (err) {
-                      alert('Failed to end session: ' + (err.message || 'Unknown error'))
+                      toast.error('Failed to end session: ' + (err.message || 'Unknown error'))
                     }
                   }}
                   onProceedToSubject={(sub) => {

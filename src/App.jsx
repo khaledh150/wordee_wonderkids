@@ -11,6 +11,9 @@ import ModuleBoundary from './components/ModuleBoundary'
 import { LanguageProvider } from './i18n/LanguageContext'
 import { levelConfig } from './math/mathEngine'
 import useVersionCheck from './hooks/useVersionCheck'
+import OfflineBanner from './components/OfflineBanner'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
+import { ToastProvider } from './components/ToastContext'
 
 const LearnMode = lazy(() => import('./components/LearnMode'))
 const PracticeMode = lazy(() => import('./components/PracticeMode'))
@@ -24,7 +27,7 @@ const MathExam = lazy(() => import('./math/MathExam'))
 const MathResults = lazy(() => import('./math/MathResults'))
 const MathPrintExam = lazy(() => import('./math/MathPrintExam'))
 
-export const APP_VERSION = '1.9.7.21'
+export const APP_VERSION = '1.9.8.11'
 const PRESERVED_KEYS = ['wordee_progress', 'last_wordee_version', 'wonderkids_language', 'mathwiz_answers', 'mathwiz_exam_progress']
 
 function writeHash(screen, level, ml) {
@@ -36,13 +39,13 @@ function writeHash(screen, level, ml) {
 
 function App() {
   if (window.location.pathname === '/admin') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Admin"><AdminPage /></ModuleBoundary></Suspense></LanguageProvider>
+    return <LanguageProvider><ToastProvider><OfflineBanner /><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Admin"><AdminPage /></ModuleBoundary></Suspense></ToastProvider></LanguageProvider>
   }
   if (window.location.pathname === '/play') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Competition"><CompetitionPlayPage /></ModuleBoundary></Suspense></LanguageProvider>
+    return <LanguageProvider><OfflineBanner /><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Competition"><CompetitionPlayPage /></ModuleBoundary></Suspense></LanguageProvider>
   }
   if (window.location.pathname === '/projector') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Projector"><ProjectorPage /></ModuleBoundary></Suspense></LanguageProvider>
+    return <LanguageProvider><OfflineBanner /><Suspense fallback={<LoadingScreen />}><ModuleBoundary label="Projector"><ProjectorPage /></ModuleBoundary></Suspense></LanguageProvider>
   }
 
   const [screen, setScreen] = useState('splash')
@@ -59,6 +62,10 @@ function App() {
       if (prev && prev !== APP_VERSION) {
         const preserved = {}
         PRESERVED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) preserved[k] = v })
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i)
+          if (k && k.startsWith('wordee_comp_')) { preserved[k] = localStorage.getItem(k) }
+        }
         localStorage.clear()
         Object.entries(preserved).forEach(([k, v]) => localStorage.setItem(k, v))
         if ('caches' in window) {
@@ -126,6 +133,8 @@ function App() {
   return (
     <InAppBrowserGuard>
     <LanguageProvider>
+    <OfflineBanner />
+    <PWAInstallPrompt />
     <div className="w-full min-h-screen-safe relative">
       <AnimatePresence mode="wait">
         {screen === 'splash' && (

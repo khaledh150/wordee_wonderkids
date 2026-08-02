@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Monitor } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { useToast } from '../../components/ToastContext'
 import { isOnline } from './shared'
 
 export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onBackToSetup }) {
+  const toast = useToast()
   const [confirmStart, setConfirmStart] = useState(false)
 
   const playUrl = `${window.location.origin}/play`
@@ -32,6 +34,7 @@ export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase
     } catch (err) {
       console.error('Start competition failed:', err)
       setStartError('Failed to start competition. Please try again.')
+      toast.error('Failed to start: ' + err.message)
     }
   }
 
@@ -43,7 +46,7 @@ export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase
       return
     }
     setConfirmBack(false)
-    updateState({ is_unlocked: false }).then(onBackToSetup)
+    updateState({ is_unlocked: false }).then(() => { toast.info('Back to setup'); onBackToSetup() })
   }
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'

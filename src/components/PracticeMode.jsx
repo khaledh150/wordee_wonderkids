@@ -4,7 +4,7 @@ import { ArrowLeft, Home, Volume2, ChevronRight } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 import FullscreenBtn from './FullscreenBtn'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
-import { playWordVO, playSFX, stopAll } from '../utils/audioPlayer'
+import { playWordVO, playSFX, stopAll, preloadAudio } from '../utils/audioPlayer'
 import { trackWordPracticed, trackLevelCompleted } from '../utils/progress'
 import { fireConfetti } from '../utils/confetti'
 import { preloadLevelImages } from '../utils/preloadImages'
@@ -62,6 +62,7 @@ export default function PracticeMode({ level, onBack, onHome, mode = 'practice' 
 
   useEffect(() => {
     preloadLevelImages(allVocab)
+    preloadAudio(allVocab.map(v => v.audio.split('/').pop()))
     timer.start()
   }, [])
 

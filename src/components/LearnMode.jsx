@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Home, Volume2, ChevronLeft, ChevronRight, RotateCcw, PartyPopper } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 import { getVocabForLevel, LEVELS } from '../data/vocabulary'
-import { playWordVO, stopAll } from '../utils/audioPlayer'
+import { playWordVO, stopAll, preloadAudio } from '../utils/audioPlayer'
 import { trackWordLearned, trackLevelCompleted } from '../utils/progress'
 import { fireCelebration, cancelCelebration } from '../utils/confetti'
 import { preloadLevelImages } from '../utils/preloadImages'
@@ -28,7 +28,10 @@ export default function LearnMode({ level, onBack, onHome }) {
   const isFirst = index === 0
   const isLast = index === vocab.length - 1
 
-  useEffect(() => { preloadLevelImages(vocab) }, [vocab])
+  useEffect(() => {
+    preloadLevelImages(vocab)
+    preloadAudio(vocab.map(v => v.audio.split('/').pop()))
+  }, [vocab])
 
   const autoAdvanceRef = useRef(null)
 

@@ -162,7 +162,7 @@ export default function ProjectorPage() {
 
   useEffect(() => {
     if (!authed) return
-    const id = setInterval(loadStates, 2000)
+    const id = setInterval(loadStates, 1500)
     return () => clearInterval(id)
   }, [authed, loadStates])
 

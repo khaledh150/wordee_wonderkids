@@ -1,15 +1,15 @@
 import { Component } from 'react'
+import { reportError } from '../utils/errorReporter'
 
-// Strings in this component are intentionally not translated with t().
-// ErrorBoundary is a class component and cannot use the useLang() hook.
-// It may also render when the LanguageProvider itself has errored, so
-// accessing translations could cause a secondary crash. Since error screens
-// are rarely seen, hardcoded English is acceptable here.
 export default class ErrorBoundary extends Component {
   state = { hasError: false, error: null }
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error }
+  }
+
+  componentDidCatch(error, info) {
+    reportError(error, `ErrorBoundary: ${info?.componentStack?.split('\n')[1]?.trim() || 'unknown'}`)
   }
 
   handleReload = () => {

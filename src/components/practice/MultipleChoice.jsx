@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 
 function shuffle(arr) {
@@ -13,8 +13,9 @@ function shuffle(arr) {
 export default function MultipleChoice({ current, allVocab, onCorrect, onWrong, answered }) {
   const [wrongPick, setWrongPick] = useState(null)
 
+  useEffect(() => { setWrongPick(null) }, [current])
+
   const choices = useMemo(() => {
-    setWrongPick(null)
     const others = allVocab.filter(v => v.word !== current.word)
     return shuffle([current, ...shuffle(others).slice(0, 2)])
   }, [current, allVocab])

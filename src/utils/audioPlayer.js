@@ -66,7 +66,41 @@ export function playVO(filePath) {
   return playFile(filePath)
 }
 
+const audioCache = new Map()
+
+export function preloadAudio(filenames) {
+  let i = 0
+  const BATCH = 3
+  function loadNext() {
+    while (i < filenames.length && audioCache.size - filenames.length < BATCH) {
+      const fn = filenames[i++]
+      if (audioCache.has(fn)) continue
+      const audio = new Audio(`/audio/vocab/${fn}`)
+      audio.preload = 'auto'
+      audio.load()
+      audioCache.set(fn, audio)
+    }
+    if (i < filenames.length) setTimeout(loadNext, 100)
+  }
+  loadNext()
+}
+
 export function playWordVO(filename) {
+  const cached = audioCache.get(filename)
+  if (cached) {
+    audioCache.delete(filename)
+    return new Promise(resolve => {
+      if (voMuted) return resolve()
+      stopAll()
+      ++generationId
+      cached.currentTime = 0
+      currentAudio = cached
+      const done = () => { if (currentAudio === cached) { cleanupAudio(cached); currentAudio = null }; resolve() }
+      cached.onended = done
+      cached.onerror = done
+      cached.play().catch(resolve)
+    })
+  }
   return playFile(`/audio/vocab/${filename}`)
 }
 

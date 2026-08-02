@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp, TimerReset } from 'lucide-react'
 import { fmt } from './shared'
 import { supabase } from '../supabaseClient'
+import { useToast } from '../../components/ToastContext'
 
 export default function LivePhase({ state, sessions, elapsed, subject, isDark, autoPhase, updateState, loadSessions }) {
+  const toast = useToast()
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
   const [timeExtOpen, setTimeExtOpen] = useState(false)
@@ -133,6 +135,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
     } catch {}
     await updateState({ is_unlocked: false })
     await loadSessions()
+    toast.success('Competition stopped')
   }
 
   return (
@@ -275,7 +278,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
                   {[1, 2, 5].map(m => (
                     <button
                       key={m}
-                      onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 })}
+                      onClick={() => updateState({ extra_seconds: (state.extra_seconds || 0) + m * 60 }).then(() => toast.info('Time extended'))}
                       className={`px-4 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer border ${
                         isDark
                           ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
@@ -332,6 +335,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
                   value={announcementText}
                   onChange={e => setAnnouncementText(e.target.value)}
                   placeholder="Type announcement for all students..."
+                  maxLength={500}
                   rows={2}
                   className={`w-full px-3 py-2 border rounded-xl text-sm resize-none transition-colors ${
                     isDark

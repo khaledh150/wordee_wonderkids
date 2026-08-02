@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { reportError } from './utils/errorReporter.js'
 
 async function handleChunkError() {
   const key = 'chunk_reload'
@@ -24,6 +25,7 @@ async function handleChunkError() {
 }
 
 window.addEventListener('error', (e) => {
+  reportError(e.error || e.message, 'window.onerror')
   if (e.message?.includes('MIME type') || e.message?.includes('dynamically imported module')) {
     e.preventDefault()
     handleChunkError()
@@ -32,6 +34,7 @@ window.addEventListener('error', (e) => {
 
 window.addEventListener('unhandledrejection', (e) => {
   const msg = e.reason?.message || String(e.reason)
+  reportError(e.reason, 'unhandledrejection')
   if (msg.includes('dynamically imported module') || msg.includes('MIME type') || msg.includes('Failed to fetch')) {
     e.preventDefault()
     handleChunkError()

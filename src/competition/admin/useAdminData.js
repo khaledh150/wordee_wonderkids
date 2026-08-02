@@ -109,7 +109,7 @@ export default function useAdminData({ subject }) {
       })
       .subscribe()
     channelRef.current = ch
-    const pollId = setInterval(loadSessions, 1000)
+    const pollId = setInterval(loadSessions, 2000)
     return () => {
       clearInterval(pollId)
       supabase.removeChannel(ch)

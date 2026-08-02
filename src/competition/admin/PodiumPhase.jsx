@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, Eye, EyeOff, XCircle, Medal } from 'lucide-react'
 import StudentAvatar from './StudentAvatar'
+import { useToast } from '../../components/ToastContext'
 import { fmt } from './shared'
 import { mathGradeLabel } from '../mathGradeLabels'
 import { getTiersForCount } from './AwardConfig'
@@ -24,6 +25,7 @@ function getAwardLabel(rank, tiers) {
 const AWARD_COLORS = { Gold: 'text-amber-400', Silver: 'text-slate-400', Bronze: 'text-orange-400' }
 
 export default function PodiumPhase({ state, sessions, subject, isDark, updateState, onEndCompetition, onProceedToSubject, otherSubjectPlayed }) {
+  const toast = useToast()
   const [selectedLevel, setSelectedLevel] = useState(state?.podium_level || 1)
 
   useEffect(() => {
@@ -54,11 +56,14 @@ export default function PodiumPhase({ state, sessions, subject, isDark, updateSt
     try {
       if (isPodiumVisible && isCurrentLevel) {
         await updateState({ podium_visible: false })
+        toast.success('Podium hidden')
       } else {
         await updateState({ podium_visible: true, podium_level: selectedLevel })
+        toast.success('Podium shown')
       }
     } catch (err) {
       console.error('Failed to toggle podium:', err)
+      toast.error('Failed to toggle podium')
     }
   }
 

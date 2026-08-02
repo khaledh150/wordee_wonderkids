@@ -79,6 +79,12 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Version guard: never overwrite a longer answers_snapshot with a shorter one
+    const existingLen = Array.isArray(session.answers_snapshot) ? session.answers_snapshot.length : 0;
+    if (answers && answers.length < existingLen) {
+      return json({ ok: true, stale: true }, 200, req);
+    }
+
     // Compute server-side time_spent
     const now = new Date();
     let timeSpent = 0;

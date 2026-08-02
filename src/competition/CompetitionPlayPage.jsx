@@ -127,6 +127,7 @@ function CompetitionPlayPageInner() {
   const [verifiedCode, setVerifiedCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const codeInputRef = useRef(null)
   const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: 0 })
   const [preloadDone, setPreloadDone] = useState(false)
   const [questions, setQuestions] = useState(null)
@@ -144,6 +145,14 @@ function CompetitionPlayPageInner() {
   const subjectSelectRef = useRef(false)
 
   useVersionCheck()
+
+  // Delayed focus on code input to trigger virtual keyboard on mobile
+  useEffect(() => {
+    if (step === 'code' && codeInputRef.current) {
+      const t = setTimeout(() => codeInputRef.current?.focus(), 400)
+      return () => clearTimeout(t)
+    }
+  }, [step])
 
   useEffect(() => {
     let cancelled = false
@@ -608,6 +617,7 @@ function CompetitionPlayPageInner() {
 
             <div className="relative mb-4 sm:mb-5 landscape:mb-3">
               <input
+                ref={codeInputRef}
                 type="text"
                 value={code}
                 onChange={e => {
@@ -625,15 +635,21 @@ function CompetitionPlayPageInner() {
                   isDark
                     ? 'bg-slate-900 border-slate-700 text-white focus:border-indigo-500 focus:ring-indigo-500/20'
                     : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500 focus:ring-indigo-100'
-                }`}
+                } ${!code && !loading ? 'animate-[pulseGlow_2s_ease-in-out_infinite]' : ''}`}
                 maxLength={4}
                 inputMode="numeric"
                 pattern="[0-9]*"
+                enterKeyHint="go"
                 autoFocus
                 autoComplete="off"
                 aria-label="Competition code"
                 disabled={loading}
               />
+              {!code && !loading && (
+                <p className={`text-[10px] sm:text-xs mt-2 font-medium animate-pulse ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
+                  👆 Tap here and enter your 4-digit code
+                </p>
+              )}
             </div>
 
             <button

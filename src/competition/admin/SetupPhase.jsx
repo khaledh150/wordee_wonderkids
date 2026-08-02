@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X, Camera, Printer } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useToast } from '../../components/ToastContext'
 import { generateCode } from './shared'
 import { uploadPhoto } from './photoUtils'
 import StudentAvatar from './StudentAvatar'
@@ -12,6 +13,7 @@ const ENGLISH_LEVELS = [0, 1, 2, 3, 4]
 const MATH_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 export default function SetupPhase({ state, sessions, subject, isDark, autoPhase, updateState, loadSessions, onOpenLobby, onShowUpload, onNewSession }) {
+  const toast = useToast()
   const [showAddRow, setShowAddRow] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
   const [editingCode, setEditingCode] = useState(null)
@@ -79,10 +81,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
 
     if (row && level === 0) {
       const { error } = await supabase.from('competition_sessions').delete().eq('participant_id', row.participant_id)
-      if (error) { alert('Failed to remove level: ' + error.message); return }
+      if (error) { toast.error('Failed to remove level: ' + error.message); return }
     } else if (row && level > 0) {
       const { error } = await supabase.from('competition_sessions').update({ level, updated_at: new Date().toISOString() }).eq('participant_id', row.participant_id)
-      if (error) { alert('Failed to update level: ' + error.message); return }
+      if (error) { toast.error('Failed to update level: ' + error.message); return }
     } else if (!row && level > 0) {
       const refRow = student.english || student.math
       const { error } = await supabase.from('competition_sessions').insert({
@@ -96,9 +98,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         subject: subjectKey,
         level,
       })
-      if (error) { alert('Failed to add level: ' + error.message); return }
+      if (error) { toast.error('Failed to add level: ' + error.message); return }
     }
     await loadSessions()
+    toast.success('Level updated')
   }
 
   async function handleAgeChange(student, newAge) {
@@ -106,9 +109,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
       const { error } = await supabase.from('competition_sessions').update({ age, updated_at: new Date().toISOString() }).eq('participant_id', id)
-      if (error) { alert('Failed to update age: ' + error.message); return }
+      if (error) { toast.error('Failed to update age: ' + error.message); return }
     }
     await loadSessions()
+    toast.success('Age updated')
   }
 
   async function handleDelete(student) {
@@ -117,9 +121,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     if (ids.length === 0) return
     for (const id of ids) {
       const { error } = await supabase.from('competition_sessions').delete().eq('participant_id', id)
-      if (error) { alert('Failed to delete student: ' + error.message); return }
+      if (error) { toast.error('Failed to delete student: ' + error.message); return }
     }
     await loadSessions()
+    toast.success('Student removed')
   }
 
   function startEdit(student) {
@@ -137,10 +142,11 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
     for (const id of ids) {
       const { error } = await supabase.from('competition_sessions').update(updates).eq('participant_id', id)
-      if (error) { alert('Failed to save edit: ' + error.message); return }
+      if (error) { toast.error('Failed to save edit: ' + error.message); return }
     }
     setEditingCode(null)
     await loadSessions()
+    toast.success('Saved')
   }
 
   async function handleAddStudent() {
@@ -177,9 +183,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       }
 
       const { error } = await supabase.from('competition_sessions').insert(rows)
-      if (error) { alert('Failed to add student: ' + error.message); return }
+      if (error) { toast.error('Failed to add student: ' + error.message); return }
       setNewStudent({ name: '', school: '', country: 'th', age: '', englishLevel: 0, mathLevel: 0 })
       await loadSessions()
+      toast.success('Student added')
     } finally {
       setAdding(false)
     }
@@ -246,8 +253,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         await supabase.from('competition_sessions').update({ photo_url: url, updated_at: new Date().toISOString() }).eq('participant_id', id)
       }
       await loadSessions()
+      toast.success('Photo uploaded')
     } catch (err) {
       console.error('Photo upload failed:', err)
+      toast.error('Photo upload failed')
     } finally {
       setUploadingPhoto(null)
       photoTargetRef.current = null
@@ -493,6 +502,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                             value={editForm.name}
                             onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))}
                             className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                            maxLength={100}
                             autoFocus
                           />
                         ) : (
@@ -508,6 +518,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                             value={editForm.school}
                             onChange={(e) => setEditForm(p => ({ ...p, school: e.target.value }))}
                             className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                            maxLength={100}
                           />
                         ) : (
                           <span className={`truncate block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.school || '—'}</span>
@@ -594,6 +605,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         value={newStudent.name}
                         onChange={(e) => setNewStudent(p => ({ ...p, name: e.target.value }))}
                         placeholder="Name"
+                        maxLength={100}
                         className={`w-full px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
                       />
                     </td>
@@ -603,6 +615,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         value={newStudent.school}
                         onChange={(e) => setNewStudent(p => ({ ...p, school: e.target.value }))}
                         placeholder="School"
+                        maxLength={100}
                         className={`w-full px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${inputClass}`}
                       />
                     </td>
@@ -697,6 +710,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                 value={roundLabel}
                 onChange={(e) => setRoundLabel(e.target.value)}
                 placeholder="e.g. Round 1, Finals"
+                maxLength={50}
                 className={`flex-1 px-3.5 py-2.5 rounded-xl border text-sm transition-colors ${inputClass}`}
               />
               <button

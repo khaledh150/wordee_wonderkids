@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, ArrowRight, Table, Trophy } from 'lucide-react'
 import { supabase, SUBJECTS } from '../supabaseClient'
+import { useToast } from '../../components/ToastContext'
 import { getVocabForLevel } from '../../data/vocabulary'
 import { fmt } from './shared'
 import AwardConfigModal, { AwardConfigButton, loadTiers } from './AwardConfig'
@@ -14,6 +15,7 @@ function getEnglishTotal(level) {
 }
 
 export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onShowPodium, readOnly }) {
+  const toast = useToast()
   const [levelFilter, setLevelFilter] = useState(null)
   const maxTime = (state.duration_seconds || 300) + (state.extra_seconds || 0)
   const [excelExporting, setExcelExporting] = useState(false)
@@ -91,8 +93,10 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     try {
       const { exportFromTemplate } = await import('./exportResults')
       await exportFromTemplate(subject, state.competition_id, awardTiers, new Date().toISOString())
+      toast.success('Excel exported')
     } catch (err) {
       console.error('Excel export failed:', err)
+      toast.error('Export failed')
     } finally {
       setExcelExporting(false)
     }
@@ -104,8 +108,10 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
     try {
       const { exportCSVForCanva } = await import('./exportResults')
       await exportCSVForCanva(subject, state.competition_id, awardTiers, new Date().toISOString())
+      toast.success('CSV exported')
     } catch (err) {
       console.error('CSV export failed:', err)
+      toast.error('Export failed')
     } finally {
       setCsvExporting(false)
     }

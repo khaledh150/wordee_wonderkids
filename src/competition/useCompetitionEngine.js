@@ -3,11 +3,11 @@ import { supabase } from './supabaseClient'
 import { seededShuffle } from './seededShuffle'
 
 const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
-const SYNC_INTERVAL = 12_000
+const SYNC_INTERVAL = 5_000
 const JITTER_MAX = 3_000
-const POLL_INTERVAL = 25_000
+const POLL_INTERVAL = 15_000
 const HEARTBEAT_INTERVAL = 30_000
-const ACTIVE_POLL_INTERVAL = 60_000
+const ACTIVE_POLL_INTERVAL = 30_000
 
 function jitter(base) { return base + Math.random() * JITTER_MAX }
 
@@ -69,6 +69,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   const broadcastRef = useRef(null)
   const [isOffline, setIsOffline] = useState(false)
   const syncFailCountRef = useRef(0)
+  const submitErrorRef = useRef(false)
+  const pollBackoffRef = useRef(1)
 
   useEffect(() => { return () => { unmountedRef.current = true } }, [])
 
@@ -95,10 +97,17 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     return () => { channel.close(); broadcastRef.current = null }
   }, [competitionId])
 
-  // Online/offline detection
+  // Online/offline detection + retry on reconnect
   useEffect(() => {
     const goOffline = () => setIsOffline(true)
-    const goOnline = () => { setIsOffline(false); syncFailCountRef.current = 0 }
+    const goOnline = () => {
+      setIsOffline(false)
+      syncFailCountRef.current = 0
+      pollBackoffRef.current = 1
+      if (submitErrorRef.current && phaseRef.current === 'active' && timeLeftRef.current <= 0) {
+        doSubmit()
+      }
+    }
     window.addEventListener('offline', goOffline)
     window.addEventListener('online', goOnline)
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline) }
@@ -124,7 +133,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         .select('is_unlocked, active_level, extra_seconds, announcement, duration_seconds, theme, started_at, competition_id')
         .eq('id', subject)
         .single()
-      if (error) { console.warn('Poll state error:', error.message); return }
+      if (error) { console.warn('Poll state error:', error.message); pollBackoffRef.current = Math.min(pollBackoffRef.current * 2, 8); return }
+      pollBackoffRef.current = 1
       if (data) {
         if (competitionId && data.competition_id && data.competition_id !== competitionId) {
           if (phaseRef.current !== 'completed') {
@@ -135,7 +145,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         setCompetitionState(data)
         setAnnouncement(data.announcement || '')
       }
-    } catch (e) { console.warn('Poll state exception:', e) }
+    } catch (e) { console.warn('Poll state exception:', e); pollBackoffRef.current = Math.min(pollBackoffRef.current * 2, 8) }
   }, [subject, competitionId])
 
   // ── Heartbeat ──
@@ -158,8 +168,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     function tick() {
       pollState()
       if (!cancelled) {
-        const interval = lobbyPoll ? 8_000 + Math.random() * 3_000 : jitter(POLL_INTERVAL)
-        pollRef.current = setTimeout(tick, interval)
+        const base = lobbyPoll ? 5_000 + Math.random() * 3_000 : jitter(POLL_INTERVAL)
+        pollRef.current = setTimeout(tick, base * pollBackoffRef.current)
       }
     }
     tick()
@@ -452,7 +462,8 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     }
 
     let cancelled = false
-    function scheduleTick() { if (!cancelled) syncRef.current = setTimeout(() => { doSync(); scheduleTick() }, jitter(SYNC_INTERVAL)) }
+    const syncBackoff = () => Math.min(syncFailCountRef.current + 1, 4)
+    function scheduleTick() { if (!cancelled) syncRef.current = setTimeout(() => { doSync(); scheduleTick() }, jitter(SYNC_INTERVAL) * syncBackoff()) }
     const firstSync = setTimeout(() => { doSync(); scheduleTick() }, 3000)
     return () => { cancelled = true; clearTimeout(syncRef.current); clearTimeout(firstSync) }
   }, [phase, session, competitionId])
@@ -491,11 +502,12 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
         })
         submittingRef.current = false
         setIsSubmitting(false)
+        submitErrorRef.current = false
       } catch {
         retryCount++
         if (unmountedRef.current) { submittingRef.current = false; return }
         if (retryCount <= 3) setTimeout(trySubmit, Math.min(3000 * Math.pow(2, retryCount - 1), 15000))
-        else { submittingRef.current = false; setIsSubmitting(false); setSubmitError(true) }
+        else { submittingRef.current = false; setIsSubmitting(false); setSubmitError(true); submitErrorRef.current = true }
       }
     }
     await trySubmit()
@@ -503,6 +515,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
   // ── Record Answer ──
   const recordAnswer = useCallback((questionId, submittedAnswer, isCorrect) => {
+    if (timeLeftRef.current != null && timeLeftRef.current <= 0) return
     setAnswers(prev => {
       const idx = prev.findIndex(a => a.question_id === questionId)
       const entry = { question_id: questionId, submitted_answer: submittedAnswer }
@@ -518,6 +531,18 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       }, 2000)
       return next
     })
+  }, [competitionId])
+
+  // Flush pending answer save on tab close
+  useEffect(() => {
+    const flush = () => {
+      if (saveDebounceRef.current && phaseRef.current === 'active') {
+        clearTimeout(saveDebounceRef.current)
+        saveLocal(competitionId, { ...loadLocal(competitionId), answers: answersRef.current, correctCount: correctCountRef.current })
+      }
+    }
+    window.addEventListener('beforeunload', flush)
+    return () => window.removeEventListener('beforeunload', flush)
   }, [competitionId])
 
   // ── Manual Finish ──
