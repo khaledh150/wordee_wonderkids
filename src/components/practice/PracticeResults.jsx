@@ -43,7 +43,7 @@ export default function PracticeResults({ correct, wrong, total, timeTaken, tota
       >
         <div className="text-center">
           <div className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white">{correct}</div>
-          <div className="text-white/80 text-[10px] sm:text-sm lg:text-base xl:text-lg font-medium">{t('english.results.outOf')} {answered}</div>
+          <div className="text-white/80 text-[10px] sm:text-sm lg:text-base xl:text-lg font-medium">{t('english.results.outOf')} {total}</div>
         </div>
       </motion.div>
 
