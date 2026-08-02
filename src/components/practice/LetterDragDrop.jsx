@@ -22,9 +22,16 @@ export default function LetterDragDrop({ current, level, onCorrect, onWrong, ans
   }, [])
 
   const { prefilled, choices } = useMemo(() => {
-    const hintPct = level === 2 ? 0.4 : 0.2
+    const hintPct = 0.4
     const revealed = new Set()
     const count = Math.max(1, Math.floor(allLetters.length * hintPct))
+    // Always reveal first letter of each word
+    let pos = 0
+    for (const w of words) {
+      revealed.add(pos)
+      pos += w.length
+    }
+    // Fill remaining hints randomly
     while (revealed.size < count) revealed.add(Math.floor(Math.random() * allLetters.length))
     const pre = allLetters.map((l, i) => revealed.has(i) ? l : null)
     const cl = allLetters.filter((_, i) => !revealed.has(i))
