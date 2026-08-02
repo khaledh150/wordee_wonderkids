@@ -46,7 +46,7 @@ export default function LobbyPhase({ state, sessions, subject, isDark, autoPhase
       return
     }
     setConfirmBack(false)
-    updateState({ is_unlocked: false }).then(() => { toast.info('Back to setup'); onBackToSetup() })
+    updateState({ is_unlocked: false }).then(() => { toast.warning('Lobby closed'); onBackToSetup() })
   }
 
   const card = isDark ? 'bg-[#0e1224]/50 border-white/10' : 'bg-white border-slate-200'

@@ -125,6 +125,8 @@ export default function HistoryPhase({ isDark, onBack }) {
     return getEnglishTotal(level)
   }
 
+  const maxTime = (selected?.duration_seconds || 300) + (selected?.extra_seconds || 0)
+
   const officialSorted = useMemo(() => {
     let list = detailSessions.filter(s => s.validated_score != null)
     if (levelFilter) list = list.filter(s => s.level === levelFilter)
@@ -384,7 +386,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                     <span className={`text-xs font-semibold ml-1 ${textMuted}`}>/ {getTotalQuestions(s.level)}</span>
                   </td>
                   <td className={`px-4 py-4 text-right font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {fmt(s.time_spent_seconds)}
+                    {fmt(Math.min(s.time_spent_seconds || 0, maxTime))}
                   </td>
                 </tr>
               ))}
@@ -428,7 +430,7 @@ export default function HistoryPhase({ isDark, onBack }) {
                         <td className="px-3 py-2 text-center font-mono text-gray-500">{s.display_id}</td>
                         <td className="px-3 py-2 text-gray-600">{s.school || '-'}</td>
                         <td className="px-3 py-2 text-right font-bold">{s.validated_score} / {getTotalQuestions(s.level)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(s.time_spent_seconds)}</td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt(Math.min(s.time_spent_seconds || 0, maxTime))}</td>
                       </tr>
                     ))}
                   </tbody>

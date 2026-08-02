@@ -210,6 +210,8 @@ export default function AdminDashboard() {
     const { error: histErr } = await supabase.from('competition_history').insert({
       competition_id: oldId,
       round_label: state.round_label || null,
+      duration_seconds: state.duration_seconds || 300,
+      extra_seconds: state.extra_seconds || 0,
     })
     if (histErr) { toast.error('Failed to create history entry: ' + histErr.message); newSessionRef.current = false; return }
 
