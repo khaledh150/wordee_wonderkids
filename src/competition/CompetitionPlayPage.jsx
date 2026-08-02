@@ -366,7 +366,7 @@ function CompetitionPlayPageInner() {
       } catch {}
     }
     check()
-    const id = setInterval(check, 8000)
+    const id = setInterval(check, 12000)
     return () => { cancelled = true; clearInterval(id) }
   }, [phase, verifiedCode, selectedSubject, competitionId, doTransitionToSubject, sessionEnded])
 

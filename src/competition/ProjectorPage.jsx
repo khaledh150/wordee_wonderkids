@@ -306,10 +306,23 @@ export default function ProjectorPage() {
     if (userPickedLevelRef.current) clearInterval(autoCycleRef.current)
   }, [userPickedLevelRef.current])
 
-  // Reset countdown detection when subject or competition changes — use current value so refresh doesn't replay
+  // Reset countdown detection when subject or competition changes
+  const prevActiveSubjectRef = useRef(activeSubject)
+  useEffect(() => {
+    if (prevActiveSubjectRef.current !== activeSubject) {
+      prevActiveSubjectRef.current = activeSubject
+      const subs = sessions.filter(s => s.subject === activeSubject)
+      const hasActive = subs.some(s => s.status === 'active' || s.status === 'completed')
+      if (activeState?.started_at && !hasActive) {
+        prevStartedRef.current = null
+      } else {
+        prevStartedRef.current = activeState?.started_at || null
+      }
+    }
+  }, [activeSubject, activeState, sessions])
   useEffect(() => {
     prevStartedRef.current = activeState?.started_at || null
-  }, [activeSubject, competitionId])
+  }, [competitionId])
 
   const levelSessions = subjectSessions.filter(s => s.level === activeLevel)
 

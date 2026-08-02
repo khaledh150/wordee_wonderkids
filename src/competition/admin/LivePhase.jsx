@@ -43,7 +43,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
     ? activeCount > 0 ? `TIME'S UP · ${activeCount} submitting` : "TIME'S UP"
     : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`
 
-  useEffect(() => { autoTransitionRef.current = false }, [subject])
+  useEffect(() => { autoTransitionRef.current = false; autoFinalizeRef.current = false }, [subject])
 
   useEffect(() => {
     if (!allDone || autoTransitionRef.current) return

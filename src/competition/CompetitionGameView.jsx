@@ -434,7 +434,12 @@ export default function CompetitionGameView({ engine, level, isDark = false, nex
     )
   }
 
-  if (!current) return null
+  if (!current) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FFF5F0] p-6 text-center">
+      <p className="text-lg font-bold text-gray-700">Loading questions...</p>
+      <p className="text-sm text-gray-500">If this persists, please reload the page.</p>
+    </div>
+  )
 
   const progressPct = ((currentIndex + 1) / total) * 100
   const isTimeUp = timeLeft != null && timeLeft <= 0

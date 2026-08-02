@@ -34,10 +34,14 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
-    const { participant_code, competition_id, subject, provisional_score, questions_answered, answers } = await req.json();
+    const body = await req.json();
+    const { participant_code, competition_id, subject } = body;
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400, req);
     }
+    const provisional_score = typeof body.provisional_score === "number" ? Math.max(0, Math.floor(body.provisional_score)) : 0;
+    const questions_answered = typeof body.questions_answered === "number" ? Math.max(0, Math.floor(body.questions_answered)) : 0;
+    const answers = Array.isArray(body.answers) ? body.answers : null;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

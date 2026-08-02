@@ -135,8 +135,12 @@ Deno.serve(async (req: Request) => {
       keys = fallback.data;
     }
 
+    if (!keys || keys.length === 0) {
+      return json({ error: "No answer keys found for this level — contact admin" }, 500, req);
+    }
+
     // Build answer key map and compute validated score
-    const keyMap = new Map((keys ?? []).map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
+    const keyMap = new Map(keys.map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
     let validatedScore = 0;
     const submissionRows: Array<{
       participant_id: string;

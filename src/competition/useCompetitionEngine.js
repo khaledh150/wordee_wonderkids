@@ -3,11 +3,11 @@ import { supabase } from './supabaseClient'
 import { seededShuffle } from './seededShuffle'
 
 const FUNC_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
-const SYNC_INTERVAL = 8_000
-const JITTER_MAX = 2_000
-const POLL_INTERVAL = 15_000
-const HEARTBEAT_INTERVAL = 15_000
-const ACTIVE_POLL_INTERVAL = 30_000
+const SYNC_INTERVAL = 12_000
+const JITTER_MAX = 3_000
+const POLL_INTERVAL = 25_000
+const HEARTBEAT_INTERVAL = 30_000
+const ACTIVE_POLL_INTERVAL = 60_000
 
 function jitter(base) { return base + Math.random() * JITTER_MAX }
 
@@ -158,7 +158,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     function tick() {
       pollState()
       if (!cancelled) {
-        const interval = lobbyPoll ? 5_000 + Math.random() * 2_000 : jitter(POLL_INTERVAL)
+        const interval = lobbyPoll ? 8_000 + Math.random() * 3_000 : jitter(POLL_INTERVAL)
         pollRef.current = setTimeout(tick, interval)
       }
     }

@@ -255,7 +255,7 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
             </motion.button>
           )}
 
-          {onSwitchSubject && subject === SUBJECTS.ENGLISH && !otherSubjectDone && participantCount > 0 && (
+          {onSwitchSubject && !otherSubjectDone && participantCount > 0 && (
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => onSwitchSubject(otherSubject)}

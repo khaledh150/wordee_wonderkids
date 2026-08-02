@@ -472,7 +472,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           onClick={() => { photoTargetRef.current = student; photoInputRef.current?.click() }}
                           className="relative group cursor-pointer"
                           title={student.photo_url ? 'Change photo' : 'Add photo'}
-                          disabled={uploadingPhoto === student.code}
+                          disabled={!!uploadingPhoto}
                         >
                           <StudentAvatar photoUrl={student.photo_url} name={student.name} size="sm" />
                           {!student.photo_url && (

@@ -136,9 +136,14 @@ Deno.serve(async (req: Request) => {
       return json({ finalized: 0, message: "No stragglers past time window" }, 200, req);
     }
 
-    const tasks = eligible.map(async (session) => {
+    if (keysByLevel.size === 0) {
+      return json({ error: "No answer keys found — cannot finalize" }, 500, req);
+    }
+
+    async function finalizeOne(session: any) {
       const elapsed = (now.getTime() - new Date(session.started_at).getTime()) / 1000;
-      const keyMap = keysByLevel.get(session.level) ?? new Map();
+      const keyMap = keysByLevel.get(session.level);
+      if (!keyMap || keyMap.size === 0) return null;
       let validatedScore = 0;
       const answersSnapshot = session.answers_snapshot as Array<{ question_id: string; submitted_answer: string }> | null;
       const submissionRows: Array<{
@@ -162,7 +167,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      await supabase
+      const { data: updated } = await supabase
         .from("competition_sessions")
         .update({
           status: "completed",
@@ -172,7 +177,11 @@ Deno.serve(async (req: Request) => {
           updated_at: now.toISOString(),
         })
         .eq("participant_id", session.participant_id)
-        .eq("status", "active");
+        .eq("status", "active")
+        .select("participant_id")
+        .maybeSingle();
+
+      if (!updated) return null;
 
       if (submissionRows.length > 0) {
         await supabase.from("submissions").insert(submissionRows);
@@ -183,12 +192,17 @@ Deno.serve(async (req: Request) => {
         display_id: session.display_id,
         validated_score: validatedScore,
       };
-    });
+    }
 
-    const settled = await Promise.allSettled(tasks);
-    const results = settled
-      .filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled')
-      .map(r => r.value);
+    const BATCH_SIZE = 10;
+    const results: any[] = [];
+    for (let i = 0; i < eligible.length; i += BATCH_SIZE) {
+      const batch = eligible.slice(i, i + BATCH_SIZE);
+      const settled = await Promise.allSettled(batch.map(finalizeOne));
+      for (const r of settled) {
+        if (r.status === "fulfilled" && r.value) results.push(r.value);
+      }
+    }
     return json({ finalized: results.length, results }, 200, req);
   } catch (err) {
     return json({ error: "Internal error" }, 500, req);

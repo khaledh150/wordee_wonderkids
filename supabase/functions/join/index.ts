@@ -121,6 +121,7 @@ Deno.serve(async (req: Request) => {
       if (remaining <= 0) {
         // Time expired while away — finalize from last synced answers
         let validatedScore = 0;
+        let submissionRows: Array<{ participant_id: string; question_id: string; submitted_answer: string; is_correct: boolean }> = [];
         const answersSnapshot = session.answers_snapshot as Array<{ question_id: string; submitted_answer: string }> | null;
 
         if (answersSnapshot && answersSnapshot.length > 0) {
@@ -145,21 +146,23 @@ Deno.serve(async (req: Request) => {
             if (!fb.error) keys = fb.data;
           }
 
-          const keyMap = new Map((keys ?? []).map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
+          if (!keys || keys.length === 0) {
+            return json({ error: "No answer keys found — contact admin" }, 500, req);
+          }
+          const keyMap = new Map(keys.map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
           for (const a of answersSnapshot) {
             if (keyMap.get(a.question_id) === a.submitted_answer) validatedScore++;
           }
 
-          const submissionRows = answersSnapshot.map((a) => ({
+          submissionRows = answersSnapshot.map((a) => ({
             participant_id: session.participant_id,
             question_id: a.question_id,
             submitted_answer: a.submitted_answer,
             is_correct: keyMap.get(a.question_id) === a.submitted_answer,
           }));
-          await supabase.from("submissions").insert(submissionRows);
         }
 
-        const { error: updateErr } = await supabase
+        const { data: updated } = await supabase
           .from("competition_sessions")
           .update({
             status: "completed",
@@ -169,10 +172,30 @@ Deno.serve(async (req: Request) => {
             updated_at: now.toISOString(),
           })
           .eq("participant_id", session.participant_id)
-          .eq("status", "active");
+          .eq("status", "active")
+          .select("participant_id")
+          .maybeSingle();
 
-        if (updateErr) {
-          return json({ error: "Failed to finalize session" }, 500, req);
+        if (!updated) {
+          const { data: latest } = await supabase
+            .from("competition_sessions")
+            .select("validated_score, time_spent_seconds")
+            .eq("participant_id", session.participant_id)
+            .single();
+          return json({
+            participant_id: session.participant_id,
+            name: session.name, nickname: session.nickname, school: session.school,
+            country: session.country, level: session.level, subject: session.subject,
+            display_id: session.display_id, photo_url: session.photo_url,
+            status: "completed",
+            validated_score: latest?.validated_score ?? validatedScore,
+            time_spent_seconds: latest?.time_spent_seconds ?? Math.min(Math.round(elapsed), totalSeconds + 5),
+            completed: true,
+          }, 200, req);
+        }
+
+        if (submissionRows.length > 0) {
+          await supabase.from("submissions").insert(submissionRows);
         }
 
         return json({

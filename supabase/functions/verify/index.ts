@@ -81,10 +81,14 @@ Deno.serve(async (req: Request) => {
 
     // Check which subjects are unlocked
     const allSubjects = [...new Set(sessions.map((s) => s.subject))];
-    const { data: states } = await supabase
+    const { data: states, error: statesErr } = await supabase
       .from("competition_state")
       .select("id, is_unlocked")
       .in("id", allSubjects);
+
+    if (statesErr) {
+      return json({ error: "Failed to check competition state" }, 500, req);
+    }
 
     const unlockedSet = new Set(
       (states ?? []).filter((s) => s.is_unlocked).map((s) => s.id)
@@ -102,11 +106,11 @@ Deno.serve(async (req: Request) => {
     const pendingSubjects = allSubjects.filter((s) => !completedSubjects.has(s));
     let transferModes: Record<string, string> = {};
     if (pendingSubjects.length > 0) {
-      const { data: modeData } = await supabase
+      const { data: modeData, error: modeErr } = await supabase
         .from("competition_state")
         .select("id, transfer_mode")
         .in("id", pendingSubjects);
-      if (modeData) {
+      if (!modeErr && modeData) {
         for (const m of modeData) {
           transferModes[m.id] = m.transfer_mode || "auto";
         }
