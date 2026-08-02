@@ -298,38 +298,52 @@ export default function ProjectorPage() {
   }, [activeState?.started_at, activeState?.duration_seconds, activeState?.extra_seconds, activeState?.is_unlocked, subjectSessions])
 
   const levels = [...new Set(subjectSessions.map(s => s.level))].sort((a, b) => a - b)
-  const activeLevel = displayLevel || (levels.length > 0 ? levels.reduce((best, l) => {
-    const count = subjectSessions.filter(s => s.level === l).length
-    return count > subjectSessions.filter(s => s.level === best).length ? l : best
-  }, levels[0]) : null)
+  const activeLevel = displayLevel || (levels.length > 0 ? levels[0] : null)
 
   useEffect(() => {
     if (levels.length > 0) {
-      const bestLevel = levels.reduce((best, l) => {
-        const count = subjectSessions.filter(s => s.level === l).length
-        return count > subjectSessions.filter(s => s.level === best).length ? l : best
-      }, levels[0])
-      setDisplayLevel(bestLevel)
+      setDisplayLevel(levels[0])
+      prevRankingsRef.current = {}
     }
   }, [activeSubject])
 
-  const [autoRotate, setAutoRotate] = useState(true)
-  const autoCycleRef = useRef(null)
-  const autoResumeRef = useRef(null)
+  const [autoSwitch, setAutoSwitch] = useState(true)
+  const prevRankingsRef = useRef({})
+  const switchCooldownRef = useRef(0)
   useEffect(() => {
-    clearInterval(autoCycleRef.current)
-    if (!autoRotate) return
-    if (levels.length <= 1) return
-    const activeLevels = levels.filter(l => subjectSessions.some(s => s.level === l && (s.status === 'active' || s.status === 'completed')))
-    if (activeLevels.length <= 1) return
-    autoCycleRef.current = setInterval(() => {
-      setDisplayLevel(prev => {
-        const idx = activeLevels.indexOf(prev)
-        return activeLevels[(idx + 1) % activeLevels.length]
-      })
-    }, 5000)
-    return () => clearInterval(autoCycleRef.current)
-  }, [autoRotate, subjectSessions, levels])
+    if (!autoSwitch || levels.length <= 1) return
+    const now = Date.now()
+    if (now < switchCooldownRef.current) return
+    let bestLevel = null
+    let bestRank = Infinity
+    for (const l of levels) {
+      const lvlScored = subjectSessions
+        .filter(s => s.level === l && (s.status === 'active' || s.status === 'completed'))
+        .sort((a, b) => {
+          const sa = a.validated_score ?? a.provisional_score ?? 0
+          const sb = b.validated_score ?? b.provisional_score ?? 0
+          if (sb !== sa) return sb - sa
+          return (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0)
+        })
+      const newOrder = lvlScored.map(s => s.participant_id).join(',')
+      const prevOrder = prevRankingsRef.current[l]
+      if (prevOrder != null && prevOrder !== newOrder && l !== displayLevel) {
+        const prevIds = prevOrder.split(',')
+        const newIds = newOrder.split(',')
+        let changedRank = Infinity
+        for (let i = 0; i < Math.min(prevIds.length, newIds.length); i++) {
+          if (prevIds[i] !== newIds[i]) { changedRank = i; break }
+        }
+        if (newIds.length !== prevIds.length && changedRank === Infinity) changedRank = Math.min(prevIds.length, newIds.length)
+        if (changedRank < bestRank) { bestRank = changedRank; bestLevel = l }
+      }
+      prevRankingsRef.current[l] = newOrder
+    }
+    if (bestLevel != null) {
+      setDisplayLevel(bestLevel)
+      switchCooldownRef.current = now + 5000
+    }
+  }, [autoSwitch, subjectSessions, levels, displayLevel])
 
   // Reset countdown detection when subject or competition changes
   const prevActiveSubjectRef = useRef(activeSubject)
@@ -1124,12 +1138,7 @@ export default function ProjectorPage() {
               return (
                 <button key={l} onClick={() => {
                     setDisplayLevel(l)
-                    if (autoRotate) {
-                      clearInterval(autoCycleRef.current)
-                      clearTimeout(autoResumeRef.current)
-                      autoResumeRef.current = setTimeout(() => setAutoRotate(true), 5000)
-                      setAutoRotate(false)
-                    }
+                    switchCooldownRef.current = Date.now() + 5000
                   }}
                   className={`relative flex-1 px-2 py-1.5 rounded-lg font-black text-xs tracking-wider transition-all duration-300 cursor-pointer ${
                     isSelected
@@ -1165,18 +1174,15 @@ export default function ProjectorPage() {
             })}
           </div>
           <button
-            onClick={() => {
-              clearTimeout(autoResumeRef.current)
-              setAutoRotate(prev => !prev)
-            }}
+            onClick={() => setAutoSwitch(prev => !prev)}
             className={`p-2 rounded-lg border transition-all shrink-0 ${
-              autoRotate
+              autoSwitch
                 ? isDark ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
                 : isDark ? 'bg-amber-500/10 border-amber-500/25 text-amber-400 hover:bg-amber-500/20' : 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
             }`}
-            title={autoRotate ? 'Pause auto-rotate' : 'Resume auto-rotate'}
+            title={autoSwitch ? 'Pause auto-switch' : 'Resume auto-switch'}
           >
-            {autoRotate ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {autoSwitch ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           </button>
           </div>
         )}
