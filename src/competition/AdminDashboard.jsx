@@ -182,7 +182,7 @@ export default function AdminDashboard() {
       }
     }
 
-    // Check 6 & 7: Answer keys for BOTH subjects
+    // Check 6 & 7: Answer keys for BOTH subjects (count per level to bypass PostgREST row limit)
     if (compId) {
       const EXPECTED = {
         english: { 1: 174, 2: 174, 3: 198, 4: 302 },
@@ -194,27 +194,36 @@ export default function AdminDashboard() {
         const levels = Object.keys(expected).map(Number)
         const expectedTotal = Object.values(expected).reduce((a, b) => a + b, 0)
 
-        let { data: keys } = await supabase
-          .from('answer_keys')
-          .select('level, question_id')
-          .eq('competition_id', compId)
-          .eq('subject', sub)
-          .limit(5000)
+        // Count per level using head:true (no row limit issue)
         let keySource = compId
+        const countByLevel = {}
+        let totalFound = 0
 
-        if (!keys?.length) {
-          const fallback = await supabase
-            .from('answer_keys')
-            .select('level, question_id')
-            .eq('competition_id', 'default')
-            .eq('subject', sub)
-            .limit(5000)
-          keys = fallback.data || []
-          keySource = 'default'
+        // Try competition-specific first
+        const levelCounts = await Promise.all(levels.map(lvl =>
+          supabase.from('answer_keys').select('*', { count: 'exact', head: true })
+            .eq('competition_id', compId).eq('subject', sub).eq('level', lvl)
+            .then(({ count }) => ({ lvl, count: count || 0 }))
+        ))
+        for (const { lvl, count } of levelCounts) {
+          countByLevel[lvl] = count
+          totalFound += count
         }
 
-        const countByLevel = {}
-        for (const k of keys) countByLevel[k.level] = (countByLevel[k.level] || 0) + 1
+        // Fall back to default if comp-specific has nothing
+        if (totalFound === 0) {
+          keySource = 'default'
+          const defCounts = await Promise.all(levels.map(lvl =>
+            supabase.from('answer_keys').select('*', { count: 'exact', head: true })
+              .eq('competition_id', 'default').eq('subject', sub).eq('level', lvl)
+              .then(({ count }) => ({ lvl, count: count || 0 }))
+          ))
+          totalFound = 0
+          for (const { lvl, count } of defCounts) {
+            countByLevel[lvl] = count
+            totalFound += count
+          }
+        }
 
         const missing = []
         for (const lvl of levels) {
@@ -227,7 +236,7 @@ export default function AdminDashboard() {
           updateCheck(checkId, 'fail', `Incomplete (${keySource}): ${missing.join(', ')}`)
           blocked = true
         } else {
-          updateCheck(checkId, 'ok', `${keys.length}/${expectedTotal} keys (${keySource})`)
+          updateCheck(checkId, 'ok', `${totalFound}/${expectedTotal} keys (${keySource})`)
         }
       }
     }

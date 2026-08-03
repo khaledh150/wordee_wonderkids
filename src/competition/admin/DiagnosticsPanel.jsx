@@ -169,24 +169,30 @@ const CHECKS = [
       const extra = []
       let allOk = true
       for (const sub of ['english', 'math']) {
-        // Check competition-specific first, fall back to default
-        let { data: keys } = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', compId).eq('subject', sub).limit(5000)
-        let source = compId
-        if (!keys?.length) {
-          const fallback = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', 'default').eq('subject', sub).limit(5000)
-          keys = fallback.data || []
-          source = 'default'
-        }
-        const byLvl = {}
-        for (const k of keys) byLvl[k.level] = (byLvl[k.level] || 0) + 1
         const exp = EXPECTED[sub]
-        const missing = []
-        for (const [lvl, need] of Object.entries(exp)) {
-          const have = byLvl[Number(lvl)] || 0
-          if (have < need) missing.push(`L${lvl}: ${have}/${need}`)
-        }
-        const total = keys.length
+        const levels = Object.keys(exp).map(Number)
         const expectedTotal = Object.values(exp).reduce((a, b) => a + b, 0)
+        let source = compId
+        // Count per level using head:true to bypass PostgREST row limit
+        let levelCounts = await Promise.all(levels.map(lvl =>
+          supabase.from('answer_keys').select('*', { count: 'exact', head: true })
+            .eq('competition_id', compId).eq('subject', sub).eq('level', lvl)
+            .then(({ count }) => ({ lvl, count: count || 0 }))
+        ))
+        let total = levelCounts.reduce((s, c) => s + c.count, 0)
+        if (total === 0) {
+          source = 'default'
+          levelCounts = await Promise.all(levels.map(lvl =>
+            supabase.from('answer_keys').select('*', { count: 'exact', head: true })
+              .eq('competition_id', 'default').eq('subject', sub).eq('level', lvl)
+              .then(({ count }) => ({ lvl, count: count || 0 }))
+          ))
+          total = levelCounts.reduce((s, c) => s + c.count, 0)
+        }
+        const missing = []
+        for (const { lvl, count } of levelCounts) {
+          if (count < exp[lvl]) missing.push(`L${lvl}: ${count}/${exp[lvl]}`)
+        }
         if (missing.length > 0) {
           allOk = false
           extra.push(`${sub} (${source}): ${total}/${expectedTotal} — MISSING: ${missing.join(', ')}`)
