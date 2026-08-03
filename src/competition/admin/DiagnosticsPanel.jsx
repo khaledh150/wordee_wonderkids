@@ -156,6 +156,52 @@ const CHECKS = [
     },
   },
   {
+    id: 'answerkeys',
+    label: 'Answer Keys',
+    run: async () => {
+      const { data: stateRows } = await supabase.from('competition_state').select('id, competition_id').limit(2)
+      if (!stateRows?.length) return { status: 'warn', detail: 'No competition state found' }
+      const compId = stateRows[0].competition_id
+      const EXPECTED = {
+        english: { 1: 174, 2: 174, 3: 198, 4: 302 },
+        math: { 1: 200, 2: 200, 3: 200, 4: 200, 5: 200, 6: 200, 7: 200, 8: 200 },
+      }
+      const extra = []
+      let allOk = true
+      for (const sub of ['english', 'math']) {
+        // Check competition-specific first, fall back to default
+        let { data: keys } = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', compId).eq('subject', sub)
+        let source = compId
+        if (!keys?.length) {
+          const fallback = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', 'default').eq('subject', sub)
+          keys = fallback.data || []
+          source = 'default'
+        }
+        const byLvl = {}
+        for (const k of keys) byLvl[k.level] = (byLvl[k.level] || 0) + 1
+        const exp = EXPECTED[sub]
+        const missing = []
+        for (const [lvl, need] of Object.entries(exp)) {
+          const have = byLvl[Number(lvl)] || 0
+          if (have < need) missing.push(`L${lvl}: ${have}/${need}`)
+        }
+        const total = keys.length
+        const expectedTotal = Object.values(exp).reduce((a, b) => a + b, 0)
+        if (missing.length > 0) {
+          allOk = false
+          extra.push(`${sub} (${source}): ${total}/${expectedTotal} — MISSING: ${missing.join(', ')}`)
+        } else {
+          extra.push(`${sub} (${source}): ${total}/${expectedTotal} ✓`)
+        }
+      }
+      return {
+        status: allOk ? 'ok' : 'fail',
+        detail: allOk ? `All answer keys present for ${compId}` : `Missing answer keys — students will get errors!`,
+        extra,
+      }
+    },
+  },
+  {
     id: 'network',
     label: 'Network Speed',
     run: async () => {

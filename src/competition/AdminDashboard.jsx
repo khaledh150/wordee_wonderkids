@@ -13,6 +13,7 @@ import RosterUpload from './admin/RosterUpload'
 import ConfirmDialog from './admin/ConfirmDialog'
 import { generateCode } from './admin/shared'
 import ModuleBoundary from '../components/ModuleBoundary'
+import { APP_VERSION } from '../App'
 
 const HistoryPhase = lazy(() => import('./admin/HistoryPhase'))
 const DiagnosticsPanel = lazy(() => import('./admin/DiagnosticsPanel'))
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   const [showThemeModal, setShowThemeModal] = useState(false)
   const [dialog, setDialog] = useState(null)
   const [otherSubjectPlayed, setOtherSubjectPlayed] = useState(false)
+  const [preflight, setPreflight] = useState(null)
 
   const isDark = themes.admin === 'dark'
 
@@ -74,6 +76,116 @@ export default function AdminDashboard() {
     if (lobbyBusyRef.current) return
     lobbyBusyRef.current = true
     try {
+    // ── PRE-FLIGHT HEALTH CHECK (visible loading screen) ──
+    const compId = state?.competition_id
+    const checks = [
+      { id: 'version', label: 'App Version' },
+      { id: 'supabase', label: 'Database Connection' },
+      { id: 'keys_english', label: 'English Answer Keys' },
+      { id: 'keys_math', label: 'Math Answer Keys' },
+    ]
+    const pf = Object.fromEntries(checks.map(c => [c.id, { status: 'pending', detail: '' }]))
+    setPreflight({ checks, results: { ...pf } })
+
+    const updateCheck = (id, status, detail) => {
+      pf[id] = { status, detail }
+      setPreflight(prev => ({ ...prev, results: { ...pf } }))
+    }
+
+    let blocked = false
+
+    // Check 1: App version
+    try {
+      const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+      const vData = await res.json()
+      if (vData.version !== APP_VERSION) {
+        updateCheck('version', 'fail', `Mismatch: local v${APP_VERSION} vs server v${vData.version}`)
+        blocked = true
+      } else {
+        updateCheck('version', 'ok', `v${APP_VERSION}`)
+      }
+    } catch {
+      updateCheck('version', 'fail', 'Could not verify')
+      blocked = true
+    }
+
+    // Check 2: Supabase connection + latency
+    try {
+      const start = performance.now()
+      const { error: dbErr } = await supabase.from('competition_state').select('id').limit(1)
+      const latency = Math.round(performance.now() - start)
+      if (dbErr) {
+        updateCheck('supabase', 'fail', dbErr.message)
+        blocked = true
+      } else if (latency > 5000) {
+        updateCheck('supabase', 'warn', `Connected but slow (${latency}ms)`)
+      } else {
+        updateCheck('supabase', 'ok', `Connected (${latency}ms)`)
+      }
+    } catch {
+      updateCheck('supabase', 'fail', 'Unreachable')
+      blocked = true
+    }
+
+    // Check 3 & 4: Answer keys for BOTH subjects
+    if (compId) {
+      const EXPECTED = {
+        english: { 1: 174, 2: 174, 3: 198, 4: 302 },
+        math: { 1: 200, 2: 200, 3: 200, 4: 200, 5: 200, 6: 200, 7: 200, 8: 200 },
+      }
+      for (const sub of ['english', 'math']) {
+        const checkId = `keys_${sub}`
+        const expected = EXPECTED[sub]
+        const levels = Object.keys(expected).map(Number)
+        const expectedTotal = Object.values(expected).reduce((a, b) => a + b, 0)
+
+        let { data: keys } = await supabase
+          .from('answer_keys')
+          .select('level, question_id')
+          .eq('competition_id', compId)
+          .eq('subject', sub)
+        let keySource = compId
+
+        if (!keys?.length) {
+          const fallback = await supabase
+            .from('answer_keys')
+            .select('level, question_id')
+            .eq('competition_id', 'default')
+            .eq('subject', sub)
+          keys = fallback.data || []
+          keySource = 'default'
+        }
+
+        const countByLevel = {}
+        for (const k of keys) countByLevel[k.level] = (countByLevel[k.level] || 0) + 1
+
+        const missing = []
+        for (const lvl of levels) {
+          const have = countByLevel[lvl] || 0
+          const need = expected[lvl]
+          if (have < need) missing.push(`L${lvl}: ${have}/${need}`)
+        }
+
+        if (missing.length > 0) {
+          updateCheck(checkId, 'fail', `Incomplete (${keySource}): ${missing.join(', ')}`)
+          blocked = true
+        } else {
+          updateCheck(checkId, 'ok', `${keys.length}/${expectedTotal} keys (${keySource})`)
+        }
+      }
+    }
+
+    // Show results briefly then proceed or block
+    if (blocked) {
+      // Keep overlay showing — user must dismiss
+      setPreflight(prev => ({ ...prev, blocked: true }))
+      return
+    }
+    // All passed — flash green for 800ms then continue
+    setPreflight(prev => ({ ...prev, passed: true }))
+    await new Promise(r => setTimeout(r, 800))
+    setPreflight(null)
+
     const otherSubject = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
     const { data: otherState } = await supabase
       .from('competition_state')
@@ -567,6 +679,68 @@ export default function AdminDashboard() {
           </ModuleBoundary>
         </Suspense>
       )}
+
+      <AnimatePresence>
+        {preflight && (
+          <motion.div
+            key="preflight"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`w-full max-w-md mx-4 rounded-2xl p-6 shadow-2xl ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-slate-200'}`}
+            >
+              <div className="flex items-center gap-3 mb-5">
+                {!preflight.blocked && !preflight.passed && (
+                  <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                )}
+                {preflight.passed && <span className="text-2xl">✅</span>}
+                {preflight.blocked && <span className="text-2xl">🚫</span>}
+                <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {preflight.blocked ? 'Pre-flight Failed' : preflight.passed ? 'All Clear!' : 'Pre-flight Check...'}
+                </h2>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {preflight.checks.map(c => {
+                  const r = preflight.results[c.id]
+                  const icon = r.status === 'pending' ? '⏳' : r.status === 'ok' ? '✅' : r.status === 'warn' ? '⚠️' : '❌'
+                  return (
+                    <div key={c.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-xl ${
+                      isDark
+                        ? r.status === 'fail' ? 'bg-rose-500/10 border border-rose-500/20' : r.status === 'warn' ? 'bg-amber-500/10 border border-amber-500/20' : r.status === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/5 border border-white/5'
+                        : r.status === 'fail' ? 'bg-rose-50 border border-rose-200' : r.status === 'warn' ? 'bg-amber-50 border border-amber-200' : r.status === 'ok' ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'
+                    }`}>
+                      <span className="text-base mt-0.5">{icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{c.label}</p>
+                        {r.detail && <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.detail}</p>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {preflight.blocked && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => { setPreflight(null); lobbyBusyRef.current = false }}
+                    className={`px-6 py-2.5 rounded-xl font-bold text-sm ${isDark ? 'bg-white/10 hover:bg-white/15 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   )
