@@ -141,6 +141,23 @@ Deno.serve(async (req: Request) => {
 
     // Build answer key map and compute validated score
     const keyMap = new Map(keys.map((k: { question_id: string; correct_answer: string }) => [k.question_id, k.correct_answer]));
+
+    // GUARD: detect missing answer keys — never silently mark answers wrong due to missing keys
+    const missingKeys: string[] = [];
+    for (const a of answers) {
+      if (a.question_id && !keyMap.has(a.question_id)) {
+        missingKeys.push(a.question_id);
+      }
+    }
+    if (missingKeys.length > 0) {
+      console.error(`ANSWER KEY INTEGRITY FAILURE: ${missingKeys.length} submitted questions have no answer key. competition_id=${competition_id}, subject=${session.subject}, level=${session.level}, missing=[${missingKeys.slice(0, 10).join(',')}]`);
+      return json({
+        error: `Answer key incomplete: ${missingKeys.length} questions have no key. Contact admin immediately.`,
+        missing_count: missingKeys.length,
+        keys_loaded: keyMap.size,
+      }, 500, req);
+    }
+
     let validatedScore = 0;
     const submissionRows: Array<{
       participant_id: string;
