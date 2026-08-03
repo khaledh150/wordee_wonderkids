@@ -170,10 +170,10 @@ const CHECKS = [
       let allOk = true
       for (const sub of ['english', 'math']) {
         // Check competition-specific first, fall back to default
-        let { data: keys } = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', compId).eq('subject', sub)
+        let { data: keys } = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', compId).eq('subject', sub).limit(5000)
         let source = compId
         if (!keys?.length) {
-          const fallback = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', 'default').eq('subject', sub)
+          const fallback = await supabase.from('answer_keys').select('level, question_id').eq('competition_id', 'default').eq('subject', sub).limit(5000)
           keys = fallback.data || []
           source = 'default'
         }

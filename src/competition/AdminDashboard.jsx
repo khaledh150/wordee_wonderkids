@@ -81,8 +81,12 @@ export default function AdminDashboard() {
     const checks = [
       { id: 'version', label: 'App Version' },
       { id: 'supabase', label: 'Database Connection' },
+      { id: 'submit_fn', label: 'Submit Function' },
+      { id: 'students', label: 'Registered Students' },
+      { id: 'conflict', label: 'No Lobby Conflict' },
       { id: 'keys_english', label: 'English Answer Keys' },
       { id: 'keys_math', label: 'Math Answer Keys' },
+      { id: 'assets', label: 'Assets (Image + Audio)' },
     ]
     const pf = Object.fromEntries(checks.map(c => [c.id, { status: 'pending', detail: '' }]))
     setPreflight({ checks, results: { ...pf } })
@@ -127,7 +131,58 @@ export default function AdminDashboard() {
       blocked = true
     }
 
-    // Check 3 & 4: Answer keys for BOTH subjects
+    // Check 3: Submit edge function reachable
+    try {
+      const start = performance.now()
+      const subRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || supabase.supabaseUrl}/functions/v1/submit`,
+        { method: 'OPTIONS' }
+      )
+      const ms = Math.round(performance.now() - start)
+      if (subRes.ok || subRes.status === 204) {
+        updateCheck('submit_fn', 'ok', `Reachable (${ms}ms)`)
+      } else {
+        updateCheck('submit_fn', 'warn', `Status ${subRes.status} (${ms}ms)`)
+      }
+    } catch {
+      updateCheck('submit_fn', 'fail', 'Submit function unreachable — students cannot submit!')
+      blocked = true
+    }
+
+    // Check 4: Students registered for current subject
+    if (compId) {
+      const { count: total } = await supabase
+        .from('competition_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('competition_id', compId)
+        .eq('subject', subject)
+      if (!total || total === 0) {
+        updateCheck('students', 'warn', `No students registered for ${subject}`)
+      } else {
+        updateCheck('students', 'ok', `${total} students for ${subject}`)
+      }
+    } else {
+      updateCheck('students', 'warn', 'No competition ID')
+    }
+
+    // Check 5: No other lobby already open
+    {
+      const otherSub = subject === SUBJECTS.ENGLISH ? SUBJECTS.MATH : SUBJECTS.ENGLISH
+      const { data: otherSt } = await supabase
+        .from('competition_state')
+        .select('is_unlocked, started_at')
+        .eq('id', otherSub)
+        .single()
+      if (otherSt?.is_unlocked) {
+        const otherLabel = otherSub === 'math' ? 'Mathematics' : 'English Spelling'
+        updateCheck('conflict', 'fail', `${otherLabel} ${otherSt.started_at ? 'is still running' : 'lobby is open'} — end it first`)
+        blocked = true
+      } else {
+        updateCheck('conflict', 'ok', 'No conflict')
+      }
+    }
+
+    // Check 6 & 7: Answer keys for BOTH subjects
     if (compId) {
       const EXPECTED = {
         english: { 1: 174, 2: 174, 3: 198, 4: 302 },
@@ -144,6 +199,7 @@ export default function AdminDashboard() {
           .select('level, question_id')
           .eq('competition_id', compId)
           .eq('subject', sub)
+          .limit(5000)
         let keySource = compId
 
         if (!keys?.length) {
@@ -152,6 +208,7 @@ export default function AdminDashboard() {
             .select('level, question_id')
             .eq('competition_id', 'default')
             .eq('subject', sub)
+            .limit(5000)
           keys = fallback.data || []
           keySource = 'default'
         }
@@ -173,6 +230,37 @@ export default function AdminDashboard() {
           updateCheck(checkId, 'ok', `${keys.length}/${expectedTotal} keys (${keySource})`)
         }
       }
+    }
+
+    // Check 8: Assets (image + audio)
+    try {
+      const results = await Promise.all([
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => resolve('img_ok')
+          img.onerror = () => resolve('img_fail')
+          img.src = '/images/apple.webp?t=' + Date.now()
+        }),
+        new Promise(resolve => {
+          const audio = new Audio()
+          audio.oncanplaythrough = () => resolve('audio_ok')
+          audio.onerror = () => resolve('audio_fail')
+          audio.src = '/audio/sfx/correct.wav?t=' + Date.now()
+        }),
+        new Promise(resolve => setTimeout(() => resolve('timeout'), 8000)),
+      ])
+      const imgOk = results.includes('img_ok')
+      const audioOk = results.includes('audio_ok')
+      if (imgOk && audioOk) {
+        updateCheck('assets', 'ok', 'Images and audio loading')
+      } else if (!imgOk && !audioOk) {
+        updateCheck('assets', 'fail', 'Both images and audio failed to load')
+        blocked = true
+      } else {
+        updateCheck('assets', 'warn', `${!imgOk ? 'Images' : 'Audio'} failed to load`)
+      }
+    } catch {
+      updateCheck('assets', 'warn', 'Could not verify assets')
     }
 
     // Show results briefly then proceed or block
