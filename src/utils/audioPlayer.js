@@ -1,20 +1,39 @@
 let voMuted = false
 let currentAudio = null
+let currentSource = null
 let generationId = 0
-let audioUnlocked = false
+let audioCtx = null
 
-function unlockAudio() {
-  if (audioUnlocked) return
-  audioUnlocked = true
-  const a = new Audio()
-  a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
-  a.play().then(() => a.pause()).catch(() => {})
+// Bounded buffer cache: decoded AudioBuffers, max 50 to limit RAM on old devices (~3MB cap)
+const bufferCache = new Map()
+const CACHE_MAX = 50
+
+function evictOldest() {
+  if (bufferCache.size <= CACHE_MAX) return
+  const firstKey = bufferCache.keys().next().value
+  bufferCache.delete(firstKey)
 }
 
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {})
+  }
+  return audioCtx
+}
+
+// Resume AudioContext on EVERY user gesture (not just the first).
+// Mobile Safari/iOS Chrome require this to allow programmatic playback from useEffect.
+// Listeners are never removed — each tap keeps the audio pipeline warm.
 if (typeof window !== 'undefined') {
-  const events = ['touchstart', 'mousedown', 'keydown']
-  const handler = () => { unlockAudio(); events.forEach(e => document.removeEventListener(e, handler, true)) }
-  events.forEach(e => document.addEventListener(e, handler, true))
+  const warmAudio = () => {
+    try { getAudioContext() } catch {}
+  }
+  for (const e of ['touchstart', 'touchend', 'mousedown', 'keydown', 'click']) {
+    document.addEventListener(e, warmAudio, { capture: true, passive: true })
+  }
 }
 
 export function setVOMuted(muted) { voMuted = muted }
@@ -23,6 +42,10 @@ export function toggleMute() { voMuted = !voMuted; if (voMuted) stopAll(); retur
 
 export function stopAll() {
   generationId++
+  if (currentSource) {
+    try { currentSource.stop() } catch {}
+    currentSource = null
+  }
   if (currentAudio) {
     cleanupAudio(currentAudio)
     currentAudio = null
@@ -40,12 +63,61 @@ function cleanupAudio(audio) {
   audio.removeAttribute('src')
 }
 
-function playFile(src) {
-  return new Promise((resolve) => {
+// Legacy-compatible decodeAudioData — handles both Promise (modern) and callback (iOS < 14)
+function safeDecodeAudioData(ctx, arrayBuffer) {
+  return new Promise((resolve, reject) => {
+    const result = ctx.decodeAudioData(arrayBuffer, resolve, reject)
+    if (result && typeof result.then === 'function') {
+      result.then(resolve, reject)
+    }
+  })
+}
+
+async function fetchAndDecode(url) {
+  const ctx = getAudioContext()
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('fetch failed')
+  const arrayBuffer = await response.arrayBuffer()
+  return safeDecodeAudioData(ctx, arrayBuffer)
+}
+
+function playBuffer(buffer, volume = 1) {
+  return new Promise(resolve => {
+    if (voMuted) return resolve()
+    stopAll()
+    const myGen = ++generationId
+    try {
+      const ctx = getAudioContext()
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+      if (volume < 1) {
+        const gain = ctx.createGain()
+        gain.gain.value = volume
+        source.connect(gain)
+        gain.connect(ctx.destination)
+      } else {
+        source.connect(ctx.destination)
+      }
+      currentSource = source
+      source.onended = () => {
+        if (generationId === myGen) currentSource = null
+        resolve()
+      }
+      source.start(0)
+    } catch {
+      resolve()
+    }
+  })
+}
+
+// HTML5 Audio fallback — identical to original behavior for devices where AudioContext unavailable
+function playFileHTML5(src, volume = 1) {
+  return new Promise(resolve => {
     if (voMuted) return resolve()
     stopAll()
     ++generationId
     const audio = new Audio(src)
+    audio.volume = volume
     currentAudio = audio
     const done = () => {
       if (currentAudio === audio) {
@@ -56,64 +128,52 @@ function playFile(src) {
     }
     audio.onended = done
     audio.onerror = done
-    audio.play().catch(() => {
-      resolve()
-    })
+    audio.play().catch(() => { done() })
   })
+}
+
+// Primary: AudioContext (immune to autoplay blocks after any user gesture)
+// Fallback: HTML5 Audio (same as original code — works on everything, may be blocked on some mobile)
+function playFile(src, volume = 1) {
+  if (voMuted) return Promise.resolve()
+  return fetchAndDecode(src)
+    .then(buffer => playBuffer(buffer, volume))
+    .catch(() => playFileHTML5(src, volume))
 }
 
 export function playVO(filePath) {
   return playFile(filePath)
 }
 
-const audioCache = new Map()
-
 export function preloadAudio(filenames) {
+  const BATCH = 4
   let i = 0
-  const BATCH = 3
-  function loadNext() {
-    while (i < filenames.length && audioCache.size - filenames.length < BATCH) {
+  async function loadBatch() {
+    const batch = []
+    while (i < filenames.length && batch.length < BATCH) {
       const fn = filenames[i++]
-      if (audioCache.has(fn)) continue
-      const audio = new Audio(`/audio/vocab/${fn}`)
-      audio.preload = 'auto'
-      audio.load()
-      audioCache.set(fn, audio)
+      if (bufferCache.has(fn)) continue
+      batch.push(
+        fetchAndDecode(`/audio/vocab/${fn}`)
+          .then(buf => { bufferCache.set(fn, buf); evictOldest() })
+          .catch(() => {})
+      )
     }
-    if (i < filenames.length) setTimeout(loadNext, 100)
+    if (batch.length > 0) await Promise.all(batch)
+    if (i < filenames.length) setTimeout(loadBatch, 50)
   }
-  loadNext()
+  loadBatch()
 }
 
 export function playWordVO(filename) {
-  const cached = audioCache.get(filename)
-  if (cached) {
-    audioCache.delete(filename)
-    return new Promise(resolve => {
-      if (voMuted) return resolve()
-      stopAll()
-      ++generationId
-      cached.currentTime = 0
-      currentAudio = cached
-      const done = () => { if (currentAudio === cached) { cleanupAudio(cached); currentAudio = null }; resolve() }
-      cached.onended = done
-      cached.onerror = done
-      cached.play().catch(resolve)
-    })
-  }
+  if (voMuted) return Promise.resolve()
+  const cached = bufferCache.get(filename)
+  if (cached) return playBuffer(cached)
   return playFile(`/audio/vocab/${filename}`)
 }
 
 export function playSFX(name) {
-  if (voMuted) return Promise.resolve()
-  return new Promise(resolve => {
-    const audio = new Audio(`/audio/sfx/${name}`)
-    audio.volume = 0.5
-    const cleanup = () => { audio.pause(); audio.onended = null; audio.onerror = null; audio.removeAttribute('src'); resolve() }
-    audio.onended = cleanup
-    audio.onerror = cleanup
-    audio.play().catch(cleanup)
-  })
+  return playFile(`/audio/sfx/${name}`, 0.5)
 }
 
 const encouragementCorrect = [
