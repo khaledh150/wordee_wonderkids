@@ -87,6 +87,7 @@ export default function AdminDashboard() {
       { id: 'keys_english', label: 'English Answer Keys' },
       { id: 'keys_math', label: 'Math Answer Keys' },
       { id: 'assets', label: 'Assets (Image + Audio)' },
+      { id: 'network', label: 'Network Speed' },
     ]
     const pf = Object.fromEntries(checks.map(c => [c.id, { status: 'pending', detail: '' }]))
     setPreflight({ checks, results: { ...pf } })
@@ -270,6 +271,33 @@ export default function AdminDashboard() {
       }
     } catch {
       updateCheck('assets', 'warn', 'Could not verify assets')
+    }
+
+    // Check 9: Network speed — real download test
+    try {
+      let totalBytes = 0
+      let totalMs = 0
+      for (const url of ['/images/apple.webp', '/audio/sfx/correct.wav']) {
+        const start = performance.now()
+        const res = await fetch(url + '?speedtest=' + Date.now(), { cache: 'no-store' })
+        const blob = await res.blob()
+        totalBytes += blob.size
+        totalMs += performance.now() - start
+      }
+      if (totalBytes > 0 && totalMs > 0) {
+        const mbps = ((totalBytes * 8) / (totalMs / 1000) / 1_000_000).toFixed(2)
+        if (parseFloat(mbps) < 0.5) {
+          updateCheck('network', 'warn', `Very slow: ${mbps} Mbps — students may have preload issues`)
+        } else if (parseFloat(mbps) < 2) {
+          updateCheck('network', 'warn', `Slow: ${mbps} Mbps — consider lowering concurrent students`)
+        } else {
+          updateCheck('network', 'ok', `${mbps} Mbps`)
+        }
+      } else {
+        updateCheck('network', 'warn', 'Could not measure')
+      }
+    } catch {
+      updateCheck('network', 'warn', 'Network speed test failed')
     }
 
     // Show results briefly then proceed or block

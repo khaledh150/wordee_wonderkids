@@ -15,7 +15,7 @@ import { mathGradeLabel } from './mathGradeLabels'
 const MathCompetitionGameView = lazy(() => import('./MathCompetitionGameView'))
 
 
-const CONCURRENCY = 5
+const CONCURRENCY = 3
 const CACHE_NAME = 'wordee-competition-assets-v1'
 const FLAG_CDN = 'https://flagcdn.com/w40'
 
@@ -145,6 +145,27 @@ function CompetitionPlayPageInner() {
   const subjectSelectRef = useRef(false)
 
   useVersionCheck()
+
+  // Screen Wake Lock — prevent phone from sleeping during lobby/exam
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return
+    if (step !== 'waiting' && step !== 'countdown' && step !== 'active') return
+    let lock = null
+    let released = false
+    const acquire = async () => {
+      try { lock = await navigator.wakeLock.request('screen') } catch {}
+    }
+    acquire()
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible' && !released) acquire()
+    }
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => {
+      released = true
+      document.removeEventListener('visibilitychange', onVisChange)
+      if (lock) lock.release().catch(() => {})
+    }
+  }, [step])
 
   // Delayed focus on code input to trigger virtual keyboard on mobile
   useEffect(() => {

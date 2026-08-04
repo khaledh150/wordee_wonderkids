@@ -211,12 +211,47 @@ const CHECKS = [
     id: 'network',
     label: 'Network Speed',
     run: async () => {
+      const extra = []
       const conn = navigator.connection
-      if (!conn) return { status: 'info', detail: 'Network Info API not available' }
-      return {
-        status: conn.effectiveType === '4g' ? 'ok' : 'warn',
-        detail: `${conn.effectiveType} (downlink: ${conn.downlink} Mbps, RTT: ${conn.rtt}ms)`,
+      if (conn) {
+        extra.push(`Browser estimate: ${conn.effectiveType} (${conn.downlink} Mbps, RTT ${conn.rtt}ms)`)
       }
+      // Real download speed test — fetch a known asset with cache-busting and measure throughput
+      const testUrls = [
+        { url: '/images/apple.webp', label: 'Image (Vercel CDN)' },
+        { url: '/audio/sfx/correct.wav', label: 'Audio (Vercel CDN)' },
+      ]
+      let totalBytes = 0
+      let totalMs = 0
+      for (const t of testUrls) {
+        try {
+          const start = performance.now()
+          const res = await fetch(t.url + '?speedtest=' + Date.now(), { cache: 'no-store' })
+          const blob = await res.blob()
+          const elapsed = performance.now() - start
+          totalBytes += blob.size
+          totalMs += elapsed
+          const kbps = ((blob.size * 8) / (elapsed / 1000) / 1000).toFixed(0)
+          extra.push(`${t.label}: ${(blob.size / 1024).toFixed(1)} KB in ${Math.round(elapsed)}ms (${kbps} kbps)`)
+        } catch {
+          extra.push(`${t.label}: FAILED`)
+        }
+      }
+      // Supabase latency test (DB round-trip)
+      try {
+        const start = performance.now()
+        await supabase.from('competition_state').select('id').limit(1)
+        const dbMs = Math.round(performance.now() - start)
+        extra.push(`Supabase DB round-trip: ${dbMs}ms`)
+      } catch {
+        extra.push('Supabase DB round-trip: FAILED')
+      }
+      if (totalBytes > 0 && totalMs > 0) {
+        const mbps = ((totalBytes * 8) / (totalMs / 1000) / 1_000_000).toFixed(2)
+        const status = parseFloat(mbps) < 1 ? 'warn' : 'ok'
+        return { status, detail: `Download: ${mbps} Mbps (${(totalBytes / 1024).toFixed(0)} KB in ${Math.round(totalMs)}ms)`, extra }
+      }
+      return { status: 'warn', detail: 'Could not measure download speed', extra }
     },
   },
   {
