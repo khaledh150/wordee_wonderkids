@@ -298,6 +298,15 @@ function CompetitionPlayPageInner() {
       if (step === 'countdown' || step === 'waiting') {
         setStep('active')
       }
+    } else if (phase === 'idle' && !session && (step === 'waiting' || step === 'countdown')) {
+      setVerifiedCode('')
+      setSelectedSubject(null)
+      setCode('')
+      setPreloadDone(false)
+      setPreloadProgress({ loaded: 0, total: 0 })
+      setQuestions(null)
+      setError('The lobby was closed. Please enter your code again when the competition opens.')
+      setStep('code')
     }
   }, [phase, session])
 

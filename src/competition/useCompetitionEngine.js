@@ -142,6 +142,22 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
           }
           return
         }
+        // Lobby closed while student was in waiting — kick back to idle so
+        // CompetitionPlayPage returns them to the code-entry screen.
+        // Only fires when is_unlocked=false AND started_at=null (lobby closed
+        // without starting). Does NOT fire after Emergency Stop (started_at is
+        // set) or when student is active/completed.
+        if (phaseRef.current === 'waiting' && !data.is_unlocked && !data.started_at) {
+          setPhase('idle')
+          setSession(null)
+          setAnswers([])
+          setCorrectCount(0)
+          setOrderedQuestions([])
+          autoStartRef.current = false
+          setAutoStarting(false)
+          setCountdownReady(false)
+          try { localStorage.removeItem(storageKey(competitionId)) } catch {}
+        }
         setCompetitionState(data)
         setAnnouncement(data.announcement || '')
       }
