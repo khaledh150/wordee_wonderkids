@@ -631,6 +631,31 @@ export default function AdminDashboard() {
                 updateState={updateState}
                 loadSessions={loadSessions}
                 onShowPodium={() => setPhaseOverride('podium')}
+                onEndSession={() => {
+                  setDialog({
+                    title: 'End Session',
+                    message: 'End this competition session? Scores will be saved to history and a new session will be created with the same roster.',
+                    onConfirm: async () => {
+                      setDialog(null)
+                      try {
+                        const now = new Date().toISOString()
+                        await Promise.all([
+                          supabase.from('competition_state').update({
+                            is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                          }).eq('id', 'english'),
+                          supabase.from('competition_state').update({
+                            is_unlocked: false, started_at: null, podium_visible: false, updated_at: now,
+                          }).eq('id', 'math'),
+                        ])
+                        await handleNewSession(true)
+                        toast.success('Session ended')
+                      } catch (err) {
+                        toast.error('Failed to end session: ' + (err.message || 'Unknown error'))
+                      }
+                    },
+                    onCancel: () => setDialog(null),
+                  })
+                }}
                 onSwitchSubject={(sub) => {
                   const label = sub === 'math' ? 'Mathematics' : 'English Spelling'
                   const prevSubject = sub === 'math' ? 'english' : 'math'

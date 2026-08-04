@@ -4,7 +4,8 @@ const PHASE_LABELS = { setup: 'Setup', lobby: 'Lobby', live: 'Live', results: 'R
 const PHASE_ORDER = ['setup', 'lobby', 'live', 'results', 'podium']
 
 export default function AdminHeader({ subject, setSubject, phase, autoPhase, isDark, onLogout, onPhaseClick, onDiagnostics, onThemeModal, competitionId }) {
-  const reachedIndex = PHASE_ORDER.indexOf(autoPhase || 'setup')
+  const baseIndex = PHASE_ORDER.indexOf(autoPhase || 'setup')
+  const reachedIndex = baseIndex >= PHASE_ORDER.indexOf('results') ? PHASE_ORDER.indexOf('podium') : baseIndex
   return (
     <header className={`border-b px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-40 print:hidden transition-colors ${
       isDark ? 'bg-[#0e1224]/90 border-white/5 shadow-lg' : 'bg-white border-slate-200 shadow-sm'

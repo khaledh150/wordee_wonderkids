@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, ArrowRight, Table, Trophy } from 'lucide-react'
+import { FileText, ArrowRight, Table, Trophy, XCircle } from 'lucide-react'
 import { supabase, SUBJECTS } from '../supabaseClient'
 import { useToast } from '../../components/ToastContext'
 import { getVocabForLevel } from '../../data/vocabulary'
@@ -14,7 +14,7 @@ function getEnglishTotal(level) {
   return getVocabForLevel(level).length
 }
 
-export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onShowPodium, readOnly }) {
+export default function ResultsPhase({ state, sessions, subject, isDark, updateState, loadSessions, onSwitchSubject, onShowPodium, onEndSession, readOnly }) {
   const toast = useToast()
   const [levelFilter, setLevelFilter] = useState(null)
   const maxTime = (state.duration_seconds || 300) + (state.extra_seconds || 0)
@@ -269,6 +269,19 @@ export default function ResultsPhase({ state, sessions, subject, isDark, updateS
             >
               Proceed to {otherLabel}
               <ArrowRight className="w-5 h-5" />
+            </motion.button>
+          )}
+
+          {onEndSession && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={onEndSession}
+              className={`w-full max-w-md px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${
+                isDark ? 'bg-white/5 text-slate-400 border border-white/10 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30' : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300'
+              }`}
+            >
+              <XCircle className="w-4 h-4" />
+              End Session
             </motion.button>
           )}
 
