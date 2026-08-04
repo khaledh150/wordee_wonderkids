@@ -297,6 +297,11 @@ export default function ProjectorPage() {
     return () => clearInterval(id)
   }, [activeState?.started_at, activeState?.duration_seconds, activeState?.extra_seconds, activeState?.is_unlocked, subjectSessions])
 
+  const histPodiumSorted = useMemo(() =>
+    [...historyPodiumSessions].sort((a, b) => b.validated_score - a.validated_score || (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0)),
+    [historyPodiumSessions]
+  )
+
   const levels = [...new Set(subjectSessions.map(s => s.level))].sort((a, b) => a - b)
   const activeLevel = displayLevel || (levels.length > 0 ? levels[0] : null)
 
@@ -589,10 +594,6 @@ export default function ProjectorPage() {
   }
 
   // ── HISTORY PODIUM (from session history, doesn't conflict with live) ──
-  const histPodiumSorted = useMemo(() =>
-    [...historyPodiumSessions].sort((a, b) => b.validated_score - a.validated_score || (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0)),
-    [historyPodiumSessions]
-  )
   if (historyPodium && histPodiumSorted.length > 0) {
     const hpIsMath = historyPodium.subject === 'math'
     const hpMaxTime = 600

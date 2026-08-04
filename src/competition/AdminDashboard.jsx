@@ -468,18 +468,33 @@ export default function AdminDashboard() {
     if (stateErr) { toast.error('Failed to reset competition state: ' + stateErr.message); newSessionRef.current = false; return }
 
     // Auto-seed answer keys from 'default' for the new competition ID
-    const { data: defaultKeys, error: keysReadErr } = await supabase
-      .from('answer_keys')
-      .select('question_id, subject, level, correct_answer')
-      .eq('competition_id', 'default')
-    if (keysReadErr) {
-      toast.error('Failed to read default answer keys: ' + keysReadErr.message)
-    } else if (defaultKeys?.length) {
-      const keyInserts = defaultKeys.map(k => ({ ...k, competition_id: newId }))
-      const BATCH = 500
-      for (let i = 0; i < keyInserts.length; i += BATCH) {
-        const { error: keyErr } = await supabase.from('answer_keys').upsert(keyInserts.slice(i, i + BATCH), { onConflict: 'question_id,competition_id' })
-        if (keyErr) { toast.error('Failed to seed answer keys (batch ' + Math.floor(i / BATCH) + '): ' + keyErr.message); break }
+    // Paginate reads to avoid PostgREST 1000-row limit (total keys ~2448)
+    {
+      const PAGE = 1000
+      let allDefaultKeys = []
+      let from = 0
+      let readErr = null
+      while (true) {
+        const { data, error } = await supabase
+          .from('answer_keys')
+          .select('question_id, subject, level, correct_answer')
+          .eq('competition_id', 'default')
+          .range(from, from + PAGE - 1)
+        if (error) { readErr = error; break }
+        if (!data?.length) break
+        allDefaultKeys.push(...data)
+        if (data.length < PAGE) break
+        from += PAGE
+      }
+      if (readErr) {
+        toast.error('Failed to read default answer keys: ' + readErr.message)
+      } else if (allDefaultKeys.length) {
+        const keyInserts = allDefaultKeys.map(k => ({ ...k, competition_id: newId }))
+        const BATCH = 500
+        for (let i = 0; i < keyInserts.length; i += BATCH) {
+          const { error: keyErr } = await supabase.from('answer_keys').upsert(keyInserts.slice(i, i + BATCH), { onConflict: 'question_id,competition_id' })
+          if (keyErr) { toast.error('Failed to seed answer keys (batch ' + Math.floor(i / BATCH) + '): ' + keyErr.message); break }
+        }
       }
     }
 
