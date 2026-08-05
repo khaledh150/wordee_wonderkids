@@ -156,6 +156,60 @@ const CHECKS = [
     },
   },
   {
+    id: 'join_fn',
+    label: 'Join Function',
+    run: async () => {
+      const base = import.meta.env.VITE_SUPABASE_URL
+      if (!base) return { status: 'fail', detail: 'VITE_SUPABASE_URL not set' }
+      const start = performance.now()
+      const res = await fetch(`${base}/functions/v1/join`, { method: 'OPTIONS' })
+      const ms = Math.round(performance.now() - start)
+      if (res.ok || res.status === 204) {
+        return { status: 'ok', detail: `Reachable (${ms}ms)` }
+      }
+      return { status: 'warn', detail: `Status ${res.status} (${ms}ms)` }
+    },
+  },
+  {
+    id: 'device_locks',
+    label: 'Device Locks',
+    run: async () => {
+      const { data: stateRows } = await supabase.from('competition_state').select('competition_id').limit(1).single()
+      if (!stateRows) return { status: 'info', detail: 'No competition state' }
+      const compId = stateRows.competition_id
+      const { data: locked } = await supabase
+        .from('competition_sessions')
+        .select('participant_code, status, device_id, last_seen_at')
+        .eq('competition_id', compId)
+        .not('device_id', 'is', null)
+      if (!locked || locked.length === 0) {
+        return { status: 'ok', detail: 'No active device locks' }
+      }
+      const now = Date.now()
+      const stale = locked.filter(s => {
+        if (!s.last_seen_at) return true
+        return (now - new Date(s.last_seen_at).getTime()) > 300000
+      })
+      const extra = locked.map(s => {
+        const ago = s.last_seen_at ? Math.round((now - new Date(s.last_seen_at).getTime()) / 1000) : '?'
+        const staleTag = typeof ago === 'number' && ago > 300 ? ' ⚠ STALE' : ''
+        return `${s.participant_code} (${s.status}) — last seen ${ago}s ago${staleTag}`
+      })
+      if (stale.length > 0) {
+        return {
+          status: 'warn',
+          detail: `${locked.length} locked, ${stale.length} stale (>5min) — may auto-release on next join`,
+          extra,
+        }
+      }
+      return {
+        status: 'ok',
+        detail: `${locked.length} active device lock(s)`,
+        extra,
+      }
+    },
+  },
+  {
     id: 'answerkeys',
     label: 'Answer Keys',
     run: async () => {

@@ -82,7 +82,9 @@ export default function AdminDashboard() {
       { id: 'version', label: 'App Version' },
       { id: 'supabase', label: 'Database Connection' },
       { id: 'submit_fn', label: 'Submit Function' },
+      { id: 'join_fn', label: 'Join Function' },
       { id: 'students', label: 'Registered Students' },
+      { id: 'device_locks', label: 'Device Locks' },
       { id: 'conflict', label: 'No Lobby Conflict' },
       { id: 'keys_english', label: 'English Answer Keys' },
       { id: 'keys_math', label: 'Math Answer Keys' },
@@ -150,6 +152,24 @@ export default function AdminDashboard() {
       blocked = true
     }
 
+    // Check 3b: Join edge function reachable
+    try {
+      const start = performance.now()
+      const joinRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || supabase.supabaseUrl}/functions/v1/join`,
+        { method: 'OPTIONS' }
+      )
+      const ms = Math.round(performance.now() - start)
+      if (joinRes.ok || joinRes.status === 204) {
+        updateCheck('join_fn', 'ok', `Reachable (${ms}ms)`)
+      } else {
+        updateCheck('join_fn', 'warn', `Status ${joinRes.status} (${ms}ms)`)
+      }
+    } catch {
+      updateCheck('join_fn', 'fail', 'Join function unreachable — students cannot enter lobby!')
+      blocked = true
+    }
+
     // Check 4: Students registered for current subject
     if (compId) {
       const { count: total } = await supabase
@@ -164,6 +184,32 @@ export default function AdminDashboard() {
       }
     } else {
       updateCheck('students', 'warn', 'No competition ID')
+    }
+
+    // Check 4b: Device lock status — warn if stale locks exist that could block students
+    if (compId) {
+      const { data: locked } = await supabase
+        .from('competition_sessions')
+        .select('participant_code, status, device_id, last_seen_at')
+        .eq('competition_id', compId)
+        .eq('subject', subject)
+        .not('device_id', 'is', null)
+      if (!locked || locked.length === 0) {
+        updateCheck('device_locks', 'ok', 'No stale device locks')
+      } else {
+        const now = Date.now()
+        const stale = locked.filter(s => {
+          if (!s.last_seen_at) return true
+          return (now - new Date(s.last_seen_at).getTime()) > 300000
+        })
+        if (stale.length > 0) {
+          updateCheck('device_locks', 'warn', `${stale.length} stale lock(s) from previous session — will auto-release when students rejoin`)
+        } else {
+          updateCheck('device_locks', 'ok', `${locked.length} active lock(s) — all recent`)
+        }
+      }
+    } else {
+      updateCheck('device_locks', 'ok', 'No competition ID')
     }
 
     // Check 5: No other lobby already open
