@@ -36,9 +36,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       if (s.photo_url && !entry.photo_url) entry.photo_url = s.photo_url
     }
     return [...map.values()].sort((a, b) => {
-      const aNick = a.nickname ? 0 : 1
-      const bNick = b.nickname ? 0 : 1
-      if (aNick !== bNick) return aNick - bNick
+      const aSchool = (a.school || '').toLowerCase()
+      const bSchool = (b.school || '').toLowerCase()
+      if (aSchool !== bSchool) return aSchool.localeCompare(bSchool)
       return a.code.localeCompare(b.code, undefined, { numeric: true })
     })
   }, [sessions])
