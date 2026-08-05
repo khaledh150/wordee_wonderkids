@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
       );
       await supabase
         .from("competition_sessions")
-        .update({ device_id: null })
+        .update({ device_id: null, ready: false, last_seen_at: null })
         .eq("participant_code", participant_code)
         .eq("competition_id", competition_id);
       return json({ ok: true }, 200, req);
