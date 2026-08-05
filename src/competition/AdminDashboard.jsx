@@ -71,6 +71,18 @@ export default function AdminDashboard() {
       .then(({ count }) => setOtherSubjectPlayed((count || 0) > 0))
   }, [state?.competition_id, subject])
 
+  // Reset stale session data (ready flags, device locks, last_seen) when opening a new lobby round
+  // Resets ALL sessions for that subject — completed ones keep scores but lose stale ready/seen flags
+  async function resetSessionsForLobby(targetSubject) {
+    const compId = state?.competition_id
+    if (!compId) return
+    await supabase
+      .from('competition_sessions')
+      .update({ ready: false, last_seen_at: null, device_id: null })
+      .eq('competition_id', compId)
+      .eq('subject', targetSubject)
+  }
+
   const lobbyBusyRef = useRef(false)
   async function handleOpenLobby() {
     if (lobbyBusyRef.current) return
@@ -386,6 +398,7 @@ export default function AdminDashboard() {
       const otherLabel = otherSub === 'math' ? 'Mathematics' : 'English Spelling'
       const doOpen = async (mode) => {
         setDialog(null)
+        await resetSessionsForLobby(subject)
         await updateState({ is_unlocked: true, started_at: null, transfer_mode: mode })
         setPhaseOverride(null)
         toast.success('Lobby opened')
@@ -418,6 +431,7 @@ export default function AdminDashboard() {
       setDialog({
         message: 'Open the lobby? Students will be able to join via QR code.',
         onConfirm: async () => {
+          await resetSessionsForLobby(subject)
           await updateState({ is_unlocked: true, started_at: null })
           setPhaseOverride(null)
           setDialog(null)
@@ -724,6 +738,7 @@ export default function AdminDashboard() {
 
                   const doTransfer = async (mode) => {
                     setDialog(null)
+                    await resetSessionsForLobby(sub)
                     const now = new Date().toISOString()
                     await Promise.all([
                       supabase.from('competition_state').update({
@@ -801,6 +816,7 @@ export default function AdminDashboard() {
 
                     const doTransfer = async (mode) => {
                       setDialog(null)
+                      await resetSessionsForLobby(sub)
                       const now = new Date().toISOString()
                       await Promise.all([
                         supabase.from('competition_state').update({
