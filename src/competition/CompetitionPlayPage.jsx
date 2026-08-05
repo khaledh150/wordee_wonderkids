@@ -263,6 +263,7 @@ function CompetitionPlayPageInner() {
 
   // "Not me?" — releases device lock on server, clears local state, back to code entry
   const handleNotMe = useCallback(async () => {
+    if (!window.confirm('Wrong code? This will sign you out so you can enter a different code.')) return
     await leaveSession()
     setVerifiedCode('')
     setSelectedSubject(null)
