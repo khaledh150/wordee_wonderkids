@@ -1,11 +1,9 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X, Camera, Printer } from 'lucide-react'
+import { Trash2, Plus, Upload, Users, ArrowRight, Clock, Tag, UserPlus, Download, Pencil, Check, X, Printer } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../../components/ToastContext'
 import { generateCode } from './shared'
-import { uploadPhoto } from './photoUtils'
-import StudentAvatar from './StudentAvatar'
 import { mathGradeLabel } from '../mathGradeLabels'
 
 const DURATION_OPTIONS = [3, 5, 8, 10, 15]
@@ -22,9 +20,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
   const [adding, setAdding] = useState(false)
   const [exportSchool, setExportSchool] = useState('all')
   const [schoolFilter, setSchoolFilter] = useState('all')
-  const [uploadingPhoto, setUploadingPhoto] = useState(null)
-  const photoInputRef = useRef(null)
-  const photoTargetRef = useRef(null)
 
   const grouped = useMemo(() => {
     const map = new Map()
@@ -234,36 +229,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     URL.revokeObjectURL(url)
   }
 
-  async function handlePhotoUpload(e) {
-    const file = e.target.files?.[0]
-    const student = photoTargetRef.current
-    if (!file || !student) {
-      if (photoInputRef.current) photoInputRef.current.value = ''
-      return
-    }
-    const refRow = student.english || student.math
-    if (!refRow) {
-      if (photoInputRef.current) photoInputRef.current.value = ''
-      return
-    }
-    setUploadingPhoto(student.code)
-    try {
-      const url = await uploadPhoto(file, state.competition_id, refRow.participant_id)
-      const ids = [student.english?.participant_id, student.math?.participant_id].filter(Boolean)
-      for (const id of ids) {
-        await supabase.from('competition_sessions').update({ photo_url: url, updated_at: new Date().toISOString() }).eq('participant_id', id)
-      }
-      await loadSessions()
-      toast.success('Photo uploaded')
-    } catch (err) {
-      console.error('Photo upload failed:', err)
-      toast.error('Photo upload failed')
-    } finally {
-      setUploadingPhoto(null)
-      photoTargetRef.current = null
-      if (photoInputRef.current) photoInputRef.current.value = ''
-    }
-  }
 
   const printRows = useMemo(() => {
     const lvl = s => subject === 'math' ? s.math?.level : s.english?.level
@@ -312,9 +277,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       })}
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 print:hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 print:hidden">
       {/* Left Side - Roster Table */}
-      <div className="lg:col-span-3">
+      <div className="min-w-0">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -432,27 +397,26 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
           ) : (
             /* Table */
             <>
-            <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhotoUpload} className="hidden" />
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: 820 }}>
+              <table className="w-full text-sm" style={{ minWidth: 780 }}>
+                {/* Columns: #, CODE, NAME, NICKNAME, SCHOOL, AGE, LEVEL, Actions */}
                 <colgroup>
                   <col style={{ width: 32 }} />
-                  <col style={{ width: 40 }} />
-                  <col style={{ minWidth: 200 }} />
-                  <col style={{ minWidth: 100 }} />
-                  <col style={{ minWidth: 120 }} />
-                  <col style={{ width: 48 }} />
                   <col style={{ width: 56 }} />
+                  <col />
+                  <col style={{ minWidth: 90 }} />
+                  <col style={{ minWidth: 110 }} />
+                  <col style={{ width: 48 }} />
                   <col style={{ width: 80 }} />
                   <col style={{ width: 96 }} />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    {['#', '', 'NAME', 'NICKNAME', 'SCHOOL', 'AGE', 'CODE', subject === 'math' ? 'MATH' : 'ENG', ''].map((h, i) => (
+                    {['#', 'CODE', 'NAME', 'NICKNAME', 'SCHOOL', 'AGE', subject === 'math' ? 'MATH' : 'ENG', ''].map((h, i) => (
                       <th
                         key={i}
                         className={`py-2.5 text-[10px] font-bold uppercase tracking-wider ${
-                          i === 5 || i === 6 || i === 7 ? 'text-center' : 'text-left'
+                          i === 1 || i === 5 || i === 6 ? 'text-center' : 'text-left'
                         } ${i === 5 ? 'px-1' : 'px-2'} ${
                           isDark ? 'text-slate-500' : 'text-slate-400'
                         }`}
@@ -477,25 +441,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                       <td className={`py-3 px-2 text-xs font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                         {rowIdx + 1}
                       </td>
-                      <td className="py-2 px-1">
-                        <button
-                          onClick={() => { photoTargetRef.current = student; photoInputRef.current?.click() }}
-                          className="relative group cursor-pointer"
-                          title={student.photo_url ? 'Change photo' : 'Add photo'}
-                          disabled={!!uploadingPhoto}
-                        >
-                          <StudentAvatar photoUrl={student.photo_url} name={student.name} size="sm" />
-                          {!student.photo_url && (
-                            <div className={`absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-black/50' : 'bg-black/30'}`}>
-                              <Camera className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                          {uploadingPhoto === student.code && (
-                            <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50">
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            </div>
-                          )}
-                        </button>
+                      <td className="py-3 px-2 text-center">
+                        <span className={`font-mono text-sm font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                          {student.code}
+                        </span>
                       </td>
                       <td className="py-3 px-2">
                         {isEditing ? (
@@ -545,11 +494,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           placeholder="—"
                           className={`w-full px-1 py-1 rounded-lg border text-sm font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
                         />
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        <span className={`font-mono text-sm font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                          {student.code}
-                        </span>
                       </td>
                       <td className="py-3 px-2 text-center">
                         <select
@@ -608,7 +552,9 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   {/* Add Student Row */}
                   <tr className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                     <td className="py-2 px-2"></td>
-                    <td className="py-1 px-1"></td>
+                    <td className="py-2 px-2 text-center">
+                      <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>auto</span>
+                    </td>
                     <td className="py-2 px-2">
                       <input
                         value={newStudent.name}
@@ -638,9 +584,6 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                         placeholder="—"
                         className={`w-full px-1 py-1.5 rounded-lg border text-xs text-center transition-colors ${inputClass}${isDark ? ' dark-spinner' : ''}`}
                       />
-                    </td>
-                    <td className="py-2 px-2 text-center">
-                      <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>auto</span>
                     </td>
                     <td className="py-2 px-2 text-center">
                       <select
@@ -676,7 +619,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       </div>
 
       {/* Right Side - Settings */}
-      <div className="lg:col-span-2">
+      <div>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
