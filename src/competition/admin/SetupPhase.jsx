@@ -129,12 +129,13 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
 
   function startEdit(student) {
     setEditingCode(student.code)
-    setEditForm({ name: student.name, school: student.school || '', country: student.country || '' })
+    setEditForm({ name: student.name, nickname: student.nickname || '', school: student.school || '', country: student.country || '' })
   }
 
   async function saveEdit(student) {
     const updates = {
       name: editForm.name.trim(),
+      nickname: editForm.nickname.trim() || null,
       school: editForm.school.trim() || null,
       country: editForm.country.trim().toLowerCase() || null,
       updated_at: new Date().toISOString(),
@@ -433,17 +434,17 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             <>
             <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhotoUpload} className="hidden" />
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" style={{ minWidth: 820 }}>
                 <colgroup>
                   <col style={{ width: 32 }} />
-                  <col style={{ width: 36 }} />
-                  <col style={{ minWidth: 180 }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: 44 }} />
+                  <col style={{ width: 40 }} />
+                  <col style={{ minWidth: 200 }} />
+                  <col style={{ minWidth: 100 }} />
+                  <col style={{ minWidth: 120 }} />
+                  <col style={{ width: 48 }} />
                   <col style={{ width: 56 }} />
-                  <col style={{ width: 64 }} />
-                  <col style={{ width: 72 }} />
+                  <col style={{ width: 80 }} />
+                  <col style={{ width: 96 }} />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
@@ -473,10 +474,10 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           : 'border-slate-50 hover:bg-slate-50/50'
                       }`}
                     >
-                      <td className={`py-2 px-2 text-xs font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <td className={`py-3 px-2 text-xs font-mono font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                         {rowIdx + 1}
                       </td>
-                      <td className="py-1 px-1">
+                      <td className="py-2 px-1">
                         <button
                           onClick={() => { photoTargetRef.current = student; photoInputRef.current?.click() }}
                           className="relative group cursor-pointer"
@@ -496,35 +497,45 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           )}
                         </button>
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-3 px-2">
                         {isEditing ? (
                           <input
                             value={editForm.name}
                             onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))}
-                            className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                            className={`w-full px-2.5 py-1.5 rounded-lg border text-sm transition-colors ${inputClass}`}
                             maxLength={100}
                             autoFocus
                           />
                         ) : (
-                          <span className={`font-medium truncate block ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</span>
+                          <span className={`font-semibold text-sm leading-snug block ${isDark ? 'text-white' : 'text-slate-800'}`}>{student.name}</span>
                         )}
                       </td>
-                      <td className="py-2 px-2">
-                        <span className={`truncate block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.nickname || '—'}</span>
+                      <td className="py-3 px-2">
+                        {isEditing ? (
+                          <input
+                            value={editForm.nickname}
+                            onChange={(e) => setEditForm(p => ({ ...p, nickname: e.target.value }))}
+                            placeholder="Nickname"
+                            className={`w-full px-2.5 py-1.5 rounded-lg border text-sm transition-colors ${inputClass}`}
+                            maxLength={50}
+                          />
+                        ) : (
+                          <span className={`block text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.nickname || '—'}</span>
+                        )}
                       </td>
-                      <td className="py-2 px-2">
+                      <td className="py-3 px-2">
                         {isEditing ? (
                           <input
                             value={editForm.school}
                             onChange={(e) => setEditForm(p => ({ ...p, school: e.target.value }))}
-                            className={`w-full px-2 py-1 rounded-lg border text-xs transition-colors ${inputClass}`}
+                            className={`w-full px-2.5 py-1.5 rounded-lg border text-sm transition-colors ${inputClass}`}
                             maxLength={100}
                           />
                         ) : (
-                          <span className={`truncate block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.school || '—'}</span>
+                          <span className={`block text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{student.school || '—'}</span>
                         )}
                       </td>
-                      <td className="py-2 px-1">
+                      <td className="py-3 px-1">
                         <input
                           type="number"
                           min="4"
@@ -532,19 +543,19 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           value={student.age || ''}
                           onChange={(e) => handleAgeChange(student, e.target.value)}
                           placeholder="—"
-                          className={`w-full px-1 py-0.5 rounded-lg border text-xs font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
+                          className={`w-full px-1 py-1 rounded-lg border text-sm font-bold text-center focus:outline-none transition-colors ${selectClass}${isDark ? ' dark-spinner' : ''}`}
                         />
                       </td>
-                      <td className="py-2 px-2 text-center">
-                        <span className={`font-mono text-xs font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                      <td className="py-3 px-2 text-center">
+                        <span className={`font-mono text-sm font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
                           {student.code}
                         </span>
                       </td>
-                      <td className="py-2 px-2 text-center">
+                      <td className="py-3 px-2 text-center">
                         <select
                           value={(subject === 'math' ? student.math?.level : student.english?.level) || 0}
                           onChange={(e) => handleLevelChange(student, subject, e.target.value)}
-                          className={`px-2 py-1 rounded-lg border text-xs font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
+                          className={`px-2 py-1.5 rounded-lg border text-sm font-bold cursor-pointer focus:outline-none transition-colors ${selectClass}`}
                         >
                           <option value={0}>—</option>
                           {(subject === 'math' ? MATH_LEVELS : ENGLISH_LEVELS).slice(1).map(l => (
@@ -552,45 +563,43 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                           ))}
                         </select>
                       </td>
-                      <td className="py-2 px-2">
-                        <div className="flex items-center gap-1">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={() => saveEdit(student)}
-                                disabled={!editForm.name.trim()}
-                                className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-30"
-                                title="Save"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setEditingCode(null)}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-400 hover:bg-slate-100'}`}
-                                title="Cancel"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => startEdit(student)}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-blue-400 hover:bg-blue-500/10' : 'text-blue-500 hover:bg-blue-50'}`}
-                                title="Edit student"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(student)}
-                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
-                                title="Delete student"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                      <td className="py-3 px-2">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => saveEdit(student)}
+                              disabled={!editForm.name.trim()}
+                              className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer disabled:opacity-30"
+                              title="Save"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCode(null)}
+                              className={`p-2 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-slate-400 bg-white/5 hover:bg-white/10' : 'text-slate-400 bg-slate-100 hover:bg-slate-200'}`}
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => startEdit(student)}
+                              className={`p-2 rounded-lg transition-colors cursor-pointer ${isDark ? 'text-blue-400 hover:bg-blue-500/10' : 'text-blue-500 hover:bg-blue-50'}`}
+                              title="Edit student"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(student)}
+                              className="p-2 rounded-lg text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer"
+                              title="Delete student"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                     )
