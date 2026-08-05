@@ -433,17 +433,17 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
             <>
             <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhotoUpload} className="hidden" />
             <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
+              <table className="w-full text-sm">
                 <colgroup>
+                  <col style={{ width: 32 }} />
                   <col style={{ width: 36 }} />
-                  <col style={{ width: 40 }} />
-                  <col />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: 52 }} />
+                  <col style={{ minWidth: 180 }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: 44 }} />
+                  <col style={{ width: 56 }} />
                   <col style={{ width: 64 }} />
-                  <col style={{ width: 64 }} />
-                  <col style={{ width: 80 }} />
+                  <col style={{ width: 72 }} />
                 </colgroup>
                 <thead>
                   <tr className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>

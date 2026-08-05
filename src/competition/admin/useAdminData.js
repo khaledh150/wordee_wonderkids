@@ -67,6 +67,11 @@ export default function useAdminData({ subject }) {
             || p.ready !== d.ready
             || p.completed_at !== d.completed_at
             || p.last_seen_at !== d.last_seen_at
+            || p.name !== d.name
+            || p.school !== d.school
+            || p.level !== d.level
+            || p.nickname !== d.nickname
+            || p.photo_url !== d.photo_url
         })
         return changed ? data : prev
       })
