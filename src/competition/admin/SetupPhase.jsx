@@ -39,9 +39,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       const aSchool = (a.school || '').toLowerCase()
       const bSchool = (b.school || '').toLowerCase()
       if (aSchool !== bSchool) return aSchool.localeCompare(bSchool)
+      const aLvl = (subject === 'math' ? a.math?.level : a.english?.level) || 0
+      const bLvl = (subject === 'math' ? b.math?.level : b.english?.level) || 0
+      if (aLvl !== bLvl) return aLvl - bLvl
       return a.code.localeCompare(b.code, undefined, { numeric: true })
     })
-  }, [sessions])
+  }, [sessions, subject])
 
   const filteredGrouped = useMemo(() => {
     if (schoolFilter === 'all') return grouped
@@ -407,7 +410,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
                   <col style={{ minWidth: 90 }} />
                   <col style={{ minWidth: 110 }} />
                   <col style={{ width: 48 }} />
-                  <col style={{ width: 80 }} />
+                  <col style={{ width: 130 }} />
                   <col style={{ width: 96 }} />
                 </colgroup>
                 <thead>
