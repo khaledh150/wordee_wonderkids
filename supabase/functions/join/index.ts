@@ -34,9 +34,23 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405, req);
 
   try {
-    const { participant_code, competition_id, subject } = await req.json();
+    const { participant_code, competition_id, subject, device_id, action } = await req.json();
     if (!participant_code || !competition_id) {
       return json({ error: "participant_code and competition_id required" }, 400, req);
+    }
+
+    // Handle "leave" action — student pressed "Not me?" to release the code lock
+    if (action === "leave") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      await supabase
+        .from("competition_sessions")
+        .update({ device_id: null })
+        .eq("participant_code", participant_code)
+        .eq("competition_id", competition_id);
+      return json({ ok: true }, 200, req);
     }
 
     const supabase = createClient(
@@ -55,6 +69,26 @@ Deno.serve(async (req: Request) => {
 
     if (lookupErr || !session) {
       return json({ error: "Invalid participant code" }, 404, req);
+    }
+
+    // ── Device lock: one code = one device at a time ──
+    const incomingDevice = (typeof device_id === "string" && device_id) ? device_id : null;
+    if (
+      incomingDevice &&
+      session.device_id &&
+      session.device_id !== incomingDevice &&
+      (session.status === "waiting" || session.status === "active")
+    ) {
+      // Safety valve: if the old device is dead (no heartbeat for 5+ min), allow takeover
+      const lastSeen = session.last_seen_at ? new Date(session.last_seen_at) : null;
+      const secSinceLastSeen = lastSeen
+        ? (new Date().getTime() - lastSeen.getTime()) / 1000
+        : 9999;
+      if (secSinceLastSeen < 300) {
+        return json({
+          error: "This code is already active on another device. Press 'Not me?' on that device first.",
+        }, 409, req);
+      }
     }
 
     // Get competition state — check is_unlocked, started_at, duration
@@ -238,7 +272,7 @@ Deno.serve(async (req: Request) => {
 
     // Competition not started by admin yet — put student in waiting/lobby
     if (!competitionStarted) {
-      // Update status to waiting + mark last_seen
+      // Update status to waiting + mark last_seen + lock device
       await supabase
         .from("competition_sessions")
         .update({
@@ -246,6 +280,7 @@ Deno.serve(async (req: Request) => {
           ready: false,
           last_seen_at: now.toISOString(),
           updated_at: now.toISOString(),
+          ...(incomingDevice ? { device_id: incomingDevice } : {}),
         })
         .eq("participant_id", session.participant_id)
         .in("status", ["registered", "waiting", "lobby"]);
@@ -280,6 +315,7 @@ Deno.serve(async (req: Request) => {
         started_at: startedAt,
         last_seen_at: startedAt,
         updated_at: startedAt,
+        ...(incomingDevice ? { device_id: incomingDevice } : {}),
       })
       .eq("participant_id", session.participant_id)
       .in("status", ["registered", "waiting", "lobby"])

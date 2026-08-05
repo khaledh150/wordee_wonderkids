@@ -305,10 +305,20 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       setOrderedQuestions([])
       subjectRef.current = subjectOverride
     }
+    // Get or create a persistent device ID for this browser
+    let deviceId = null
+    try {
+      deviceId = localStorage.getItem('wordee_device_id')
+      if (!deviceId) {
+        deviceId = crypto.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2))
+        localStorage.setItem('wordee_device_id', deviceId)
+      }
+    } catch {}
     const result = await callFunction('join', {
       participant_code: participantCode,
       competition_id: competitionId,
       subject: joinSubject,
+      device_id: deviceId,
     })
 
     const sess = { ...result, participant_code: participantCode }
@@ -351,10 +361,13 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
   // ── Start Race ──
   const startRace = useCallback(async () => {
     if (!session) return false
+    let deviceId = null
+    try { deviceId = localStorage.getItem('wordee_device_id') } catch {}
     const result = await callFunction('join', {
       participant_code: session.participant_code,
       competition_id: competitionId,
       subject: subjectRef.current,
+      device_id: deviceId,
     })
 
     const sess = { ...result, participant_code: session.participant_code }
@@ -575,10 +588,37 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     await sendHeartbeat(true)
   }, [session, sendHeartbeat])
 
+  // ── Leave Session (Not me?) — clears device lock on server ──
+  const leaveSession = useCallback(async () => {
+    if (!sessionRef.current) return
+    try {
+      await callFunction('join', {
+        participant_code: sessionRef.current.participant_code,
+        competition_id: competitionId,
+        subject: subjectRef.current,
+        action: 'leave',
+      })
+    } catch {}
+    // Clear all local state
+    clearInterval(timerRef.current)
+    clearTimeout(syncRef.current)
+    clearTimeout(autoSubmitRef.current)
+    clearTimeout(heartbeatRef.current)
+    setPhase('idle')
+    setSession(null)
+    setAnswers([])
+    setCorrectCount(0)
+    setOrderedQuestions([])
+    autoStartRef.current = false
+    setAutoStarting(false)
+    setCountdownReady(false)
+    try { localStorage.removeItem(storageKey(competitionId)) } catch {}
+  }, [competitionId])
+
   return {
     phase, session, timeLeft, currentScore: correctCount,
     questionsAnswered: answers.length, validatedScore, rank, isSyncing, isOffline, isSubmitting,
     announcement, competitionState, orderedQuestions, hapticPulse,
-    autoStarting, countdownReady, submitError, joinCompetition, startRace, triggerStart, recordAnswer, finish, markReady, sendHeartbeat,
+    autoStarting, countdownReady, submitError, joinCompetition, startRace, triggerStart, recordAnswer, finish, markReady, sendHeartbeat, leaveSession,
   }
 }

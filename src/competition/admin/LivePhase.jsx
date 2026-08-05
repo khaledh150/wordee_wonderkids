@@ -4,6 +4,7 @@ import { Clock, AlertOctagon, Megaphone, ChevronDown, ChevronUp, TimerReset } fr
 import { fmt } from './shared'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../../components/ToastContext'
+import { mathGradeLabel } from '../mathGradeLabels'
 
 export default function LivePhase({ state, sessions, elapsed, subject, isDark, autoPhase, updateState, loadSessions }) {
   const toast = useToast()
@@ -220,7 +221,7 @@ export default function LivePhase({ state, sessions, elapsed, subject, isDark, a
                     <span className={`text-xs font-black px-2 py-0.5 rounded border ${
                       isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}>
-                      L{s.level}
+                      {subject === 'math' ? mathGradeLabel(s.level) : `L${s.level}`}
                     </span>
                   </td>
                   <td className={`px-4 py-3 text-right font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>

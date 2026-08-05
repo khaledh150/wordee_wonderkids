@@ -243,7 +243,7 @@ function CompetitionPlayPageInner() {
     questions,
   })
 
-  const { session, phase, competitionState, announcement, joinCompetition, startRace, triggerStart, markReady, autoStarting, countdownReady } = engine
+  const { session, phase, competitionState, announcement, joinCompetition, startRace, triggerStart, markReady, autoStarting, countdownReady, leaveSession } = engine
 
   // Progressive auto-start messages
   useEffect(() => {
@@ -260,6 +260,20 @@ function CompetitionPlayPageInner() {
   }, [autoStarting])
 
   const isDark = competitionState?.theme === 'dark' || waitTheme === 'dark'
+
+  // "Not me?" — releases device lock on server, clears local state, back to code entry
+  const handleNotMe = useCallback(async () => {
+    await leaveSession()
+    setVerifiedCode('')
+    setSelectedSubject(null)
+    setCode('')
+    setPreloadDone(false)
+    setPreloadProgress({ loaded: 0, total: 0 })
+    setQuestions(null)
+    setStudentName('')
+    setError('')
+    setStep('code')
+  }, [leaveSession])
 
   async function getQuestionsForSession(sub, level, participantId) {
     try {
@@ -336,15 +350,19 @@ function CompetitionPlayPageInner() {
 
   const transitioningRef = useRef(false)
 
-  const doTransitionToSubject = useCallback((nextSubject) => {
+  const doTransitionToSubject = useCallback(async (nextSubject) => {
     if (transitioningRef.current) return
     transitioningRef.current = true
     setNextSubjectInfo({ available: false, subjectName: null, locked: false })
-    setQuestions(null)
-    setPreloadDone(false)
-    setPreloadProgress({ loaded: 0, total: 0 })
-    try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
-    handleSubjectSelect(nextSubject, verifiedCode)
+    try {
+      setQuestions(null)
+      setPreloadDone(false)
+      setPreloadProgress({ loaded: 0, total: 0 })
+      try { localStorage.removeItem(`wordee_comp_${competitionId}`) } catch {}
+      await handleSubjectSelect(nextSubject, verifiedCode)
+    } catch {
+      // If transition join fails, stay on completed screen
+    }
     transitioningRef.current = false
   }, [competitionId, verifiedCode])
 
@@ -481,7 +499,7 @@ function CompetitionPlayPageInner() {
       setRegisteredSubjects(registered)
       setStudentName(data.name || '')
       if (subjects.length === 1) {
-        handleSubjectSelect(subjects[0], upperCode)
+        await handleSubjectSelect(subjects[0], upperCode)
       } else if (subjects.length === 0 && registered.length > 0) {
         setStep('subjectWait')
         setLoading(false)
@@ -836,6 +854,7 @@ function CompetitionPlayPageInner() {
         <div className="fixed top-3 right-3 z-50">
           <FullscreenBtn />
         </div>
+        <button onClick={handleNotMe} className={`fixed top-3 left-3 z-50 text-[10px] font-medium px-2 py-1 rounded-lg opacity-40 active:opacity-100 transition-opacity cursor-pointer ${isDark ? 'text-slate-500 bg-white/5' : 'text-slate-400 bg-black/5'}`}>Not me?</button>
 
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.92 }}
@@ -945,6 +964,7 @@ function CompetitionPlayPageInner() {
         <div className="fixed top-3 right-3 z-50">
           <FullscreenBtn />
         </div>
+        <button onClick={handleNotMe} className={`fixed top-3 left-3 z-50 text-[10px] font-medium px-2 py-1 rounded-lg opacity-40 active:opacity-100 transition-opacity cursor-pointer ${isDark ? 'text-slate-500 bg-white/5' : 'text-slate-400 bg-black/5'}`}>Not me?</button>
 
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
