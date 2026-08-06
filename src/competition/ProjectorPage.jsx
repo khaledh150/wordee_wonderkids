@@ -849,7 +849,7 @@ export default function ProjectorPage() {
               >
                 {/* Step number */}
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-black mb-3 ${
-                  isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'
+                  isDark ? 'bg-amber-400 text-slate-900' : 'bg-indigo-100 text-indigo-700'
                 }`}>
                   {step.num}
                 </div>

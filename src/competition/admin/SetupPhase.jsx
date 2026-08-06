@@ -196,38 +196,34 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
       .from('competition_sessions')
       .select('participant_code, name, nickname, school, country, age, subject, level')
       .eq('competition_id', state.competition_id)
+      .eq('subject', subject)
     if (!allSessions) return
 
-    const map = new Map()
-    for (const s of allSessions) {
-      const key = s.participant_code
-      if (!map.has(key)) map.set(key, { code: key, name: s.name, school: s.school, country: s.country, age: s.age })
-      const entry = map.get(key)
-      if (s.subject === 'english') entry.engLevel = s.level
-      if (s.subject === 'math') entry.mathLevel = s.level
-    }
-    let list = [...map.values()].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+    let list = allSessions
+      .map(s => ({ code: s.participant_code, name: s.name, nickname: s.nickname, school: s.school, country: s.country, age: s.age, level: s.level }))
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
     if (exportSchool !== 'all') list = list.filter(s => s.school === exportSchool)
     if (list.length === 0) return
 
-    const header = ['Name', 'School', 'Country', 'Age', 'Code', 'English Level', 'Math Level']
+    const levelLabel = subject === 'math' ? 'Math Level' : 'English Level'
+    const header = ['Name', 'Nickname', 'School', 'Country', 'Age', 'Code', levelLabel]
     const csvRows = [header.join(',')]
     for (const s of list) {
       csvRows.push([
         `"${(s.name || '').replace(/"/g, '""')}"`,
+        `"${(s.nickname || '').replace(/"/g, '""')}"`,
         `"${(s.school || '').replace(/"/g, '""')}"`,
         s.country || '',
         s.age || '',
         s.code,
-        s.engLevel ?? '',
-        s.mathLevel ?? '',
+        s.level ?? '',
       ].join(','))
     }
     const blob = new Blob(['﻿' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `roster${exportSchool !== 'all' ? '_' + exportSchool.replace(/\s+/g, '_') : ''}.csv`
+    a.download = `roster_${subject}${exportSchool !== 'all' ? '_' + exportSchool.replace(/\s+/g, '_') : ''}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
