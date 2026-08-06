@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Timer, QrCode, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator, Maximize, Minimize, Pause, Play } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
+import { Trophy, Timer, Wifi, Users, Loader2, ShieldAlert, LogIn, BookOpen, Calculator, Maximize, Minimize, Pause, Play } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { fireConfetti } from '../utils/confetti'
 import { playCelebrationSequence, playLevelTransition, playCountdownTick, playCountdownReady, playCountdownGo } from '../utils/celebrationSounds'
@@ -66,9 +65,6 @@ export default function ProjectorPage() {
     [sessions, activeSubject]
   )
 
-  const qrCode = useMemo(() => (
-    <QRCodeSVG value={window.location.origin + '/play'} size={360} level="H" marginSize={0} />
-  ), [])
 
   useEffect(() => {
     if (engState?.projector_theme) setTheme(engState.projector_theme)
@@ -779,10 +775,15 @@ export default function ProjectorPage() {
 
   // ── LOBBY ──
   if (isLobby) {
-    const readyStudents = subjectSessions.filter(s => s.ready)
+    const steps = [
+      { num: 1, title: 'Connect to WiFi', desc: 'Join the competition network', img: null },
+      { num: 2, title: 'Open the App', desc: 'Tap the WonderKids icon', img: '/step2.jpeg' },
+      { num: 3, title: 'Tap Competition', desc: 'Select the Competition button', img: '/step3.jpeg' },
+      { num: 4, title: 'Enter Your Code', desc: 'Type your 4-digit code', img: '/step4.jpeg' },
+    ]
 
     return (
-      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden transition-colors ${bg} ${text}`}>
+      <div style={{ fontFamily: PROJECTOR_FONT }} className={`min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors ${bg} ${text}`}>
         {floatingFullscreenBtn}
         {isDark ? (
           <>
@@ -798,10 +799,10 @@ export default function ProjectorPage() {
           </>
         )}
 
-        <div className="text-center max-w-5xl w-full relative z-10 flex flex-col items-center">
+        <div className="text-center w-full relative z-10 flex flex-col items-center max-w-[1400px]">
           {/* Subject badge */}
           <motion.div initial={{ opacity: 0, scale: 0.5, y: -40 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', damping: 10, stiffness: 80 }}
-            className="mb-4">
+            className="mb-3">
             <div className={`flex items-center gap-4 border px-8 py-4 rounded-2xl backdrop-blur-md shadow-lg ${sc.badgeBg}`}>
               <span className="relative flex h-4 w-4">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${sc.dotPing} opacity-75`} />
@@ -825,31 +826,61 @@ export default function ProjectorPage() {
 
           {activeState?.round_label && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.7 }} transition={{ delay: 0.4 }}
-              className={`text-lg font-bold mb-6 tracking-wide ${textMuted}`}>
+              className={`text-lg font-bold mb-2 tracking-wide ${textMuted}`}>
               {activeState.round_label}
             </motion.p>
           )}
 
-          {/* Centered QR Code */}
-          <motion.div initial={{ opacity: 0, scale: 0.6, rotateX: 30 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-            transition={{ type: 'spring', damping: 14, stiffness: 70, delay: 0.4 }}
-            className="flex flex-col items-center mt-2">
-            <div className={`backdrop-blur-xl border rounded-[32px] p-6 shadow-2xl relative overflow-hidden ${
-              isDark ? 'bg-[#0e1224]/80 border-white/10' : 'bg-white border-slate-200'
-            }`}>
-              <div className="bg-white rounded-2xl p-3 shadow-inner">
-                {qrCode}
-              </div>
-            </div>
-            <div className={`flex items-center gap-2 mt-4 ${sc.accent}`}>
-              <QrCode className="w-4 h-4" />
-              <p className="text-base font-black tracking-tight">Scan to Enter</p>
-              <QrCode className="w-4 h-4" />
-            </div>
-            <p className={`text-xs font-mono mt-1 ${textDim}`}>{window.location.origin}/play</p>
-          </motion.div>
-        </div>
+          {/* How to Join — 4 Steps */}
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            className={`text-2xl font-black uppercase tracking-wider mt-4 mb-6 ${sc.accent}`}>
+            How to Join
+          </motion.p>
 
+          <div className="grid grid-cols-4 gap-5 w-full">
+            {steps.map((step, i) => (
+              <motion.div
+                key={step.num}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + i * 0.15, type: 'spring', damping: 14 }}
+                className={`flex flex-col items-center rounded-3xl border p-4 backdrop-blur-xl ${
+                  isDark ? 'bg-[#0e1224]/70 border-white/10' : 'bg-white/80 border-slate-200'
+                }`}
+              >
+                {/* Step number */}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-black mb-3 ${
+                  isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'
+                }`}>
+                  {step.num}
+                </div>
+
+                {/* Image or WiFi icon */}
+                <div className="flex-1 flex items-center justify-center w-full mb-3">
+                  {step.img ? (
+                    <img
+                      src={step.img}
+                      alt={step.title}
+                      className="rounded-2xl shadow-lg object-contain max-h-[340px] w-auto"
+                    />
+                  ) : (
+                    <div className={`flex items-center justify-center w-32 h-32 rounded-full ${
+                      isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'
+                    }`}>
+                      <Wifi className={`w-16 h-16 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Label */}
+                <h3 className={`text-base font-black uppercase tracking-wide ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  {step.title}
+                </h3>
+                <p className={`text-sm mt-1 ${textDim}`}>{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
