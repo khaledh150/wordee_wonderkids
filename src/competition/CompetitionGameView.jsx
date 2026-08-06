@@ -97,8 +97,11 @@ export default function CompetitionGameView({ engine, level, isDark = false, nex
   const current = orderedQuestions[currentIndex]
 
   // Play audio upon mounting/changing words
+  // iOS requires a user gesture before AudioContext works — skip first question on iOS only
+  // The first answer tap unlocks AudioContext, so VO works from question 2 onward
+  const isIOS = useRef(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)).current
   useEffect(() => {
-    if (current && phase === 'active') {
+    if (current && phase === 'active' && (!isIOS || currentIndex > 0)) {
       const audioFile = current.audio?.split('/').pop()
       if (audioFile) playWordVO(audioFile)
     }
