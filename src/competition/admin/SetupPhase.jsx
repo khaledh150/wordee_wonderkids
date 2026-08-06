@@ -205,8 +205,12 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
     if (exportSchool !== 'all') list = list.filter(s => s.school === exportSchool)
     if (list.length === 0) return
 
-    const levelLabel = subject === 'math' ? 'Math Level' : 'English Level'
-    const header = ['Name', 'Nickname', 'School', 'Country', 'Age', 'Code', levelLabel]
+    const formatLevel = (lvl) => {
+      if (lvl == null) return ''
+      if (subject === 'math') return `Math Competition: ${mathGradeLabel(lvl)}`
+      return `English Competition Level ${lvl}`
+    }
+    const header = ['Name', 'Nickname', 'School', 'Country', 'Age', 'Code', 'Competition Level']
     const csvRows = [header.join(',')]
     for (const s of list) {
       csvRows.push([
@@ -216,7 +220,7 @@ export default function SetupPhase({ state, sessions, subject, isDark, autoPhase
         s.country || '',
         s.age || '',
         s.code,
-        s.level ?? '',
+        `"${formatLevel(s.level)}"`,
       ].join(','))
     }
     const blob = new Blob(['﻿' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
