@@ -497,12 +497,13 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
     return () => { cancelled = true; clearTimeout(syncRef.current); clearTimeout(firstSync) }
   }, [phase, session, competitionId])
 
-  // ── Submit ──
+  // ── Submit — never gives up, retries indefinitely ──
   const doSubmit = useCallback(async () => {
     if (submittingRef.current) return
     submittingRef.current = true
     setIsSubmitting(true)
     setSubmitError(false)
+    submitErrorRef.current = false
 
     const sess = sessionRef.current
     if (!sess) { submittingRef.current = false; setIsSubmitting(false); return }
@@ -511,6 +512,7 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
 
     let retryCount = 0
     const trySubmit = async () => {
+      if (unmountedRef.current) { submittingRef.current = false; return }
       try {
         const result = await callFunction('submit', {
           participant_code: sess.participant_code,
@@ -535,8 +537,12 @@ export function useCompetitionEngine({ competitionId, subject, questions }) {
       } catch {
         retryCount++
         if (unmountedRef.current) { submittingRef.current = false; return }
-        if (retryCount <= 3) setTimeout(trySubmit, Math.min(3000 * Math.pow(2, retryCount - 1), 15000))
-        else { submittingRef.current = false; setIsSubmitting(false); setSubmitError(true); submitErrorRef.current = true }
+        // First 3 retries: fast backoff (3s, 6s, 12s). After that: every 15s forever.
+        const delay = retryCount <= 3
+          ? Math.min(3000 * Math.pow(2, retryCount - 1), 15000)
+          : 15000
+        if (retryCount === 4) { setSubmitError(true); submitErrorRef.current = true }
+        setTimeout(trySubmit, delay)
       }
     }
     await trySubmit()
