@@ -777,9 +777,8 @@ export default function ProjectorPage() {
   if (isLobby) {
     const steps = [
       { num: 1, title: 'Connect to WiFi', desc: 'Join the competition network', img: null },
-      { num: 2, title: 'Open the App', desc: 'Tap the WonderKids icon', img: '/step2.jpeg' },
-      { num: 3, title: 'Tap Competition', desc: 'Select the Competition button', img: '/step3.jpeg' },
-      { num: 4, title: 'Enter Your Code', desc: 'Type your 4-digit code', img: '/step4.jpeg' },
+      { num: 2, title: 'Tap Competition', desc: 'Open the app & tap Competition', img: '/step3.jpeg' },
+      { num: 3, title: 'Enter Your Code', desc: 'Type your 4-digit code', img: '/step4.jpeg' },
     ]
 
     return (
@@ -837,7 +836,7 @@ export default function ProjectorPage() {
             How to Join
           </motion.p>
 
-          <div className="grid grid-cols-4 gap-5 w-full">
+          <div className="grid grid-cols-3 gap-6 w-full">
             {steps.map((step, i) => (
               <motion.div
                 key={step.num}
