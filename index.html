@@ -29,7 +29,7 @@
     (function(){
       var KEY='chunk_reload',count=parseInt(sessionStorage.getItem(KEY)||'0',10);
       function nuke(){
-        if(count>=2){sessionStorage.removeItem(KEY);return}
+        if(count>=2){sessionStorage.removeItem(KEY);document.getElementById('root').innerHTML='<div style="text-align:center;padding:40px;font-family:system-ui"><h2>WonderKids Championship</h2><p>App update in progress. Please close and reopen the app.</p><button onclick="sessionStorage.removeItem(\'chunk_reload\');location.reload()" style="margin-top:16px;padding:8px 24px;font-size:16px;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer">Retry</button></div>';return}
         sessionStorage.setItem(KEY,String(count+1));
         Promise.all([
           navigator.serviceWorker?navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}):0,
@@ -38,14 +38,21 @@
       }
       window.addEventListener('error',function(e){
         var m=e.message||'';
-        if(m.indexOf('MIME')>-1||m.indexOf('dynamically imported')>-1||m.indexOf('module script')>-1){e.preventDefault();nuke()}
-        else{document.getElementById('root').innerHTML='<div style="text-align:center;padding:40px;font-family:system-ui"><h2>WonderKids Championship</h2><p>Loading error. Please refresh.</p><p style="font-size:12px;color:#999">'+m+'</p><button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;font-size:16px">Reload</button></div>'}
+        if(m.indexOf('MIME')>-1||m.indexOf('dynamically imported')>-1||m.indexOf('module script')>-1||m.indexOf('Unexpected token')>-1){e.preventDefault();nuke()}
+        else if(document.getElementById('root')&&!document.getElementById('root').children.length){document.getElementById('root').innerHTML='<div style="text-align:center;padding:40px;font-family:system-ui"><h2>WonderKids Championship</h2><p>Loading error. Please refresh.</p><p style="font-size:12px;color:#999">'+m+'</p><button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;font-size:16px;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer">Reload</button></div>'}
       });
       window.addEventListener('unhandledrejection',function(e){
         var m=e.reason&&e.reason.message||String(e.reason||'');
-        if(m.indexOf('dynamically imported')>-1||m.indexOf('MIME')>-1||m.indexOf('Failed to fetch')>-1){e.preventDefault();nuke()}
+        if(m.indexOf('dynamically imported')>-1||m.indexOf('MIME')>-1||m.indexOf('Failed to fetch')>-1||m.indexOf('Unexpected token')>-1){e.preventDefault();nuke()}
       });
-      if(count>0)sessionStorage.removeItem(KEY);
+      /* Auto-reload when new SW takes control — prevents blank screen from stale asset hashes after deploys */
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.addEventListener('controllerchange',function(){
+          if(!window.__swReloading){window.__swReloading=true;location.reload()}
+        });
+      }
+      /* Clear retry counter only after app successfully renders, not immediately */
+      if(count>0){var obs=new MutationObserver(function(){if(document.getElementById('root')&&document.getElementById('root').children.length>0){sessionStorage.removeItem(KEY);obs.disconnect()}});obs.observe(document.getElementById('root')||document.body,{childList:true,subtree:true});setTimeout(function(){sessionStorage.removeItem(KEY);obs.disconnect()},10000)}
     })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
