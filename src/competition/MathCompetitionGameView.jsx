@@ -314,32 +314,29 @@ export default function MathCompetitionGameView({ engine, level, isDark = false,
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-50 bg-[#060814]/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
             >
-              <div className="w-full max-w-sm sm:max-w-md bg-white border-2 border-rose-200 rounded-3xl shadow-2xl p-5 text-center relative overflow-hidden">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
-                  <AlertTriangle className="w-7 h-7 text-rose-500 animate-wiggle" />
+              <div className="w-full max-w-sm sm:max-w-md bg-white border-2 border-teal-200 rounded-3xl shadow-2xl p-5 text-center relative overflow-hidden">
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                  <Loader2 className="w-7 h-7 text-teal-500 animate-spin" />
                 </div>
-                <h3 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Sync Connection Lost</h3>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Sending your score ✨</h3>
                 <p className="text-[11px] sm:text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                  We are having difficulty broadcasting your score.
-                  <strong className="text-rose-600 block mt-0.5 font-black">Do NOT close this tab!</strong>
+                  Your score is safe! We're sending it now — this will finish automatically.
+                  <strong className="text-teal-600 block mt-0.5 font-black">Please keep this page open 😊</strong>
                 </p>
                 <div className="bg-slate-50 border border-slate-200/50 rounded-2xl py-2 px-4 my-4 text-center shadow-inner font-mono flex items-center justify-around">
                   <div>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Code</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Your Code</span>
                     <span className="text-xl font-black text-teal-600 tracking-wider uppercase block">{session?.participant_code}</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200" />
                   <div>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Score</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Your Score</span>
                     <span className="text-xl font-black text-slate-800 block">{scoreVal} / {attempted}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => { finish() }}
-                  className="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retry Submission
-                </button>
+                <p className="text-[10px] text-slate-400 font-bold leading-normal">
+                  This screen will close once your score is received ✓
+                </p>
               </div>
             </motion.div>
           )}
