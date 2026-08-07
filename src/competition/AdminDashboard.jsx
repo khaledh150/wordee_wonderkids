@@ -40,19 +40,17 @@ export default function AdminDashboard() {
   const isDark = themes.admin === 'dark'
 
   function toggleTheme(key) {
-    setThemes(prev => {
-      const next = { ...prev, [key]: prev[key] === 'dark' ? 'light' : 'dark' }
-      localStorage.setItem('wonderkids_themes', JSON.stringify(next))
-      if (key === 'student') {
-        supabase.from('competition_state').update({ theme: next.student }).eq('id', 'english')
-        supabase.from('competition_state').update({ theme: next.student }).eq('id', 'math')
-      }
-      if (key === 'projector') {
-        supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'english')
-        supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'math')
-      }
-      return next
-    })
+    const next = { ...themes, [key]: themes[key] === 'dark' ? 'light' : 'dark' }
+    setThemes(next)
+    localStorage.setItem('wonderkids_themes', JSON.stringify(next))
+    if (key === 'student') {
+      supabase.from('competition_state').update({ theme: next.student }).eq('id', 'english')
+      supabase.from('competition_state').update({ theme: next.student }).eq('id', 'math')
+    }
+    if (key === 'projector') {
+      supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'english')
+      supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'math')
+    }
   }
 
   const { state, sessions, elapsed, phase: autoPhase, error: adminError, loadState, loadSessions, updateState } = useAdminData({ subject })
