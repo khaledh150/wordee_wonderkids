@@ -39,17 +39,21 @@ export default function AdminDashboard() {
 
   const isDark = themes.admin === 'dark'
 
-  function toggleTheme(key) {
+  async function toggleTheme(key) {
     const next = { ...themes, [key]: themes[key] === 'dark' ? 'light' : 'dark' }
     setThemes(next)
     localStorage.setItem('wonderkids_themes', JSON.stringify(next))
-    if (key === 'student') {
-      supabase.from('competition_state').update({ theme: next.student }).eq('id', 'english')
-      supabase.from('competition_state').update({ theme: next.student }).eq('id', 'math')
-    }
-    if (key === 'projector') {
-      supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'english')
-      supabase.from('competition_state').update({ projector_theme: next.projector }).eq('id', 'math')
+    const field = key === 'student' ? 'theme' : key === 'projector' ? 'projector_theme' : null
+    if (!field) return
+    const value = next[key]
+    const results = await Promise.all([
+      supabase.from('competition_state').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', 'english'),
+      supabase.from('competition_state').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', 'math'),
+    ])
+    const failed = results.find(r => r.error)
+    if (failed) {
+      console.error('Theme update failed:', failed.error)
+      toast.error('Theme update failed')
     }
   }
 
